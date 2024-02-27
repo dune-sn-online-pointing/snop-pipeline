@@ -5,7 +5,9 @@ import sys
 import argparse
 import time
 
+# assumes that upper level is home of the project
 sys.path.append("../python/")
+sys.path.append("../submodules/online-pointing-utils/python/")
 
 import run_clustering # Read data, run clustering, save results
 import run_ctds # Read clusters and create dataset
@@ -13,6 +15,7 @@ import run_mt_id # Read dataset and identify Main Tracks
 import run_volume # Read Main Tracks and calculate volume
 import run_int_class # Read Main Tracks and classify interactions
 
+# import cluster # works
 
 parser = argparse.ArgumentParser(description='Run the pipeline')
 parser.add_argument('--input_json', type=str, help='Input json file')
