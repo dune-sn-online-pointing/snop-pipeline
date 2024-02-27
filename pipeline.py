@@ -5,7 +5,7 @@ import sys
 import argparse
 import time
 
-sys.path.append("libs/")
+sys.path.append("../python/")
 
 import run_clustering # Read data, run clustering, save results
 import run_ctds # Read clusters and create dataset
