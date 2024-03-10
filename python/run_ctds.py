@@ -2,8 +2,8 @@ import os
 import numpy as np
 import sys
 
-sys.path.append("/afs/cern.ch/work/d/dapullia/public/dune/new-install/python")
-# sys.path.append("./submodules/online-pointing-utils/python")
+# sys.path.append("/afs/cern.ch/work/d/dapullia/public/dune/online-pointing-utils/python")
+sys.path.append("../submodules/online-pointing-utils/python/")
 from image_creator import *
 from utils import *
 from cluster import *
@@ -12,7 +12,7 @@ from dataset_creator import *
 
 def run(ctds_parameters, output_folder):
 
-    filename = ctds_parameters["filename"]
+    filename = output_folder+ctds_parameters["filename"]
     ctds_outfolder = output_folder+ctds_parameters["output_folder"]
     width = ctds_parameters["img_witdh"]
     height = ctds_parameters["img_height"]
@@ -41,27 +41,30 @@ def run(ctds_parameters, output_folder):
     # Create the channel map
     channel_map = create_channel_map_array(which_detector=which_detector)
     # Prepare the output path   
-    if not os.path.exists(output_path + 'dataset'):
-        os.makedirs(output_path + 'dataset')
+    if not os.path.exists(ctds_outfolder + 'dataset'):
+        os.makedirs(ctds_outfolder + 'dataset')
 
     # Create the images
+    dataset_img = None
+
     if save_img_dataset:
         print("Creating the images")
         dataset_img = create_dataset_img(clusters=clusters, channel_map=channel_map, min_tps_to_create_img=min_tps_to_cluster, make_fixed_size=True, width=width, height=height, x_margin=x_margin, y_margin=y_margin, only_collection=True)
         print(f"Shape of the dataset_img: {dataset_img.shape}")
-        np.save(output_path + 'dataset/dataset_img.npy', dataset_img)
-        save_samples_from_ds(dataset_img, output_path + 'samples/', n_samples=10)
+        np.save(ctds_outfolder + 'dataset/dataset_img.npy', dataset_img)
+        save_samples_from_ds(dataset_img, ctds_outfolder + 'samples/', n_samples=10)
     # Create the labels
     if save_process_label:
         print("Creating the process labels")
         dataset_label_process = create_dataset_label_process(clusters)
         print(f"Shape of the dataset_label_process: {dataset_label_process.shape}")
         print(f"Unique labels: {np.unique(dataset_label_process, return_counts=True)}")
-        np.save(output_path + 'dataset/dataset_label_process.npy', dataset_label_process)
+        np.save(ctds_outfolder + 'dataset/dataset_label_process.npy', dataset_label_process)
     if save_true_dir_label:
         print("Creating the true direction labels")
         dataset_label_true_dir = create_dataset_label_true_dir(clusters)
         print(f"Shape of the dataset_label_true_dir: {dataset_label_true_dir.shape}")
-        np.save(output_path + 'dataset/dataset_label_true_dir.npy', dataset_label_true_dir)
+        np.save(ctds_outfolder + 'dataset/dataset_label_true_dir.npy', dataset_label_true_dir)
 
+    return dataset_img
 
