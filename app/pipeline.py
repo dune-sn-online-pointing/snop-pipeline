@@ -13,6 +13,11 @@ import run_mt_id # Read dataset and identify Main Tracks
 import run_volume # Read Main Tracks and calculate volume
 import run_int_class # Read Main Tracks and classify interactions
 import general_libs # Create report
+sys.path.append("../submodules/online-pointing-utils/python/")
+from image_creator import *
+from utils import *
+from cluster import *
+from dataset_creator import *
 
 parser = argparse.ArgumentParser(description='Run the pipeline')
 parser.add_argument('--input_json', type=str, help='Input json file')
@@ -33,16 +38,21 @@ overall_start = time.time()
 # Run clustering
 print("Running clustering")
 start = time.time()
-clustering_params = input_data["clustering"]
-run_clustering.run(clustering_params, output_folder)
+run_clustering.run(input_data, output_folder)
 end = time.time()
 print("Clustering done in", end - start, "seconds")
 
+# # Check if clustering was successful
+# filename = output_folder + input_data["ctds"]["filename"]
+# clusters, event_number = read_root_file_to_clusters(filename)
+# labels = np.array([c.get_true_label() for c in clusters])
+# print("Unique labels:", np.unique(labels, return_counts=True))
+# exit(0)
 # Run clusters to dataset
 print("Running clusters to dataset")
+ctds_dataset_img = None
 start = time.time()
-ctds_params = input_data["ctds"]
-ctds_dataset_img = run_ctds.run(ctds_params, output_folder)
+ctds_dataset_img = run_ctds.run(input_data, output_folder)
 end = time.time()
 print("Clusters to dataset done in", end - start, "seconds")
 
@@ -53,8 +63,7 @@ if ctds_dataset_img is None:
 # Run Main Tracks identification
 print("Running Main Tracks identification")
 start = time.time()
-mt_id_params = input_data["mt_id"]
-predictions = run_mt_id.run(mt_id_params, 
+predictions = run_mt_id.run(input_data, 
                 dataset_img=ctds_dataset_img,
                 output_folder=output_folder)
 end = time.time()
@@ -64,10 +73,31 @@ print("Main Tracks identification done in", end - start, "seconds")
 # # Run volume group creation
 # print("Running volume group creation")
 # start = time.time()
-# volume_params = input_data["volume"]
-# run_volume.run(volume_params, output_folder)
+# run_volume.run(input_data, output_folder)
 # end = time.time()
 # print("Volume group creation done in", end - start, "seconds")
+
+# # Run volume cluster to dataset
+# print("Running volume cluster to dataset")
+# start = time.time()
+# vtds_dataset_img = run_volume.run_vtds(input_data, output_folder)
+# end = time.time()
+
+# Run interaction classification
+print("Running interaction classification")
+start = time.time()
+index = np.where(predictions > input_data["mt_id"]["threshold"] )[0]
+print(ctds_dataset_img.shape)
+# filter only images with index. dataset shape (493, 250, 40, 1)
+mt_id_dataset_img = ctds_dataset_img[index]
+
+print("mt_id_dataset_img shape:", mt_id_dataset_img.shape)
+predictions_class = run_int_class.run(input_data, 
+                                    dataset_img=mt_id_dataset_img,
+                                    output_folder=output_folder)
+end = time.time()
+print("Interaction classification done in", end - start, "seconds")
+
 
 
 

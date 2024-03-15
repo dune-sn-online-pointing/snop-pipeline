@@ -2,7 +2,9 @@ import os
 import numpy as np
 import json
 
-def run(clustering_params, output_folder):
+def run(input_data, output_folder):
+    clustering_params = input_data["clustering"]
+
     # Check if executable exists
     if not os.path.exists(clustering_params["executable"]):
         raise Exception("Executable not found")

@@ -10,7 +10,8 @@ from cluster import *
 from dataset_creator import *
 
 
-def run(ctds_parameters, output_folder):
+def run(input_data, output_folder):
+    ctds_parameters = input_data["ctds"]
 
     filename = output_folder+ctds_parameters["filename"]
     ctds_outfolder = output_folder+ctds_parameters["output_folder"]
