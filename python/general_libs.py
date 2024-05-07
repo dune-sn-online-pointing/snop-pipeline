@@ -46,3 +46,6 @@ def create_report(input_data, output_folder):
         print("True ID of Interactions:", np.unique(true_info_class, return_counts=True))
 
         print("Report created")
+
+    
+    

@@ -69,13 +69,12 @@ predictions = run_mt_id.run(input_data,
 end = time.time()
 print("Main Tracks identification done in", end - start, "seconds")
 
-
-# # Run volume group creation
-# print("Running volume group creation")
-# start = time.time()
-# run_volume.run(input_data, output_folder)
-# end = time.time()
-# print("Volume group creation done in", end - start, "seconds")
+# Run volume group creation
+print("Running volume group creation")
+start = time.time()
+run_volume.run(input_data, output_folder)
+end = time.time()
+print("Volume group creation done in", end - start, "seconds")
 
 # # Run volume cluster to dataset
 # print("Running volume cluster to dataset")
