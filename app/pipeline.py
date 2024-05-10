@@ -11,6 +11,7 @@ import run_clustering # Read data, run clustering, save results
 import run_ctds # Read clusters and create dataset
 import run_mt_id # Read dataset and identify Main Tracks
 import run_volume # Read Main Tracks and calculate volume
+import run_vtds # Read volume clusters and create image dataset
 import run_int_class # Read Main Tracks and classify interactions
 import general_libs # Create report
 sys.path.append("../submodules/online-pointing-utils/python/")
@@ -42,12 +43,6 @@ run_clustering.run(input_data, output_folder)
 end = time.time()
 print("Clustering done in", end - start, "seconds")
 
-# # Check if clustering was successful
-# filename = output_folder + input_data["ctds"]["filename"]
-# clusters, event_number = read_root_file_to_clusters(filename)
-# labels = np.array([c.get_true_label() for c in clusters])
-# print("Unique labels:", np.unique(labels, return_counts=True))
-# exit(0)
 # Run clusters to dataset
 print("Running clusters to dataset")
 ctds_dataset_img = None
@@ -76,29 +71,20 @@ run_volume.run(input_data, output_folder)
 end = time.time()
 print("Volume group creation done in", end - start, "seconds")
 
-# # Run volume cluster to dataset
-# print("Running volume cluster to dataset")
-# start = time.time()
-# vtds_dataset_img = run_volume.run_vtds(input_data, output_folder)
-# end = time.time()
+# Run volume cluster to dataset
+print("Running volume cluster to dataset")
+start = time.time()
+vtds_dataset_img = run_vtds.run(input_data, output_folder)
+end = time.time()
 
 # Run interaction classification
 print("Running interaction classification")
 start = time.time()
-index = np.where(predictions > input_data["mt_id"]["threshold"] )[0]
-print(ctds_dataset_img.shape)
-# filter only images with index. dataset shape (493, 250, 40, 1)
-mt_id_dataset_img = ctds_dataset_img[index]
-
-print("mt_id_dataset_img shape:", mt_id_dataset_img.shape)
 predictions_class = run_int_class.run(input_data, 
-                                    dataset_img=mt_id_dataset_img,
+                                    dataset_img=vtds_dataset_img,
                                     output_folder=output_folder)
 end = time.time()
 print("Interaction classification done in", end - start, "seconds")
-
-
-
 
 # Create report
 print("Creating report")
@@ -106,7 +92,6 @@ start = time.time()
 general_libs.create_report(input_data, output_folder)
 end = time.time()
 print("Report done in", end - start, "seconds")
-
 
 print("Overall done in", time.time() - overall_start, "seconds")
 
