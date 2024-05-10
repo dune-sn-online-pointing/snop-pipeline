@@ -22,6 +22,8 @@ def create_report(input_data, output_folder):
         pred_main_tracks = predictions[index]
         print(labels.shape, predictions.shape, pred_main_tracks.shape)
         true_info = labels[index]
+        f.write("\n")
+        f.write("\n")
         f.write(f"Predicted Main Tracks: {len(pred_main_tracks)}")
         f.write("\n")
         f.write(f"True ID of Main Tracks: {np.unique(true_info, return_counts=True)}")
