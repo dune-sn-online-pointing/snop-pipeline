@@ -24,6 +24,7 @@ def run(input_data, output_folder):
     save_img_dataset = ctds_parameters["save_img_dataset"]
     save_process_label = ctds_parameters["save_process_label"]
     save_true_dir_label = ctds_parameters["save_true_dir_label"]
+    only_collection = ctds_parameters['only_collection']
     dt = np.dtype([('time_start', float), 
                     ('time_over_threshold', float),
                     ('time_peak', float),
@@ -50,7 +51,7 @@ def run(input_data, output_folder):
 
     if save_img_dataset:
         print("Creating the images")
-        dataset_img = create_dataset_img(clusters=clusters, channel_map=channel_map, min_tps_to_create_img=min_tps_to_cluster, make_fixed_size=True, width=width, height=height, x_margin=x_margin, y_margin=y_margin, only_collection=True)
+        dataset_img = create_dataset_img(clusters=clusters, channel_map=channel_map, min_tps_to_create_img=min_tps_to_cluster, make_fixed_size=True, width=width, height=height, x_margin=x_margin, y_margin=y_margin, only_collection=only_collection)
         print(f"Shape of the dataset_img: {dataset_img.shape}")
         np.save(ctds_outfolder + 'dataset/dataset_img.npy', dataset_img)
         save_samples_from_ds(dataset_img, ctds_outfolder + 'samples/', n_samples=10)

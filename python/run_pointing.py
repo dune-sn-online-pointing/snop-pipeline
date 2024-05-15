@@ -18,7 +18,14 @@ def run(input_data, dataset_img, output_folder):
     # Load model
     model = keras.models.load_model(pointing_params["model"], compile=False)    
     # Predict
-    predictions = model.predict(dataset_img)
+    if dataset_img.shape[-1]==1:
+        predictions = model.predict(dataset_img)
+    elif dataset_img.shape[-1]==3:
+        predictions = model.predict((dataset_img[:,:,:,0], dataset_img[:,:,:,1], dataset_img[:,:,:,2]))
+    else:
+        raise Exception("Invalid number of channels")
+    print("Predictions shape: ", predictions.shape)
+
     # Save predictions
     id_outfolder = output_folder + pointing_params["output_folder"]
     if not os.path.exists(id_outfolder):
@@ -26,10 +33,18 @@ def run(input_data, dataset_img, output_folder):
     np.save(id_outfolder + "predictions.npy", predictions)
 
     # save in txt
-    with open(id_outfolder + "predictions.txt", "w") as f:
-        for i in range(len(predictions)):
-            f.write(str(predictions[i][0]) + "\n")
-
+    if predictions.shape[1] == 3:
+        with open(id_outfolder + "predictions.txt", "w") as f:
+            for i in range(len(predictions)):
+                f.write(f"{predictions[i][0]} {predictions[i][1]} {predictions[i][2]}\n")
+    elif predictions.shape[1] == 2:
+        with open(id_outfolder + "predictions.txt", "w") as f:
+            for i in range(len(predictions)):
+                f.write(f"{predictions[i][0]} {predictions[i][1]}\n")
+    elif predictions.shape[1] == 1:
+        with open(id_outfolder + "predictions.txt", "w") as f:
+            for i in range(len(predictions)):
+                f.write(f"{predictions[i][0]}\n")
 
     return predictions
 
