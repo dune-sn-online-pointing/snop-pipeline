@@ -1,6 +1,10 @@
 #!bin/bash
+# INPUT_JSON=/afs/cern.ch/work/d/dapullia/public/dune/data-selection-pipeline/json/res_studies/test_single_dir.json
+# OUTPUT_FOLDER=/eos/user/d/dapullia/dune/data-selection-pipeline/res_studies/test_single_dir/
+
 INPUT_JSON=/afs/cern.ch/work/d/dapullia/public/dune/data-selection-pipeline/json/res_studies/test_single_dir.json
 OUTPUT_FOLDER=/eos/user/d/dapullia/dune/data-selection-pipeline/res_studies/test_single_dir/
+
 # This script is used to run the pipeline
 REPO_HOME=$(git rev-parse --show-toplevel)
 

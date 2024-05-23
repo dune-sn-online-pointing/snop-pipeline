@@ -15,6 +15,7 @@ import run_int_class # Read Main Tracks and classify interactions
 import run_pointing # Read dataset and predict pointing
 import run_match_clusters # Read clusters and match them
 import run_pointing_tests # Read dataset and predictions and run tests
+import run_loglikelihood_reconstruction # Read dataset and predictions and run tests
 import general_libs # Create report
 sys.path.append("../submodules/online-pointing-utils/python/")
 from image_creator import *
@@ -73,9 +74,29 @@ predictions = run_pointing.run(input_data, ctds_dataset_img, output_folder)
 end = time.time()
 print("Pointing done in", end - start, "seconds")
 
+# Run Loglikelihood reconstruction
+true_dir_exists = os.path.exists(output_folder + input_data["ctds"]["output_folder"] + "/dataset/dataset_label_true_dir.npy")
+final_theta, final_phi, final_theta_std, final_phi_std = None, None, None, None
+if true_dir_exists:
+    true_dir = np.load(output_folder + input_data["ctds"]["output_folder"] + "/dataset/dataset_label_true_dir.npy")
+    true_x = true_dir[:, 0]
+    if len(np.unique(true_x)) > 1:
+        print("More than one true direction, loglikelihood reconstruction not possible")
+    else:
+        print("Running Loglikelihood reconstruction")
+        start = time.time()
+        final_theta, final_phi, final_theta_std, final_phi_std = run_loglikelihood_reconstruction.run(input_data, predictions, output_folder)
+        end = time.time()
+        print("Loglikelihood reconstruction done in", end - start, "seconds")
+else:
+    print("No true direction found, loglikelihood reconstruction not possible")
+
 # Run pointing tests
 print("Running pointing tests")
 start = time.time()
-run_pointing_tests.run(input_data, predictions, output_folder)
+run_pointing_tests.run(input_data, predictions, output_folder, final_theta=final_theta, final_phi=final_phi, final_theta_std=final_theta_std, final_phi_std=final_phi_std)
 end = time.time()
 print("Pointing done in", end - start, "seconds")
+
+
+
