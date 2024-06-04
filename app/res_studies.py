@@ -26,10 +26,12 @@ from dataset_creator import *
 parser = argparse.ArgumentParser(description='Run the pipeline')
 parser.add_argument('--input_json', type=str, help='Input json file')
 parser.add_argument('--output_folder', type=str, help='Output folder')
+parser.add_argument('--delete_view', type=str, help='Delete view', default="")
 args = parser.parse_args()
 
 input_json = args.input_json
 output_folder = args.output_folder
+delete_view = args.delete_view
 
 # Read input json
 with open(input_json) as f:
@@ -61,11 +63,19 @@ ctds_dataset_img = run_ctds.run(input_data, output_folder)
 end = time.time()
 print("Clusters to dataset done in", end - start, "seconds")
 
+# ctds_dataset_img = np.load(output_folder + input_data["ctds"]["output_folder"] + "/dataset/dataset_img.npy")
 if ctds_dataset_img is None:
     print("No dataset_img created, exiting...")
     sys.exit(0)
 
-# ctds_dataset_img = np.load(output_folder + input_data["ctds"]["output_folder"] + "/dataset/dataset_img.npy")
+
+if delete_view=="U":
+    ctds_dataset_img[:,:,:,0] = np.zeros(ctds_dataset_img[:,:,:,0].shape)
+elif delete_view=="V":
+    ctds_dataset_img[:,:,:,1] = np.zeros(ctds_dataset_img[:,:,:,0].shape)
+elif delete_view=="X":
+    ctds_dataset_img[:,:,:,2] = np.zeros(ctds_dataset_img[:,:,:,0].shape)
+
 
 # Run pointing
 print("Running pointing")
@@ -75,8 +85,20 @@ end = time.time()
 print("Pointing done in", end - start, "seconds")
 
 # Run Loglikelihood reconstruction
+# true_x = -0.4456426072266339
+# true_y = 0.9358507776036403
+# true_z = 0.8674443786655945
+# # true_dir = np.array([[true_x, true_y, true_z]])
+
+# true_x = np.ones(ctds_dataset_img.shape[0]) * true_x
+# true_y = np.ones(ctds_dataset_img.shape[0]) * true_y
+# true_z = np.ones(ctds_dataset_img.shape[0]) * true_z
+# true_dir = np.array([true_x, true_y, true_z]).T
+# np.save(output_folder + input_data["ctds"]["output_folder"] + "/dataset/dataset_label_true_dir.npy", true_dir)
+
+
 true_dir_exists = os.path.exists(output_folder + input_data["ctds"]["output_folder"] + "/dataset/dataset_label_true_dir.npy")
-final_theta, final_phi, final_theta_std, final_phi_std = None, None, None, None
+final_theta, final_phi, final_theta_std, final_phi_std, omega_resolution = None, None, None, None, None
 if true_dir_exists:
     true_dir = np.load(output_folder + input_data["ctds"]["output_folder"] + "/dataset/dataset_label_true_dir.npy")
     true_x = true_dir[:, 0]
@@ -85,11 +107,15 @@ if true_dir_exists:
     else:
         print("Running Loglikelihood reconstruction")
         start = time.time()
-        final_theta, final_phi, final_theta_std, final_phi_std = run_loglikelihood_reconstruction.run(input_data, predictions, output_folder)
+        final_theta, final_phi, final_theta_std, final_phi_std, omega_resolution = run_loglikelihood_reconstruction.run(input_data, predictions, output_folder)
         end = time.time()
         print("Loglikelihood reconstruction done in", end - start, "seconds")
 else:
-    print("No true direction found, loglikelihood reconstruction not possible")
+    print("Running Loglikelihood reconstruction")
+    start = time.time()
+    final_theta, final_phi, final_theta_std, final_phi_std, omega_resolution = run_loglikelihood_reconstruction.run(input_data, predictions, output_folder)
+    end = time.time()
+    print("Loglikelihood reconstruction done in", end - start, "seconds")
 
 # Run pointing tests
 print("Running pointing tests")
