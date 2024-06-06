@@ -67,13 +67,13 @@ def run(input_data, predictions, output_folder):
 
     nwalkers = 100
     ndim = 2
-    nsteps = 1000
-    discard = 200
+    nsteps = 500
+    discard = 150
     initial_pos = np.array([-np.pi, 0]) + np.random.rand(nwalkers, ndim) * np.array([2*np.pi, np.pi])
 
     sampler = emcee.EnsembleSampler(nwalkers, ndim, logpost, args=[predictions[:, 0], predictions[:, 1], predictions[:, 2]], moves=[emcee.moves.MHMove(_custom_proposal)])
 
-    sampler.run_mcmc(initial_pos, nsteps, progress=True);
+    sampler.run_mcmc(initial_pos, nsteps, progress=False);
     
     samples = sampler.get_chain()
 
@@ -93,8 +93,6 @@ def run(input_data, predictions, output_folder):
     # create a map with the number of pixels
     map_hp = np.zeros(npix)
     thetas, phis = samples[:, :, 0].flatten(), samples[:, :, 1].flatten()
-    print(thetas)
-    print(phis)
     thetas = np.mod(thetas, 2*np.pi)
     phis = np.mod(phis, np.pi)
     # get the indices
@@ -117,7 +115,7 @@ def run(input_data, predictions, output_folder):
     flat_samples = sampler.get_chain(flat=True, discard=discard)
 
     fig = corner.corner(flat_samples,  
-                        verbose=True,
+                        verbose=False,
                         plot_contours=True,
                         use_math_text=True,
                         quantiles=[0.16, 0.5, 0.84],
@@ -143,8 +141,6 @@ def run(input_data, predictions, output_folder):
 
     avg_theta = np.arctan2(avg_z, avg_x)
     avg_phi = np.arccos(avg_y)
-    print(f"Correctly computed theta: {avg_theta}")
-    print(f"Correctly computed phi: {avg_phi}")
     
     # Compute the angles between the average direction and the walkers
     cos_angle_diff = (avg_x * x_walker + avg_y * y_walker + avg_z * z_walker) / (np.sqrt(avg_x**2 + avg_y**2 + avg_z**2) * np.sqrt(x_walker**2 + y_walker**2 + z_walker**2))
@@ -171,9 +167,9 @@ def run(input_data, predictions, output_folder):
     cumsum = np.cumsum(weight_for_angle_diff)
     cumsum = cumsum / cumsum[-1]
     quantiles = np.quantile(cumsum, [0.68])
-    print(f"Quantiles for the angle difference: {quantiles}")
+    # print(f"Quantiles for the angle difference: {quantiles}")
     omega_resolution = angle_diff[np.where(cumsum > quantiles[0])[0][0]]
-    print(f"Omega resolution: {omega_resolution}")
+    # print(f"Omega resolution: {omega_resolution}")
     
 
     plt.hist(angle_diff, bins=30, weights=weight_for_angle_diff)
@@ -185,16 +181,12 @@ def run(input_data, predictions, output_folder):
     plt.savefig(output_folder + "walkers_angle_diff_weighted.png")
     plt.clf()
 
-
-
-    final_theta = circmean(flat_samples[:, 0], high=np.pi, low=-np.pi)
     final_theta_std = circstd(flat_samples[:, 0], high=np.pi, low=-np.pi)
-    final_phi = np.mean(flat_samples[:, 1])
     final_phi_std = np.std(flat_samples[:, 1])
 
-    print(f"Final theta: {final_theta} +- {final_theta_std}")
-    print(f"Final phi: {final_phi} +- {final_phi_std}")
-    return final_theta, final_phi, final_theta_std, final_phi_std, omega_resolution
+    # print(f"Final theta: {avg_theta} +- {final_theta_std}")
+    # print(f"Final phi: {avg_phi} +- {final_phi_std}")
+    return avg_theta, avg_phi, final_theta_std, final_phi_std, omega_resolution
 
 
 

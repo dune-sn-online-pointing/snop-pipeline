@@ -24,7 +24,7 @@ def run(input_data, dataset_img, output_folder):
         predictions = model.predict((dataset_img[:,:,:,0], dataset_img[:,:,:,1], dataset_img[:,:,:,2]))
     else:
         raise Exception("Invalid number of channels")
-    print("Predictions shape: ", predictions.shape)
+    # print("Predictions shape: ", predictions.shape)
 
     # Save predictions
     id_outfolder = output_folder + pointing_params["output_folder"]

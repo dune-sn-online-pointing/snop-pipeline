@@ -1,7 +1,7 @@
 #!bin/bash
 
 INPUT_JSON=/afs/cern.ch/work/d/dapullia/public/dune/data-selection-pipeline/json/dataset_maker/make.json
-OUTPUT_FOLDER=/eos/user/d/dapullia/dune/data-selection-pipeline/dataset_maker/3/
+OUTPUT_FOLDER=/eos/user/d/dapullia/dune/data-selection-pipeline/dataset_maker/
 
 # This script is used to run the pipeline
 REPO_HOME=$(git rev-parse --show-toplevel)
