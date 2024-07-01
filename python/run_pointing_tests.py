@@ -15,14 +15,7 @@ plt.rcParams.update({'axes.labelsize': 18})
 plt.rcParams.update({'figure.figsize': (13, 13)})
 
 
-def run(input_data, predictions, output_folder, final_theta=None, final_phi=None, final_theta_std=None, final_phi_std=None):
-    true_dir_exists = os.path.exists(output_folder + input_data["ctds"]["output_folder"] + "/dataset/dataset_label_true_dir.npy")
-
-    if not true_dir_exists:
-        true_dir = None
-    else:
-        true_dir = np.load(output_folder + input_data["ctds"]["output_folder"] + "/dataset/dataset_label_true_dir.npy")
-
+def run(input_data, predictions, output_folder, final_theta=None, final_phi=None, final_theta_std=None, final_phi_std=None, true_dir=None):
     study(predictions=predictions, true_dir=true_dir, output_folder=output_folder, final_theta=final_theta, final_phi=final_phi, final_theta_std=final_theta_std, final_phi_std=final_phi_std)
 
 def study(predictions, true_dir=None, output_folder="", final_theta=None, final_phi=None, final_theta_std=None, final_phi_std=None):

@@ -98,14 +98,22 @@ true_errors = []
 reso_distances = []
 true_dirs = []
 n_tracks = []
-total_predictions = np.array([])
-total_true_dirs = np.array([])
-total_energies = np.array([])
+
+total_predictions = np.empty((0,3)) 
+total_true_dirs = np.empty((0,3))
+total_energies_U = np.array([])
+total_energies_V = np.array([])
+total_energies_X = np.array([])
+
+print("Total predictions shape", total_predictions.shape)
+print("Total true dirs shape", total_true_dirs.shape)
+print("Total energies shape", total_energies_X.shape)
 
 for i in range(len(unique_true_x)):
     print("Event", i, "of", len(unique_true_x), "events")
     index = np.where(true_x == unique_true_x[i])
     ctds_dataset_img_i = ctds_dataset_img[index]
+    ctds_dataset_img_i = ctds_dataset_img_i[np.sum(ctds_dataset_img_i[:,:,:,2], axis=(1,2)) > 0.5e6]
     n_tracks.append(ctds_dataset_img_i.shape[0])
     true_dir_i = true_dir[index]
     true_x_i = true_dir_i[0,0]
@@ -117,16 +125,20 @@ for i in range(len(unique_true_x)):
         E = np.sum(ctds_dataset_img_i[:,:,:,2], axis=(1,2))
         E = np.sqrt(E)
         E = E / np.max(E)
+        # total_energies = np.concatenate((total_energies, np.sum(ctds_dataset_img_i[:,:,:,2], axis=(1,2))))
+        total_energies_U = np.concatenate((total_energies_U, np.sum(ctds_dataset_img_i[:,:,:,0], axis=(1,2))))
+        total_energies_V = np.concatenate((total_energies_V, np.sum(ctds_dataset_img_i[:,:,:,1], axis=(1,2))))
+        total_energies_X = np.concatenate((total_energies_X, np.sum(ctds_dataset_img_i[:,:,:,2], axis=(1,2))))
     else:
         E = None
-
+        # total_energies = np.concatenate((total_energies, np.sum(ctds_dataset_img_i[:,:,:,2], axis=(1,2))))
+        total_energies_U = np.concatenate((total_energies_U, np.sum(ctds_dataset_img_i[:,:,:,0], axis=(1,2))))
+        total_energies_V = np.concatenate((total_energies_V, np.sum(ctds_dataset_img_i[:,:,:,1], axis=(1,2))))
+        total_energies_X = np.concatenate((total_energies_X, np.sum(ctds_dataset_img_i[:,:,:,2], axis=(1,2))))
 
     predictions = run_pointing.run(input_data, ctds_dataset_img_i, output_folder)
-
-    total_predictions = np.concatenate((total_predictions, predictions))
-    total_true_dirs = np.concatenate((total_true_dirs, true_dir_i))
-    total_energies = np.concatenate((total_energies, np.sum(ctds_dataset_img_i[:,:,:,2], axis=(1,2))))
-
+    total_predictions = np.append(total_predictions, predictions, axis=0)
+    total_true_dirs = np.append(total_true_dirs, true_dir_i, axis=0)
 
     final_theta, final_phi, final_theta_std, final_phi_std, omega_resolution = run_loglikelihood_reconstruction.run(input_data, predictions, E, output_folder)
 
@@ -224,7 +236,7 @@ cumsum_cos_true_errors = cumsum_cos_true_errors / cumsum_cos_true_errors[-1]
 correct_quantile_index_cos = np.where(cumsum_cos_true_errors > 0.32)[0][0]
 
 
-plt.hist(np.cos(true_errors), bins=50, range=(0.975, 1))
+plt.hist(np.cos(true_errors), bins=30, range=(0.975, 1))
 plt.axvline(cos_true_errors[correct_quantile_index_cos], color="red", label=f"68% quantile: cos({np.arccos(cos_true_errors[correct_quantile_index_cos])*180/np.pi:.2f}°)")
 plt.xticks(np.linspace(0.975, 1, 5))
 plt.gca().set_xticklabels([f"cos({np.arccos(x)*180/np.pi:.2f}°)" for x in np.linspace(0.975, 1, 5)])
@@ -258,9 +270,20 @@ plt.title("Cosine between predicted and true direction")
 plt.savefig(output_folder + "cos.png")
 plt.clf()
 
+# plt.hist(total_energies, bins=30, range=(0, 5E6))
+plt.hist(total_energies_U, bins=30, range=(0, 3E6), alpha=0.5, label="U")
+plt.hist(total_energies_V, bins=30, range=(0, 3E6), alpha=0.5, label="V")
+plt.hist(total_energies_X, bins=30, range=(0, 3E6), alpha=0.5, label="X")
+plt.xlabel("Energy [ADC Counts]")
+plt.ylabel("Frequency")
+plt.title("Energy")
+plt.legend()
+plt.savefig(output_folder + "energy.png")
+plt.clf()
+
 
 # make a 2D plot with energies and total cos
-plt.hist2d(total_cos, total_energies, bins=30)
+plt.hist2d(total_cos, total_energies_X, bins=30, cmin=1)
 plt.xlabel("Cos(angle)")
 plt.ylabel("Energy [ADC Counts]")
 plt.title("Cos(angle) vs Energy")

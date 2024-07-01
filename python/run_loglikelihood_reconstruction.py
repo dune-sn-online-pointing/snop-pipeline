@@ -48,13 +48,24 @@ def loglike_E_weighted(args, pred_x, pred_y, pred_z, E):
     cos_angle_diff = (reco_x * pred_x + reco_y * pred_y + reco_z * pred_z) / (np.sqrt(reco_x**2 + reco_y**2 + reco_z**2) * np.sqrt(pred_x**2 + pred_y**2 + pred_z**2))
 
     cos_angle_diff = np.array(cos_angle_diff)  # Convert cos_angle_diff to a numpy array
-    cos_angle_diff = np.where(cos_angle_diff > 1, 1, cos_angle_diff)  # Correct for numerical errors
-    cos_angle_diff = np.where(cos_angle_diff < -1, -1, cos_angle_diff)  # Correct for numerical errors
-    angle_diff = np.arccos(cos_angle_diff)
+    cos_angle_diff = np.where(cos_angle_diff >= 1.0, 0.999, cos_angle_diff)  # Correct for numerical errors
+    cos_angle_diff = np.where(cos_angle_diff <= -1.0, -0.999, cos_angle_diff)  # Correct for numerical errors
+    # angle_diff = np.arccos(cos_angle_diff)
 
-    sigma = 1/E
-    loglike = -np.sum(angle_diff**2/(2*sigma**2) + np.log(sigma))
-    print(loglike)
+    # sigma = 1/E
+    # loglike = -np.sum(angle_diff**2/(2*sigma**2) + np.log(sigma))
+    # print(loglike)
+    # energy_bins = np.load(input_data["loglikelihood"]["energy_bins"])
+    # cos_bins = np.load(input_data["loglikelihood"]["cos_bins"])
+    # pdf2d = np.load(input_data["loglikelihood"]["pdf2d"])
+
+    energy_bins = np.load("/afs/cern.ch/work/d/dapullia/public/dune/playground/create_2dpdf_pointing/energy_bins.npy")
+    cos_bins = np.load("/afs/cern.ch/work/d/dapullia/public/dune/playground/create_2dpdf_pointing/cos_bins.npy")
+    pdf2d = np.load("/afs/cern.ch/work/d/dapullia/public/dune/playground/create_2dpdf_pointing/cosine_vs_energy.npy")
+
+    loglike = np.sum(np.log(pdf2d[np.digitize(cos_angle_diff, cos_bins)-1, np.digitize(E, energy_bins)-1]))
+
+
     return loglike
 
 def logprior(args):
@@ -93,7 +104,7 @@ def _custom_proposal(state, random):
     return new_state, np.ones(state.shape[0])
 
 def run(input_data, predictions, E, output_folder):    
-    output_folder = output_folder + "loglikelihood_results/"
+    output_folder = output_folder + input_data["loglikelihood"]["output_folder"]
     if not os.path.exists(output_folder):
         os.makedirs(output_folder)
     nwalkers = input_data["loglikelihood"]["n_walkers"]
@@ -107,7 +118,7 @@ def run(input_data, predictions, E, output_folder):
     else:
         sampler = emcee.EnsembleSampler(nwalkers, ndim, logpost_E_weighted, args=[predictions[:, 0], predictions[:, 1], predictions[:, 2], E], moves=[emcee.moves.MHMove(_custom_proposal)])
 
-    sampler.run_mcmc(initial_pos, nsteps, progress=False);
+    sampler.run_mcmc(initial_pos, nsteps, progress=False)
     
     samples = sampler.get_chain()
 
@@ -120,7 +131,8 @@ def run(input_data, predictions, E, output_folder):
         axes[i].set_xlabel("Step number")
 
     plt.savefig(output_folder + "walkers.png")
-
+    plt.close()
+    
     # Plot walk in the healpy map
     nside = 64
     npix = healpy.nside2npix(nside)

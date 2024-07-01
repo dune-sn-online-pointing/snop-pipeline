@@ -87,14 +87,8 @@ predictions = run_pointing.run(input_data, ctds_dataset_img, output_folder)
 if input_data["loglikelihood"]["energy_weight"]:
     # E is the sum of the pixel values in the X plane image
     E = np.sum(ctds_dataset_img[:,:,:,2], axis=(1,2))
-    E = np.sqrt(E)
-    E = E / np.max(E)
-    plt.figure()
-    plt.hist(E)
-    plt.savefig("E_hist.png")
-    plt.close()
-
-
+    # E = np.sqrt(E)
+    # E = E / np.max(E)
 else:
     E = None
 

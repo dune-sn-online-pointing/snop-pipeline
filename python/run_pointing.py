@@ -18,10 +18,11 @@ def run(input_data, dataset_img, output_folder):
     # Load model
     model = keras.models.load_model(pointing_params["model"], compile=False)    
     # Predict
+    print(dataset_img.shape)
     if dataset_img.shape[-1]==1:
-        predictions = model.predict(dataset_img)
+        predictions = model.predict(dataset_img, verbose=0)
     elif dataset_img.shape[-1]==3:
-        predictions = model.predict((dataset_img[:,:,:,0], dataset_img[:,:,:,1], dataset_img[:,:,:,2]))
+        predictions = model.predict((dataset_img[:,:,:,0], dataset_img[:,:,:,1], dataset_img[:,:,:,2]), verbose=0)
     else:
         raise Exception("Invalid number of channels")
     # print("Predictions shape: ", predictions.shape)
