@@ -110,6 +110,7 @@ if true_dir_exists:
         end = time.time()
         print("Loglikelihood reconstruction done in", end - start, "seconds")
 else:
+    print("True direction not available")
     print("Running Loglikelihood reconstruction")
     start = time.time()
     final_theta, final_phi, final_theta_std, final_phi_std, omega_resolution = run_loglikelihood_reconstruction.run(input_data, predictions, E, output_folder)
@@ -119,7 +120,7 @@ else:
 # Run pointing tests
 print("Running pointing tests")
 start = time.time()
-run_pointing_tests.run(input_data, predictions, output_folder, final_theta=final_theta, final_phi=final_phi, final_theta_std=final_theta_std, final_phi_std=final_phi_std)
+run_pointing_tests.run(input_data, predictions, output_folder, final_theta=final_theta, final_phi=final_phi, final_theta_std=final_theta_std, final_phi_std=final_phi_std, true_dir=true_dir)
 end = time.time()
 print("Pointing done in", end - start, "seconds")
 

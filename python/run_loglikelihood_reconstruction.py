@@ -224,7 +224,7 @@ def run(input_data, predictions, E, output_folder):
     print(f"Final theta: {avg_theta} +- {final_theta_std}")
     print(f"Final phi: {avg_phi} +- {final_phi_std}")
     print(f"Omega resolution: {omega_resolution}")
-
+    np.save(output_folder + "likelihood_results.npy", np.array([avg_theta, avg_phi, final_theta_std, final_phi_std, omega_resolution]))
 
     return avg_theta, avg_phi, final_theta_std, final_phi_std, omega_resolution
 

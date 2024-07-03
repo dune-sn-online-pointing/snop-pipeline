@@ -19,6 +19,7 @@ def create_report(input_data, output_folder):
         f.write("\n")
         predictions = np.load(output_folder + input_data["mt_id"]["output_folder"] + "predictions.npy")[:, 0]
         index = np.where(predictions > input_data["mt_id"]["threshold"] )
+
         pred_main_tracks = predictions[index]
         print(labels.shape, predictions.shape, pred_main_tracks.shape)
         true_info = labels[index]
@@ -38,16 +39,27 @@ def create_report(input_data, output_folder):
         f.write(f"True ID of Interactions: {np.unique(true_info_class, return_counts=True)}")
         f.write("\n")
         f.write("\n")
+        loglike_results = np.load(output_folder + input_data["loglikelihood"]["output_folder"] + "likelihood_results.npy")
+        f.write(f"Loglikelihood results: ")
+        f.write(f"Theta: {loglike_results[0]}")
+        f.write(f"Phi: {loglike_results[1]}")
+        f.write(f"Loglikelihood width: {loglike_results[-1]}")
+        f.write("\n")
+        f.write("\n")
         f.write("Input data:\n")
         f.write(json.dumps(input_data, indent=4))
         f.write("\n")
 
-        print("Predicted Main Tracks:", len(pred_main_tracks))
-        print("True ID of Main Tracks:", np.unique(true_info, return_counts=True))
-        print("Predicted ES Interactions:", len(pred_interactions))
-        print("True ID of Interactions:", np.unique(true_info_class, return_counts=True))
-
-        print("Report created")
+    print("Predicted Main Tracks:", len(pred_main_tracks))
+    print("True ID of Main Tracks:", np.unique(true_info, return_counts=True))
+    print("Predicted ES Interactions:", len(pred_interactions))
+    print("True ID of Interactions:", np.unique(true_info_class, return_counts=True))
+    print("Loglikelihood results: ")
+    print("Theta:", loglike_results[0])
+    print("Phi:", loglike_results[1])
+    print("Loglikelihood width:", loglike_results[-1])
+    
+    print("Report created")
 
     
     
