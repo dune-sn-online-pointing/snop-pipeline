@@ -41,21 +41,6 @@ if not os.path.exists(output_folder):
 
 overall_start = time.time()
 
-'''
-1. clustering
-2. ctds
-3. mt_id
-4. volume
-5. vtds
-6. int_class
-7. matching
-8. 3vctds
-9. pointing
-10. loglikelihood
-11. pointing_tests
-12. report
-'''
-
 # Run clustering
 print("Running clustering")
 start = time.time()
