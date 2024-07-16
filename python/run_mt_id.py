@@ -162,6 +162,16 @@ def histogram_of_enegies(test_labels, predictions, images, threshold=0.5, output
     print("False Positives: ", len(false_positives))
     print("False Negatives: ", len(false_negatives))
     print("All images: ", len(all_images))
+    
+    with open(output_folder + "prediction_results.txt", 'w') as file:
+        file.write(f'TP, TN, FP, FN\n')
+        file.write(f'{len(true_positives)}\n')
+        file.write(f'{len(true_negatives)}\n')
+        file.write(f'{len(false_positives)}\n')
+        file.write(f'{len(false_negatives)}\n')
+        file.write(f'{len(all_images)}\n')
+
+    print(f"Results saved to {output_folder} + prediction_results.txt")
 
     # sum the pixel values
     plt.figure()

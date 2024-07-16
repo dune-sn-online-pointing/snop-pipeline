@@ -3,7 +3,7 @@ import numpy as np
 import sys
 
 # sys.path.append("/afs/cern.ch/work/d/dapullia/public/dune/online-pointing-utils/python")
-sys.path.append("../submodules/online-pointing-utils/python/")
+sys.path.append("/afs/cern.ch/work/h/hakins/private/online-pointing-utils/python/")
 from image_creator import *
 from utils import *
 from cluster import *

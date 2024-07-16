@@ -4,7 +4,7 @@ import json
 
 def run(input_data, output_folder):
     clustering_params = input_data["clustering"]
-
+    print(clustering_params)
     # Check if executable exists
     if not os.path.exists(clustering_params["executable"]):
         raise Exception("Executable not found")
