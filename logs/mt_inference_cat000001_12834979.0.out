@@ -1,0 +1,41 @@
+Starting MT inference job
+Cluster ID: 12834979
+Process ID: 0
+Hostname: b9g34p3169.cern.ch
+Date: Thu Nov 13 06:14:18 PM CET 2025
+Loading TensorFlow (this may take a minute on first import)...
+Loading model from: /eos/user/e/evilla/dune/sn-tps/neural_networks/mt_identifier/v10_100k_nov13/mt_identifier_simple_cnn_20251113_145400
+Model loaded successfully
+Found 100 cluster files in X plane
+Loaded 19384 total clusters
+Image shape: (19384, 128, 32)
+Metadata shape: (19384, 14)
+Running inference on 19384 images...
+Saved full predictions to: results/mt_inference_cat000001_v10/mt_predictions.csv
+Saved 19384 identified main tracks to: results/mt_inference_cat000001_v10/mt_identified_main_tracks.csv
+Saved cluster ID mapping to: results/mt_inference_cat000001_v10/mt_cluster_id_mapping.json
+
+============================================================
+MT INFERENCE RESULTS
+============================================================
+Total clusters:           19384
+True main tracks:         3789
+Predicted main tracks:    19384
+
+Confusion Matrix:
+  True Positives (TP):    3789
+  True Negatives (TN):    0
+  False Positives (FP):   15595
+  False Negatives (FN):   0
+
+Performance Metrics:
+  Accuracy:               0.1955
+  Precision:              0.1955
+  Recall:                 1.0000
+  F1 Score:               0.3270
+  Contamination (FP%):    0.8045
+============================================================
+
+Saved metrics to: results/mt_inference_cat000001_v10/mt_metrics.json
+Job finished
+Exit code: 0

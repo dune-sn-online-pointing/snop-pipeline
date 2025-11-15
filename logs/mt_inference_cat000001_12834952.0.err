@@ -1,0 +1,41 @@
+2025-11-13 18:11:46.843037: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+Traceback (most recent call last):
+  File "/cvmfs/sft.cern.ch/lcg/views/LCG_105/x86_64-el9-gcc13-opt/lib/python3.9/site-packages/keras/src/engine/base_layer.py", line 868, in from_config
+    return cls(**config)
+  File "/cvmfs/sft.cern.ch/lcg/views/LCG_105/x86_64-el9-gcc13-opt/lib/python3.9/site-packages/keras/src/utils/traceback_utils.py", line 70, in error_handler
+    raise e.with_traceback(filtered_tb) from None
+  File "/cvmfs/sft.cern.ch/lcg/views/LCG_105/x86_64-el9-gcc13-opt/lib/python3.9/site-packages/keras/src/engine/input_layer.py", line 153, in __init__
+    raise ValueError(
+ValueError: Unrecognized keyword arguments: ['batch_shape']
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_mt_inference.py", line 329, in <module>
+    main()
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_mt_inference.py", line 275, in main
+    model = load_model(args.model_path)
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_mt_inference.py", line 28, in load_model
+    model = tf.keras.models.load_model(str(model_file))
+  File "/cvmfs/sft.cern.ch/lcg/views/LCG_105/x86_64-el9-gcc13-opt/lib/python3.9/site-packages/keras/src/saving/saving_api.py", line 230, in load_model
+    return saving_lib.load_model(
+  File "/cvmfs/sft.cern.ch/lcg/views/LCG_105/x86_64-el9-gcc13-opt/lib/python3.9/site-packages/keras/src/saving/saving_lib.py", line 275, in load_model
+    raise e
+  File "/cvmfs/sft.cern.ch/lcg/views/LCG_105/x86_64-el9-gcc13-opt/lib/python3.9/site-packages/keras/src/saving/saving_lib.py", line 240, in load_model
+    model = deserialize_keras_object(
+  File "/cvmfs/sft.cern.ch/lcg/views/LCG_105/x86_64-el9-gcc13-opt/lib/python3.9/site-packages/keras/src/saving/serialization_lib.py", line 704, in deserialize_keras_object
+    instance = cls.from_config(inner_config)
+  File "/cvmfs/sft.cern.ch/lcg/views/LCG_105/x86_64-el9-gcc13-opt/lib/python3.9/site-packages/keras/src/engine/sequential.py", line 473, in from_config
+    layer = layer_module.deserialize(
+  File "/cvmfs/sft.cern.ch/lcg/views/LCG_105/x86_64-el9-gcc13-opt/lib/python3.9/site-packages/keras/src/layers/serialization.py", line 276, in deserialize
+    return serialization_lib.deserialize_keras_object(
+  File "/cvmfs/sft.cern.ch/lcg/views/LCG_105/x86_64-el9-gcc13-opt/lib/python3.9/site-packages/keras/src/saving/serialization_lib.py", line 600, in deserialize_keras_object
+    return deserialize_keras_object(
+  File "/cvmfs/sft.cern.ch/lcg/views/LCG_105/x86_64-el9-gcc13-opt/lib/python3.9/site-packages/keras/src/saving/serialization_lib.py", line 704, in deserialize_keras_object
+    instance = cls.from_config(inner_config)
+  File "/cvmfs/sft.cern.ch/lcg/views/LCG_105/x86_64-el9-gcc13-opt/lib/python3.9/site-packages/keras/src/engine/base_layer.py", line 870, in from_config
+    raise TypeError(
+TypeError: Error when deserializing class 'InputLayer' using config={'batch_shape': [None, 128, 32, 1], 'dtype': 'float32', 'sparse': False, 'name': 'input_layer'}.
+
+Exception encountered: Unrecognized keyword arguments: ['batch_shape']
