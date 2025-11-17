@@ -7,7 +7,6 @@ Uses MT-identified main track cluster IDs to select relevant volumes.
 import numpy as np
 import tensorflow as tf
 import json
-import os
 from pathlib import Path
 import argparse
 from tqdm import tqdm
@@ -42,13 +41,40 @@ def load_mt_cluster_mapping(mapping_file):
     
     return mapping
 
+def _resolve_volume_dir(data_dir):
+    """Resolve directory that contains volume image NPZ files."""
+    base_path = Path(data_dir)
+    if not base_path.exists():
+        raise ValueError(f"Directory not found: {base_path}")
+
+    def has_npz(path: Path) -> bool:
+        return any(path.glob("*.npz"))
+
+    if base_path.is_dir() and has_npz(base_path):
+        return base_path
+
+    volume_dirs = sorted([p for p in base_path.glob("*volume_images*") if p.is_dir()])
+    if not volume_dirs:
+        raise ValueError(
+            f"Could not locate a volume_images directory under {data_dir}. "
+            "Pass --data-dir pointing directly to the *_volume_images* folder."
+        )
+
+    # Prefer directory that includes the base name (cat id)
+    for cand in volume_dirs:
+        if base_path.name and base_path.name in cand.name:
+            return cand
+
+    return volume_dirs[0]
+
+
 def load_volume_images(data_dir, cluster_mapping, plane='X', skip_ct=False):
     """
-    Load volume images from cat000001 dataset.
+    Load volume images from a cat dataset.
     Only loads volumes containing MT-identified cluster IDs.
     
     Args:
-        data_dir: Base directory containing volume images
+        data_dir: Base directory or volume folder containing images
         cluster_mapping: Dictionary mapping event -> cluster IDs
         plane: Which plane to load (U, V, or X)
         skip_ct: If True, assume perfect CT tagging (all clusters are main tracks)
@@ -58,15 +84,14 @@ def load_volume_images(data_dir, cluster_mapping, plane='X', skip_ct=False):
         metadata: List of metadata dictionaries
         selected_indices: Indices of volumes that contain main tracks
     """
-    volume_dir = Path(data_dir) / "cat000001_volume_images_tick3_ch2_min2_tot3_e2p0"
+    plane = plane.upper()
+    volume_dir = _resolve_volume_dir(data_dir)
     
-    if not volume_dir.exists():
-        raise ValueError(f"Directory not found: {volume_dir}")
+    # Get all volume files for the selected plane
+    volume_files = sorted(volume_dir.glob(f"*plane{plane}.npz"))
     
-    # Get all volume files
-    volume_files = sorted(volume_dir.glob("cc_*_bg_matched_planeX.npz"))
-    
-    print(f"Found {len(volume_files)} volume files")
+    print(f"Loading volumes from: {volume_dir}")
+    print(f"Found {len(volume_files)} volume files for plane {plane}")
     
     images = []
     metadata_list = []
@@ -110,6 +135,7 @@ def preprocess_volume(volume):
     - Normalize using log transform
     - Pad/crop to fixed size if needed
     """
+    volume = np.asarray(volume, dtype=np.float32)
     # Add channel dimension if needed: (H, W) -> (H, W, 1)
     if len(volume.shape) == 2:
         volume = np.expand_dims(volume, axis=-1)
@@ -254,7 +280,7 @@ def compute_metrics(results_df, skip_ct=False):
 def main():
     parser = argparse.ArgumentParser(description='Run CT inference on cat000001 data')
     parser.add_argument('--model-path', type=str,
-                        default='/eos/user/e/evilla/dune/sn-tps/neural_networks/ct_identifier/v14_100k/ct_identifier_model',
+                        default='/eos/user/e/evilla/dune/sn-tps/neural_networks/channel_tagging/v40_corrected_10k/20251114_225600/best_model.keras',
                         help='Path to trained CT model (ignored if --skip-ct)')
     parser.add_argument('--data-dir', type=str,
                         default='/eos/project-e/ep-nu/public/sn-pointing/cat000001',
@@ -272,6 +298,10 @@ def main():
                         help='Batch size for inference')
     parser.add_argument('--skip-ct', action='store_true',
                         help='Skip CT inference, assume perfect tagging (for benchmarking)')
+    parser.add_argument('--ed-volumes-npz', type=str, default=None,
+                        help='If provided, save stacked volumes/metadata for ED inference to this NPZ path')
+    parser.add_argument('--ed-mt-results-npz', type=str, default=None,
+                        help='If provided, save MT-aligned mask and tentative directions for ED inference to this NPZ path')
     
     args = parser.parse_args()
     
@@ -295,6 +325,52 @@ def main():
         print("No volumes found matching MT-identified clusters!")
         return
     
+    # Optionally persist ED payloads before inference to avoid duplicating work
+    if args.ed_volumes_npz or args.ed_mt_results_npz:
+        volumes_array = np.stack([np.asarray(img) for img in images])
+        cluster_energy = np.array([
+            meta.get('cluster_energy', np.nan) for meta in metadata_list
+        ], dtype=np.float32)
+        events = np.array([meta.get('event', -1) for meta in metadata_list], dtype=np.int64)
+        cluster_ids = np.array([meta.get('main_cluster_id', -1) for meta in metadata_list], dtype=np.int64)
+        momentum_components = np.array([
+            [
+                meta.get('main_track_momentum_x', 0.0),
+                meta.get('main_track_momentum_y', 0.0),
+                meta.get('main_track_momentum_z', 0.0),
+            ]
+            for meta in metadata_list
+        ], dtype=np.float32)
+        norms = np.linalg.norm(momentum_components, axis=1, keepdims=True)
+        norms[norms == 0] = 1.0
+        tentative_dirs = momentum_components / norms
+
+        if args.ed_volumes_npz:
+            ed_vol_path = Path(args.ed_volumes_npz)
+            ed_vol_path.parent.mkdir(parents=True, exist_ok=True)
+            save_dict = {
+                'volumes': volumes_array,
+                'event': events,
+                'main_cluster_id': cluster_ids,
+                'true_direction': tentative_dirs,  # True neutrino direction
+            }
+            if not np.all(np.isnan(cluster_energy)):
+                save_dict['cluster_energy'] = cluster_energy
+            np.savez_compressed(ed_vol_path, **save_dict)
+            print(f"Saved ED volumes payload to: {ed_vol_path}")
+
+        if args.ed_mt_results_npz:
+            mt_npz_path = Path(args.ed_mt_results_npz)
+            mt_npz_path.parent.mkdir(parents=True, exist_ok=True)
+            mt_payload = {
+                'is_main_track': np.ones(len(images), dtype=bool),
+                'tentative_dirs': tentative_dirs,
+                'event': events,
+                'main_cluster_id': cluster_ids,
+            }
+            np.savez_compressed(mt_npz_path, **mt_payload)
+            print(f"Saved ED mask payload to: {mt_npz_path}")
+
     # Run inference
     predictions = run_inference(
         model,

@@ -1,0 +1,9 @@
+/pool/condor/dir_721354/analyze_es_cc.sh: line 6: /cvmfs/sft.cern.ch/lcg/views/LCG_106/x86_64-centos7-gcc11-opt/setup.sh: No such file or directory
+Traceback (most recent call last):
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/analyze_es_cc_distribution.py", line 142, in <module>
+    main()
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/analyze_es_cc_distribution.py", line 138, in main
+    analyze_category(args.cat)
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/analyze_es_cc_distribution.py", line 50, in analyze_category
+    metadata = np.concatenate(all_metadata, axis=0)
+ValueError: need at least one array to concatenate

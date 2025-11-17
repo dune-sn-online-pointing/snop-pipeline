@@ -1,0 +1,37 @@
+2025-11-16 04:27:26.566013: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2025-11-16 04:27:31.464743: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+2025-11-16 04:27:35.558875: I external/local_xla/xla/stream_executor/cuda/cuda_executor.cc:998] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2025-11-16 04:27:35.894458: I external/local_xla/xla/stream_executor/cuda/cuda_executor.cc:998] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2025-11-16 04:27:35.894821: I external/local_xla/xla/stream_executor/cuda/cuda_executor.cc:998] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2025-11-16 04:27:35.896901: I external/local_xla/xla/stream_executor/cuda/cuda_executor.cc:998] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2025-11-16 04:27:35.897188: I external/local_xla/xla/stream_executor/cuda/cuda_executor.cc:998] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2025-11-16 04:27:35.897388: I external/local_xla/xla/stream_executor/cuda/cuda_executor.cc:998] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2025-11-16 04:27:36.024706: I external/local_xla/xla/stream_executor/cuda/cuda_executor.cc:998] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2025-11-16 04:27:36.025012: I external/local_xla/xla/stream_executor/cuda/cuda_executor.cc:998] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2025-11-16 04:27:36.025247: I external/local_xla/xla/stream_executor/cuda/cuda_executor.cc:998] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero. See more at https://github.com/torvalds/linux/blob/v6.0/Documentation/ABI/testing/sysfs-bus-pci#L344-L355
+2025-11-16 04:27:36.025837: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1928] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 31132 MB memory:  -> device: 0, name: Tesla V100-PCIE-32GB, pci bus id: 0000:07:00.0, compute capability: 7.0
+Traceback (most recent call last):
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_mt_inference.py", line 355, in <module>
+    main()
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_mt_inference.py", line 304, in main
+    images, metadata, file_indices = load_cluster_images(
+                                     ^^^^^^^^^^^^^^^^^^^^
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_mt_inference.py", line 80, in load_cluster_images
+    cluster_dir = _resolve_cluster_dir(data_dir, plane)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_mt_inference.py", line 36, in _resolve_cluster_dir
+    raise ValueError(f"Directory not found: {base_path}")
+ValueError: Directory not found: /eos/user/e/evilla/dune/sn-tps/data/cat000010_volume_images
+Traceback (most recent call last):
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_pipeline.py", line 711, in <module>
+    main()
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_pipeline.py", line 674, in main
+    mt_results_dir = run_mt_inference(args)
+                     ^^^^^^^^^^^^^^^^^^^^^^
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_pipeline.py", line 48, in run_mt_inference
+    result = subprocess.run(cmd, check=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/cvmfs/sft.cern.ch/lcg/releases/Python/3.11.9-2924c/x86_64-el9-gcc11-opt/lib/python3.11/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['python3', 'scripts/run_mt_inference.py', '--model-path', '/eos/user/e/evilla/dune/sn-tps/neural_networks/mt_identifier/v10_100k_nov13/mt_identifier_simple_cnn_20251113_145400', '--data-dir', '/eos/user/e/evilla/dune/sn-tps/data/cat000010_volume_images', '--output-dir', PosixPath('results/pipeline_cat000001/mt_results'), '--plane', 'X', '--threshold', '0.5', '--batch-size', '128']' returned non-zero exit status 1.

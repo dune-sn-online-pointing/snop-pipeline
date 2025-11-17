@@ -35,13 +35,13 @@ def main():
     if tf is None:
         raise RuntimeError('TensorFlow not available in this environment')
 
-    vols_data = np.load(args.volumes_npz)
+    vols_data = np.load(args.volumes_npz, allow_pickle=True)
     if 'volumes' not in vols_data:
         raise KeyError('volumes_npz must contain `volumes` array')
     volumes = vols_data['volumes']
     energies = vols_data.get('cluster_energy')
 
-    mt_data = np.load(args.mt_results_npz)
+    mt_data = np.load(args.mt_results_npz, allow_pickle=True)
     if 'is_main_track' not in mt_data:
         raise KeyError('mt_results_npz must contain boolean mask `is_main_track`')
     is_main = mt_data['is_main_track']
@@ -75,6 +75,14 @@ def main():
         else:
             # assume tentative_dirs already aligned to selected
             out['tentative_dirs'] = tentative_dirs
+    
+    # Pass through true direction if available
+    true_dir = vols_data.get('true_direction')
+    if true_dir is not None:
+        if true_dir.shape[0] == volumes.shape[0]:
+            out['true_direction'] = true_dir[selected_idx]
+        else:
+            out['true_direction'] = true_dir
 
     out_path = Path(args.out)
     out_path.parent.mkdir(parents=True, exist_ok=True)

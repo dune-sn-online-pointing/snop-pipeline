@@ -1,0 +1,11 @@
+/pool/condor/dir_1985390/run_ed_mcmc_wrapper.sh: line 22: /cvmfs/sft.cern.ch/lcg/views/LCG_106_cuda/x86_64-el9-gcc13-opt/setup.sh: No such file or directory
+Traceback (most recent call last):
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_ed_mcmc_single_cat.py", line 315, in <module>
+    main()
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_ed_mcmc_single_cat.py", line 255, in main
+    ed_model = load_ed_model(args.ed_model)
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_ed_mcmc_single_cat.py", line 54, in load_ed_model
+    model = tf.keras.models.load_model(model_path, compile=False)
+  File "/afs/cern.ch/user/e/evilla/.local/lib/python3.9/site-packages/keras/src/saving/saving_api.py", line 200, in load_model
+    raise ValueError(
+ValueError: File not found: filepath=/eos/home-e/evilla/.../three_plane_three_plane_v50_.../model_epoch_38_val_loss_0.8709.keras. Please ensure the file is an accessible `.keras` zip file.

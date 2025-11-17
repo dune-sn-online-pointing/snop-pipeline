@@ -6,14 +6,13 @@ Uses the best trained MT model (v10) to identify main track clusters.
 
 import numpy as np
 import json
-import os
 from pathlib import Path
 import argparse
 from tqdm import tqdm
 import pandas as pd
 
 def load_model(model_path):
-    """Load trained MT model."""
+    """Load trained MT model from file or directory."""
     print(f"Loading TensorFlow (this may take a minute on first import)...")
     import tensorflow as tf
     
@@ -29,12 +28,46 @@ def load_model(model_path):
     print(f"Model loaded successfully")
     return model
 
+def _resolve_cluster_dir(data_dir, plane):
+    """Resolve the directory containing plane-specific cluster NPZ files."""
+    plane = plane.upper()
+    base_path = Path(data_dir)
+    if not base_path.exists():
+        raise ValueError(f"Directory not found: {base_path}")
+
+    def has_plane_files(path: Path) -> bool:
+        return any(path.glob(f"*_plane{plane}.npz"))
+
+    # Direct directory containing NPZ files
+    if base_path.is_dir() and has_plane_files(base_path):
+        return base_path
+
+    # Plane subdirectory (e.g., .../X)
+    plane_dir = base_path / plane
+    if plane_dir.is_dir() and has_plane_files(plane_dir):
+        return plane_dir
+
+    # Directories that match *cluster_images*
+    cluster_dirs = sorted([p for p in base_path.glob("*cluster_images*") if p.is_dir()])
+    for cluster_dir in cluster_dirs:
+        plane_candidate = cluster_dir / plane
+        if plane_candidate.is_dir() and has_plane_files(plane_candidate):
+            return plane_candidate
+        if has_plane_files(cluster_dir):
+            return cluster_dir
+
+    raise ValueError(
+        f"Could not locate cluster files for plane {plane} under {data_dir}. "
+        "Pass --data-dir pointing directly to the directory that contains the *_planeX.npz files."
+    )
+
+
 def load_cluster_images(data_dir, plane='X', max_files=None):
     """
-    Load cluster images from cat000001 dataset.
+    Load cluster images from a cat dataset.
     
     Args:
-        data_dir: Base directory containing cluster images
+        data_dir: Directory or base path containing cluster images
         plane: Which plane to load (U, V, or X)
         max_files: Maximum number of files to load (None = all)
     
@@ -43,10 +76,8 @@ def load_cluster_images(data_dir, plane='X', max_files=None):
         metadata: Array of metadata (N, 14)
         file_indices: Array mapping each cluster to its source file
     """
-    cluster_dir = Path(data_dir)
-    
-    if not cluster_dir.exists():
-        raise ValueError(f"Directory not found: {cluster_dir}")
+    plane = plane.upper()
+    cluster_dir = _resolve_cluster_dir(data_dir, plane)
     
     # Get all cluster files (both CC and ES)
     cc_files = sorted(cluster_dir.glob(f"cc_*_bg_matched_plane{plane}.npz"))
@@ -244,13 +275,13 @@ def compute_metrics(results_df, threshold=0.5):
     return metrics
 
 def main():
-    parser = argparse.ArgumentParser(description='Run MT inference on cat000001 data')
-    parser.add_argument('--model-path', type=str, 
+    parser = argparse.ArgumentParser(description='Run MT inference on cat datasets')
+    parser.add_argument('--model-path', '--model-dir', dest='model_path', type=str, 
                         default='/eos/user/e/evilla/dune/sn-tps/neural_networks/mt_identifier/v10_100k_nov13/mt_identifier_simple_cnn_20251113_145400',
                         help='Path to trained MT model')
     parser.add_argument('--data-dir', type=str,
                         default='/eos/project-e/ep-nu/public/sn-pointing/cat000001',
-                        help='Base directory containing cat000001 data')
+                        help='Base directory or plane-specific folder containing cluster images')
     parser.add_argument('--output-dir', type=str,
                         default='results/mt_inference_cat000001',
                         help='Directory to save results')

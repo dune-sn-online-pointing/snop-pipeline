@@ -1,0 +1,72 @@
+=========================================
+ED+MCMC Per-Category Processing
+=========================================
+Category: cat000021
+Category directory: /eos/project-e/ep-nu/public/sn-pointing/cat000021
+ED model: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v50_100k_20251115_232348/checkpoints/model_epoch_38_val_loss_0.8709.keras
+PDF file: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v50_100k_20251115_232348/cosine_energy_pdf.npz
+Output directory: results/ed_mcmc_cats
+=========================================
+
+Processing category: cat000021
+Loading cluster images...
+  Loaded 20373 clusters
+  Processing 40 events
+Loading ED model...
+Loading energy-cosine PDF...
+Loading true neutrino direction...
+  ✓ True neutrino direction: [0.906165, 0.031759, -0.421730]
+
+Processing events...
+  ✓ Event 1: cos=0.4157, angle=65.43°
+  ✓ Event 2: cos=-0.0887, angle=95.09°
+  ✓ Event 3: cos=0.4650, angle=62.29°
+  ✓ Event 4: cos=0.1922, angle=78.92°
+  ✓ Event 5: cos=-0.0027, angle=90.16°
+  ✓ Event 6: cos=0.5579, angle=56.09°
+  ✓ Event 7: cos=-0.0148, angle=90.85°
+  ✓ Event 8: cos=0.3479, angle=69.64°
+  ✓ Event 9: cos=0.6411, angle=50.13°
+  ✓ Event 10: cos=0.2233, angle=77.10°
+  ✓ Event 11: cos=0.3820, angle=67.54°
+  ✓ Event 12: cos=0.6505, angle=49.42°
+  ✓ Event 13: cos=0.5118, angle=59.21°
+  ✓ Event 14: cos=0.2483, angle=75.62°
+  ✓ Event 15: cos=0.0951, angle=84.54°
+  ✓ Event 16: cos=0.2750, angle=74.04°
+  ✓ Event 17: cos=0.3068, angle=72.13°
+  ✓ Event 18: cos=0.3083, angle=72.04°
+  ✓ Event 19: cos=0.4350, angle=64.22°
+  ✓ Event 20: cos=0.7184, angle=44.08°
+  ✓ Event 21: cos=0.1597, angle=80.81°
+  ✓ Event 22: cos=0.7987, angle=37.00°
+  ✓ Event 23: cos=0.3647, angle=68.61°
+  ✓ Event 24: cos=0.6999, angle=45.58°
+  ✓ Event 25: cos=0.2729, angle=74.16°
+  ✓ Event 26: cos=0.8740, angle=29.08°
+  ✓ Event 27: cos=0.7834, angle=38.42°
+  ✓ Event 28: cos=0.2838, angle=73.51°
+  ✓ Event 29: cos=0.7079, angle=44.94°
+  ✓ Event 30: cos=0.4646, angle=62.32°
+  ✓ Event 31: cos=0.5680, angle=55.39°
+  ✓ Event 32: cos=0.5587, angle=56.03°
+  ✓ Event 33: cos=0.6502, angle=49.44°
+  ✓ Event 34: cos=0.1360, angle=82.18°
+  ✓ Event 35: cos=0.3174, angle=71.49°
+  ✓ Event 36: cos=0.3237, angle=71.11°
+  ✓ Event 37: cos=-0.1839, angle=100.60°
+  ✓ Event 38: cos=0.2077, angle=78.01°
+  ✓ Event 39: cos=-0.2247, angle=102.99°
+  ✓ Event 40: cos=0.6167, angle=51.93°
+
+✓ Successfully processed 40/40 events
+
+Summary:
+  68th percentile cos(angle): 0.5358
+  Median cos(angle): 0.3563
+
+✓ Results saved to: results/ed_mcmc_cats/cat000021/metrics.json
+
+=========================================
+Job finished with exit code: 0
+=========================================

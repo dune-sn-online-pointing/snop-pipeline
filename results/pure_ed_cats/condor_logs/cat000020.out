@@ -1,0 +1,44 @@
+=========================================
+Pure ED Analysis (ES Main Track Only)
+=========================================
+Category: cat000020
+With MCMC: true
+=========================================
+
+============================================================
+PURE ED ANALYSIS (ES Main Track Only)
+Category: cat000020
+============================================================
+
+Loading ED model...
+Loading energy-cosine PDF...
+Loading true neutrino direction...
+  True: [-0.646351   -0.4911338   0.58396745]
+
+Loading cluster data...
+  Total clusters: 20516
+  ES main track clusters: 297
+  Events with ES main tracks: 40
+Processing event 10/40...Processing event 20/40...Processing event 30/40...Processing event 40/40...
+
+============================================================
+RESULTS:
+  Events: 40
+
+Pure ED (energy-weighted average):
+  Median cos: -0.389
+  Median angle: 112.9°
+  68th percentile: 124.0°
+
+MCMC (with energy-cosine PDF):
+  Median cos: -0.395
+  Median angle: 113.3°
+  68th percentile: 134.2°
+
+✓ Saved to: results/pure_ed_cats/cat000020/metrics.json
+============================================================
+
+
+=========================================
+Job finished with exit code: 0
+=========================================

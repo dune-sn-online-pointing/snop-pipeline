@@ -1,0 +1,108 @@
+=== Pipeline Job Started ===
+Cluster ID: /pool/condor/dir_2569878/.job.ad
+Hostname: b9g47n3159.cern.ch
+Date: Sun Nov 16 04:29:15 AM CET 2025
+GPU Info:
+GPU 0: Tesla V100-PCIE-32GB (UUID: GPU-31ab8d1c-60f9-dfc1-9486-3aa0f3ad8dd6)
+
+Running pipeline step: full for cat000010
+Additional arguments: --cat cat000010 --enable-ed --condor-flavour longlunch
+
+Loading TensorFlow (this may take a minute on first import)...
+Loading model from: /eos/user/e/evilla/dune/sn-tps/neural_networks/mt_identifier/v10_100k_nov13/mt_identifier_simple_cnn_20251113_145400
+Model loaded successfully
+Found 10 ES + 100 CC = 110 total cluster files in X plane
+Loaded 20882 total clusters
+Image shape: (20882, 128, 32)
+Metadata shape: (20882, 14)
+Running inference on 20882 images...
+Saved full predictions to: results/pipeline_cat000001/mt_results/mt_predictions.csv
+Saved 7126 identified main tracks to: results/pipeline_cat000001/mt_results/mt_identified_main_tracks.csv
+Saved cluster ID mapping to: results/pipeline_cat000001/mt_results/mt_cluster_id_mapping.json
+
+============================================================
+MT INFERENCE RESULTS
+============================================================
+Total clusters:           20882
+True main tracks:         4152
+Predicted main tracks:    7126
+
+Confusion Matrix:
+  True Positives (TP):    4096
+  True Negatives (TN):    13700
+  False Positives (FP):   3030
+  False Negatives (FN):   56
+
+Performance Metrics:
+  Accuracy:               0.8522
+  Precision:              0.5748
+  Recall:                 0.9865
+  F1 Score:               0.7264
+  Contamination (FP%):    0.4252
+============================================================
+
+Saved metrics to: results/pipeline_cat000001/mt_results/mt_metrics.json
+Loaded cluster mapping for 40 events
+Total main track clusters: 7126
+Loading model from: /eos/user/e/evilla/dune/sn-tps/neural_networks/channel_tagging/v40_corrected_10k/20251114_225600/best_model.keras
+Model loaded successfully
+Loading volumes from: /eos/project-e/ep-nu/public/sn-pointing/cat000010/cat000010_volume_images_tick3_ch2_min2_tot3_e2p0
+Found 110 volume files for plane X
+
+Selected 33 volumes
+Skipped 0 volumes (event not in MT mapping)
+Skipped 4181 volumes (cluster ID not in MT mapping)
+Saved ED volumes payload to: results/pipeline_cat000001/ed_results/volumes_for_ed.npz
+Saved ED mask payload to: results/pipeline_cat000001/ed_results/mt_mask_for_ed.npz
+Running CT inference on 33 volumes...
+Saved CT predictions to: results/pipeline_cat000001/ct_results/ct_predictions.csv
+
+============================================================
+CT INFERENCE RESULTS
+============================================================
+Volumes processed:        33
+Total clusters:           134
+Marley clusters:          81
+Non-Marley clusters:      53
+
+Per-Volume Statistics:
+  Avg clusters/volume:    4.06
+  Avg Marley/volume:      2.45
+  Avg non-Marley/volume:  1.61
+
+Purity Metrics:
+  Purity (Marley%):       0.6045
+  Contamination rate:     0.3955
+============================================================
+
+Saved metrics to: results/pipeline_cat000001/ct_results/ct_metrics.json
+Found 33 main-track clusters
+Quick test mode: Using cat000010
+  Data: /eos/project-e/ep-nu/public/sn-pointing/cat000010
+  Output: results/pipeline_cat000001
+======================================================================
+DATA SELECTION PIPELINE - CAT000001
+======================================================================
+Data directory:    /eos/project-e/ep-nu/public/sn-pointing/cat000010
+Output directory:  results/pipeline_cat000001
+Plane:             X
+MT model:          /eos/user/e/evilla/dune/sn-tps/neural_networks/mt_identifier/v10_100k_nov13/mt_identifier_simple_cnn_20251113_145400
+CT model:          /eos/user/e/evilla/dune/sn-tps/neural_networks/channel_tagging/v40_corrected_10k/20251114_225600/best_model.keras
+ED model:          /eos/user/e/evilla/dune/sn-tps/neural_networks/electron_direction/single_plane_x_hyperopt_20251109_175041/best_model.keras
+======================================================================
+
+======================================================================
+STEP 1: MT INFERENCE
+======================================================================
+
+======================================================================
+STEP 2: CT INFERENCE
+======================================================================
+
+======================================================================
+STEP 3: ED INFERENCE
+======================================================================
+
+=== Pipeline Job Finished ===
+Exit code: 1
+Date: Sun Nov 16 04:34:24 AM CET 2025

@@ -1,0 +1,30 @@
+/pool/condor/dir_2500354/run_filtered_analysis.sh: line 12: /cvmfs/sft.cern.ch/lcg/views/LCG_106/x86_64-centos7-gcc11-opt/setup.sh: No such file or directory
+2025-11-16 18:38:18.398577: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+Traceback (most recent call last):
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/visualize_existing_results.py", line 32, in load_ed_model
+    model = tf.keras.models.load_model(ED_MODEL, compile=False)
+  File "/afs/cern.ch/user/e/evilla/.local/lib/python3.9/site-packages/keras/src/saving/saving_api.py", line 206, in load_model
+    raise ValueError(
+ValueError: File format not supported: filepath=/eos/home-e/evilla/DUNE/supernova/models/electron-direction/three_plane_three_plane_v50_100k_20251115_232348. Keras 3 only supports V3 `.keras` files and legacy H5 format files (`.h5` extension). Note that the legacy SavedModel format is not supported by `load_model()` in Keras 3. In order to reload a TensorFlow SavedModel as an inference-only layer in Keras 3, use `keras.layers.TFSMLayer(/eos/home-e/evilla/DUNE/supernova/models/electron-direction/three_plane_three_plane_v50_100k_20251115_232348, call_endpoint='serving_default')` (note that your `call_endpoint` might have a different name).
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/visualize_existing_results.py", line 668, in <module>
+    main()
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/visualize_existing_results.py", line 533, in main
+    ed_model = load_ed_model()
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/visualize_existing_results.py", line 35, in load_ed_model
+    model_layer = tf.keras.layers.TFSMLayer(ED_MODEL, call_endpoint='serving_default')
+  File "/afs/cern.ch/user/e/evilla/.local/lib/python3.9/site-packages/keras/src/export/tfsm_layer.py", line 66, in __init__
+    self._reloaded_obj = tf.saved_model.load(filepath)
+  File "/afs/cern.ch/user/e/evilla/.local/lib/python3.9/site-packages/tensorflow/python/saved_model/load.py", line 912, in load
+    result = load_partial(export_dir, None, tags, options)["root"]
+  File "/afs/cern.ch/user/e/evilla/.local/lib/python3.9/site-packages/tensorflow/python/saved_model/load.py", line 1016, in load_partial
+    loader_impl.parse_saved_model_with_debug_info(export_dir))
+  File "/afs/cern.ch/user/e/evilla/.local/lib/python3.9/site-packages/tensorflow/python/saved_model/loader_impl.py", line 59, in parse_saved_model_with_debug_info
+    saved_model = parse_saved_model(export_dir)
+  File "/afs/cern.ch/user/e/evilla/.local/lib/python3.9/site-packages/tensorflow/python/saved_model/loader_impl.py", line 119, in parse_saved_model
+    raise IOError(
+OSError: SavedModel file does not exist at: /eos/home-e/evilla/DUNE/supernova/models/electron-direction/three_plane_three_plane_v50_100k_20251115_232348/{saved_model.pbtxt|saved_model.pb}
