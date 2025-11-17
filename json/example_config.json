@@ -1,0 +1,44 @@
+{
+  "input_data": {
+    "cc_folder": "/eos/user/e/evilla/DUNE/solar/sn_burst_samples/production_cc/images_cc_prod_main",
+    "es_folder": "/eos/user/e/evilla/DUNE/solar/sn_burst_samples/production_es/images_es_prod_main",
+    "file_pattern": "*_planeX.npz"
+  },
+  
+  "sample_selection": {
+    "n_cc_events": 3300,
+    "n_es_events": 325,
+    "description": "Select 325 ES events and 3300 CC events for balanced analysis"
+  },
+  
+  "neural_networks": {
+    "mt_identifier": {
+      "model_path": "/afs/cern.ch/work/e/evilla/private/dune/ml_for_pointing/main_track_id/models/final_model.keras",
+      "threshold": 0.5,
+      "description": "Main track identification CNN"
+    },
+    "channel_tagger": {
+      "model_path": "/afs/cern.ch/work/e/evilla/private/dune/ml_for_pointing/channel_tagging/models/final_model.keras",
+      "threshold": 0.5,
+      "description": "Channel tagging CNN for ES vs CC classification"
+    }
+  },
+  
+  "volume_creation": {
+    "pointing_utils_dir": "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/submodules/online-pointing-utils",
+    "use_simple_mode": false,
+    "description": "Create 3D volumes using online-pointing-utils scripts"
+  },
+  
+  "output": {
+    "base_folder": "/eos/user/e/evilla/DUNE/solar/sn_burst_pipeline_output",
+    "metrics_file": "pipeline_metrics.json",
+    "report_file": "pipeline_report.pdf"
+  },
+  
+  "processing": {
+    "shuffle": true,
+    "random_seed": 42,
+    "verbose": true
+  }
+}
