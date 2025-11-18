@@ -1,0 +1,439 @@
+{
+  "scenario": "best_case",
+  "cat_name": "cat000506",
+  "n_es_selected": 8,
+  "n_cc_selected": 80,
+  "n_events_processed": 34,
+  "n_events_with_angular_error": 0,
+  "cluster_statistics": {
+    "n_input_clusters": 20384,
+    "n_input_main_clusters": 0,
+    "n_input_non_main_clusters": 0,
+    "n_matched_clusters": 40,
+    "n_matched_main_clusters": 0,
+    "n_matched_non_main_clusters": 0
+  },
+  "angular_resolution": {
+    "median_deg": null,
+    "mean_deg": null,
+    "p68_deg": null,
+    "p90_deg": null,
+    "p95_deg": null
+  },
+  "n_clusters_per_event": {
+    "mean": 1.1764705882352942,
+    "median": 1.0,
+    "min": 1,
+    "max": 2
+  },
+  "per_event_results": [
+    {
+      "event_id": 1,
+      "n_clusters": 1,
+      "best_direction": [
+        -0.5807700739052626,
+        0.7963768444364548,
+        -0.1687899372045341
+      ],
+      "best_log_like": 0.8838047762396442,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 2,
+      "n_clusters": 1,
+      "best_direction": [
+        0.8120968058954812,
+        -0.42674074803808143,
+        -0.3979838084875515
+      ],
+      "best_log_like": 1.054425279700345,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 4,
+      "n_clusters": 1,
+      "best_direction": [
+        0.023354292558156294,
+        -0.868930629492652,
+        0.49438258277230135
+      ],
+      "best_log_like": -23.025850929940457,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 5,
+      "n_clusters": 1,
+      "best_direction": [
+        -0.24267822191189006,
+        -0.6036464880812054,
+        -0.7594196455431678
+      ],
+      "best_log_like": -23.025850929940457,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 6,
+      "n_clusters": 1,
+      "best_direction": [
+        -0.29048401393730444,
+        0.8889821631162639,
+        -0.35401942221861293
+      ],
+      "best_log_like": 0.8780482917769297,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 7,
+      "n_clusters": 2,
+      "best_direction": [
+        0.6837395102622086,
+        0.08322415866097695,
+        -0.7249648415761744
+      ],
+      "best_log_like": -0.5266783831007175,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 9,
+      "n_clusters": 1,
+      "best_direction": [
+        0.9071530452372023,
+        -0.11176453819491233,
+        0.4056871214605518
+      ],
+      "best_log_like": 1.0506512593606498,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 10,
+      "n_clusters": 1,
+      "best_direction": [
+        0.3183403664644927,
+        0.9256422916329601,
+        0.20456235973349204
+      ],
+      "best_log_like": 1.0430106686949028,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 11,
+      "n_clusters": 1,
+      "best_direction": [
+        -0.16683347108086674,
+        0.908053098268886,
+        -0.3841954758340947
+      ],
+      "best_log_like": 1.001937555441772,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 14,
+      "n_clusters": 1,
+      "best_direction": [
+        0.6892605568182747,
+        -0.16427092338025281,
+        0.7056450584722896
+      ],
+      "best_log_like": 1.0205462122868219,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 15,
+      "n_clusters": 1,
+      "best_direction": [
+        0.3778907505538743,
+        -0.5957390826333514,
+        -0.7087266934926345
+      ],
+      "best_log_like": 1.023401968605524,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 16,
+      "n_clusters": 1,
+      "best_direction": [
+        -0.10565662261982109,
+        -0.5295445446226593,
+        -0.8416764540825371
+      ],
+      "best_log_like": 1.0489515784079524,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 17,
+      "n_clusters": 1,
+      "best_direction": [
+        0.3465702881346726,
+        -0.29415711018516827,
+        -0.8907079374911624
+      ],
+      "best_log_like": 1.0046875763658722,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 18,
+      "n_clusters": 1,
+      "best_direction": [
+        -0.08818268344223995,
+        0.4817258788995991,
+        0.8718738394626452
+      ],
+      "best_log_like": 1.0205814126237387,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 19,
+      "n_clusters": 2,
+      "best_direction": [
+        0.5684278714617904,
+        -0.06592380622294684,
+        0.8200876823355522
+      ],
+      "best_log_like": -0.7853120869949621,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 20,
+      "n_clusters": 2,
+      "best_direction": [
+        0.07167852903486692,
+        0.8658743919888371,
+        -0.4950997129602877
+      ],
+      "best_log_like": -0.25670982454595115,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 21,
+      "n_clusters": 1,
+      "best_direction": [
+        -0.30413758113742384,
+        0.7978211153855637,
+        0.520559122083949
+      ],
+      "best_log_like": 1.0171658497340812,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 22,
+      "n_clusters": 1,
+      "best_direction": [
+        0.7449027546751872,
+        0.4509021459039058,
+        0.49173889504143425
+      ],
+      "best_log_like": 1.0174259729002137,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 24,
+      "n_clusters": 1,
+      "best_direction": [
+        0.3934738164501551,
+        0.13709807677339664,
+        -0.9090558140802937
+      ],
+      "best_log_like": 1.104640548730859,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 25,
+      "n_clusters": 1,
+      "best_direction": [
+        -0.2323803516977352,
+        0.7283508535518531,
+        -0.6445963126446844
+      ],
+      "best_log_like": 0.4955022386247585,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 26,
+      "n_clusters": 1,
+      "best_direction": [
+        -0.8818006605541298,
+        -0.3909401114093969,
+        -0.26380565637891223
+      ],
+      "best_log_like": 0.9703717326785288,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 27,
+      "n_clusters": 1,
+      "best_direction": [
+        0.5728489505141777,
+        0.48145894605583767,
+        -0.6633561359915254
+      ],
+      "best_log_like": 0.9332992863134845,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 28,
+      "n_clusters": 2,
+      "best_direction": [
+        -0.7392661944051132,
+        -0.47781404304914216,
+        -0.47453054071873385
+      ],
+      "best_log_like": 1.0927785538683306,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 29,
+      "n_clusters": 2,
+      "best_direction": [
+        -0.01034978853743368,
+        0.9506953178029723,
+        0.3099536974851822
+      ],
+      "best_log_like": -22.12297829614229,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 30,
+      "n_clusters": 1,
+      "best_direction": [
+        -0.09550112435624927,
+        0.6678412496614264,
+        -0.7381514753066313
+      ],
+      "best_log_like": -23.025850929940457,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 32,
+      "n_clusters": 1,
+      "best_direction": [
+        -0.6707898430006938,
+        -0.672217173697081,
+        -0.313313035020589
+      ],
+      "best_log_like": 1.0739279091323772,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 33,
+      "n_clusters": 1,
+      "best_direction": [
+        0.5152971499556257,
+        -0.0918455686199665,
+        -0.8520758409745488
+      ],
+      "best_log_like": 1.079439187880767,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 34,
+      "n_clusters": 2,
+      "best_direction": [
+        0.07336128652921102,
+        0.5647758283733562,
+        0.8219771197083094
+      ],
+      "best_log_like": -0.5233005014357519,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 35,
+      "n_clusters": 1,
+      "best_direction": [
+        -0.8258648679309893,
+        0.45124640801845717,
+        0.3381181733769563
+      ],
+      "best_log_like": 0.9969558833385932,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 36,
+      "n_clusters": 1,
+      "best_direction": [
+        -0.3368543872111238,
+        -0.8703880330625308,
+        -0.35910136969685486
+      ],
+      "best_log_like": 1.0120992592739808,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 37,
+      "n_clusters": 1,
+      "best_direction": [
+        0.053154728788417614,
+        -0.8861464736172978,
+        0.4603466108304234
+      ],
+      "best_log_like": 1.0385849727347185,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 38,
+      "n_clusters": 1,
+      "best_direction": [
+        0.6222747075086674,
+        -0.12959922395216839,
+        0.7719962626502787
+      ],
+      "best_log_like": 1.0215235369923463,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 39,
+      "n_clusters": 1,
+      "best_direction": [
+        -0.7233409829033236,
+        -0.4277555036953346,
+        0.542036024181792
+      ],
+      "best_log_like": 0.8485164096691065,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    },
+    {
+      "event_id": 40,
+      "n_clusters": 1,
+      "best_direction": [
+        0.45052499944074126,
+        0.5574993127364818,
+        -0.6972960211970742
+      ],
+      "best_log_like": 0.8565878487921508,
+      "angular_error_deg": null,
+      "true_nu_direction": null
+    }
+  ]
+}

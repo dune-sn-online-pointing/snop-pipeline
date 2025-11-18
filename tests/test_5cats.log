@@ -1,0 +1,15 @@
+usage: run_systematic_sn_analysis.py [-h] --cat-dir-parent CAT_DIR_PARENT
+                                     --energy-cosine-pdf ENERGY_COSINE_PDF
+                                     --output-dir OUTPUT_DIR [--n-es N_ES]
+                                     [--n-cc N_CC] [--seed SEED]
+                                     [--run-best-case] [--run-ed-network]
+                                     [--run-full-pipeline] [--run-all]
+                                     [--ed-model ED_MODEL]
+                                     [--mt-model MT_MODEL]
+                                     [--ct-model CT_MODEL]
+                                     [--mt-threshold MT_THRESHOLD]
+                                     [--ct-threshold CT_THRESHOLD]
+                                     [--batch-size BATCH_SIZE]
+                                     [--max-cats MAX_CATS]
+                                     [--cat-range CAT_RANGE]
+run_systematic_sn_analysis.py: error: the following arguments are required: --cat-dir-parent, --energy-cosine-pdf
