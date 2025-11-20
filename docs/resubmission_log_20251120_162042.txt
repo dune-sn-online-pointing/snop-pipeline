@@ -1,0 +1,52 @@
+=============================================================================
+CONDOR JOB RESUBMISSION LOG
+=============================================================================
+Date: Thu Nov 20 04:20:42 PM CET 2025
+User: evilla
+
+PROBLEM:
+--------
+Cluster 13792804 had 316 idle jobs (out of 618 total) that were not running
+on scheduler bigbird16.cern.ch
+
+ACTIONS TAKEN:
+--------------
+1. Identified idle jobs:
+   - Cluster: 13792804
+   - Scheduler: bigbird16.cern.ch
+   - Idle jobs: 316 (jobs 13792804.302-617)
+   - Cat range: cat000303 to cat000620
+
+2. Saved idle cats list:
+   - File: idle_cats_13792804.txt
+   - Count: 316 cats
+
+3. Removed all jobs from cluster 13792804:
+   - Command: condor_rm 13792804
+   - Status: All jobs marked for removal
+
+4. Changed scheduler:
+   - Command: myschedd bump
+   - Old scheduler: bigbird16.cern.ch
+   - New scheduler: bigbird28.cern.ch
+
+5. Resubmitted idle cats:
+   - Submission file: submit_idle_cats_resubmit.sub
+   - Cat list: cat_list_resubmit.txt (316 cats)
+   - New cluster: 6417132
+   - Scheduler: bigbird28.cern.ch
+   - Status: 316 jobs submitted successfully
+
+FILES CREATED:
+--------------
+- idle_cats_13792804.txt (316 cats)
+- cat_list_resubmit.txt (316 cats)
+- submit_idle_cats_resubmit.sub
+- This log file
+
+VERIFICATION:
+-------------
+New cluster 6417132 contains 316 jobs on bigbird28.cern.ch
+All jobs currently idle, waiting for GPU resources
+
+=============================================================================

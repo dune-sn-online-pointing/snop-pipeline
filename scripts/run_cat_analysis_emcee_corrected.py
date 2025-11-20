@@ -238,7 +238,7 @@ def run_scenario_emcee(cat_dir, cat_name, scenario, ed_model_path, ct_model_path
     3. full_pipeline: All clusters + CT network + ED network + MCMC (no weights)
     4. weighted_ct: All clusters + CT network (with weights) + ED network + MCMC
     5. perfect_ct_e_gt_10mev: ES main tracks + ED network + MCMC, E > 10 MeV cut
-    6. perfect_ct_e_gt_20mev: ES main tracks + ED network + MCMC, E > 20 MeV cut
+    6. perfect_ct_e_gt_20mev: ES main tracks + ED network + MCMC, E > 5 MeV cut
     """
     import tensorflow as tf
     
@@ -291,7 +291,7 @@ def run_scenario_emcee(cat_dir, cat_name, scenario, ed_model_path, ct_model_path
         if verbose:
             print(f"After E > 3 MeV cut: {len(energies)} clusters")
     
-    elif scenario in ['perfect_ct', 'perfect_ct_e_gt_10mev', 'perfect_ct_e_gt_20mev']:
+    elif scenario in ['perfect_ct', 'perfect_ct_e_gt_10mev', 'perfect_ct_e_gt_5mev']:
         # Scenarios 2, 5, 6: ES main tracks + ED network
         is_es = metadata[:, 3] == 1
         sel_images_u = images_u[is_es]
@@ -329,10 +329,10 @@ def run_scenario_emcee(cat_dir, cat_name, scenario, ed_model_path, ct_model_path
             energy_cut = energies >= 10.0
             if verbose:
                 print(f"Applying E > 10 MeV cut")
-        elif scenario == 'perfect_ct_e_gt_20mev':
-            energy_cut = energies >= 20.0
+        elif scenario == 'perfect_ct_e_gt_5mev':
+            energy_cut = energies >= 5.0
             if verbose:
-                print(f"Applying E > 20 MeV cut")
+                print(f"Applying E > 5 MeV cut")
         else:
             energy_cut = energies >= 3.0
         
@@ -503,7 +503,7 @@ def main():
     parser.add_argument('--pdf-file', required=True, help='PDF file path')
     parser.add_argument('--scenarios', nargs='+', 
                         default=['best_case', 'perfect_ct', 'full_pipeline'], 
-                        help='Scenarios: best_case, perfect_ct, full_pipeline, weighted_ct, perfect_ct_e_gt_10mev, perfect_ct_e_gt_20mev')
+                        help='Scenarios: best_case, perfect_ct, full_pipeline, weighted_ct, perfect_ct_e_gt_10mev, perfect_ct_e_gt_5mev')
     parser.add_argument('--nwalkers', type=int, default=64, help='Number of walkers')
     parser.add_argument('--nsteps', type=int, default=2000, help='Number of steps')
     parser.add_argument('--discard', type=int, default=400, help='Burn-in steps')
