@@ -1,0 +1,25 @@
+
+Loading energy-cosine PDF from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/cosine_energy_pdf.npz
+PDF loaded: 18 energy bins, 100 cosine bins
+
+======================================================================
+SCENARIO 3: FULL PIPELINE (CT → ED → MCMC)
+======================================================================
+
+Loaded 3521 volumes
+
+Loading CT model from: /eos/user/e/evilla/dune/sn-tps/neural_networks/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras
+CT model input shape: (None, 208, 1242, 1)
+CT model output shape: (None, 2)
+
+Running CT inference...
+Volume input shape: (3521, 208, 1242, 1), dtype: float32
+CT selected 334 ES candidates from 3521 volumes
+  True ES volumes: 330
+  ES prob range: [0.000, 1.000]
+
+Matched 3405 cluster images for ED inference
+
+Loading ED model from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras
+Running ED inference on 3405 clusters...
+Scenario 3 completed with exit code: 1

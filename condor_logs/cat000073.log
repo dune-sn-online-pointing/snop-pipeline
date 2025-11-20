@@ -1,0 +1,117 @@
+000 (8782603.022.000) 11/20 00:44:09 Job submitted from host: <188.185.6.50:9618?addrs=188.185.6.50-9618+[2001-1458-d00-62--100-2b1]-9618&alias=bigbird25.cern.ch&noUDP&sock=schedd_1627_90ad>
+...
+000 (8782605.022.000) 11/20 00:44:34 Job submitted from host: <188.185.6.50:9618?addrs=188.185.6.50-9618+[2001-1458-d00-62--100-2b1]-9618&alias=bigbird25.cern.ch&noUDP&sock=schedd_1627_90ad>
+...
+040 (8782603.022.000) 11/20 00:44:59 Started transferring input files
+	Transferring to host: <188.185.92.130:9618?addrs=188.185.92.130-9618+[2001-1458-d00-6c--100-3d4]-9618&alias=b9g57n6407.cern.ch&noUDP&sock=slot1_1_15811_079c_9435>
+...
+040 (8782603.022.000) 11/20 00:44:59 Finished transferring input files
+...
+001 (8782603.022.000) 11/20 00:45:00 Job executing on host: <188.185.92.130:9618?addrs=188.185.92.130-9618+[2001-1458-d00-6c--100-3d4]-9618&alias=b9g57n6407.cern.ch&noUDP&sock=startd_14825_4b9e>
+	SlotName: slot1_1@b9g57n6407.cern.ch
+	AvailableGPUs = { GPUs_GPU_47e13020 }
+	CondorScratchDir = "/pool/condor/dir_621344"
+	Cpus = 11
+	Disk = 2048
+	GPUs = 1
+	GPUs_GPU_47e13020 = [ Id = "GPU-47e13020"; ClockMhz = 1410.0; Capability = 8.0; CoresPerCU = 64; DeviceName = "NVIDIA A100-PCIE-40GB"; DeviceUuid = "47e13020-0bf2-ad62-b596-87133bf5bb68"; ECCEnabled = true; ComputeUnits = 108; DriverVersion = 13.0; DevicePciBusId = "0000:06:00.0"; GlobalMemoryMb = 40441; MaxSupportedVersion = 13000 ]
+	Memory = 33000
+...
+006 (8782603.022.000) 11/20 00:45:13 Image size of job updated: 170136
+	167  -  MemoryUsage of job (MB)
+	170136  -  ResidentSetSize of job (KB)
+...
+006 (8782603.022.000) 11/20 00:50:13 Image size of job updated: 54960296
+	35221  -  MemoryUsage of job (MB)
+	36065432  -  ResidentSetSize of job (KB)
+...
+006 (8782603.022.000) 11/20 00:54:55 Image size of job updated: 55136820
+	35222  -  MemoryUsage of job (MB)
+	36066508  -  ResidentSetSize of job (KB)
+...
+040 (8782603.022.000) 11/20 00:54:55 Started transferring output files
+...
+040 (8782603.022.000) 11/20 00:54:55 Finished transferring output files
+...
+005 (8782603.022.000) 11/20 00:54:55 Job terminated.
+	(1) Normal termination (return value 0)
+		Usr 0 00:22:36, Sys 0 00:03:42  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:22:36, Sys 0 00:03:42  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	18092  -  Run Bytes Sent By Job
+	1959  -  Run Bytes Received By Job
+	18092  -  Total Bytes Sent By Job
+	1959  -  Total Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated Assigned
+	   Cpus                 :     0.99       11        11 
+	   Disk (KB)            :    44           2      2048 
+	   GPUs                 :     0           1         1 "GPU-47e13020"
+	   GpusMemory (MB)      :   580                       
+	   Memory (MB)          : 35222       33000     33000 
+	   TimeExecute (s)      :   595                       
+	   TimeSlotBusy (s)     :   597                       
+
+	Job terminated of its own accord at 2025-11-19T23:54:55Z with exit-code 0.
+...
+000 (13791364.022.000) 11/20 01:08:49 Job submitted from host: <188.184.90.62:9618?addrs=188.184.90.62-9618+[2001-1458-201-e4--100-238]-9618&alias=bigbird16.cern.ch&noUDP&sock=schedd_5196_9a2f>
+...
+009 (8782605.022.000) 11/20 01:10:27 Job was aborted.
+	via condor_rm (by user evilla)
+...
+040 (13791364.022.000) 11/20 01:25:21 Started transferring input files
+	Transferring to host: <188.184.195.125:9618?addrs=188.184.195.125-9618+[2001-1458-301-72--100-46]-9618&alias=b9g47n4484.cern.ch&noUDP&sock=slot1_1_1118192_2b98_33>
+...
+040 (13791364.022.000) 11/20 01:25:21 Finished transferring input files
+...
+001 (13791364.022.000) 11/20 01:25:22 Job executing on host: <188.184.195.125:9618?addrs=188.184.195.125-9618+[2001-1458-301-72--100-46]-9618&alias=b9g47n4484.cern.ch&noUDP&sock=startd_18735_3aec>
+	SlotName: slot1_1@b9g47n4484.cern.ch
+	AvailableGPUs = { GPUs_GPU_af018eac }
+	CondorScratchDir = "/pool/condor/dir_1125507"
+	Cpus = 11
+	Disk = 2049
+	GPUs = 1
+	GPUs_GPU_af018eac = [ Id = "GPU-af018eac"; ClockMhz = 1590.0; Capability = 7.5; CoresPerCU = 64; DeviceName = "Tesla T4"; DeviceUuid = "af018eac-0217-6a0c-1f02-a7671647c0bf"; ECCEnabled = true; ComputeUnits = 40; DriverVersion = 13.0; DevicePciBusId = "0000:07:00.0"; GlobalMemoryMb = 14913; MaxSupportedVersion = 13000 ]
+	Memory = 33000
+...
+006 (13791364.022.000) 11/20 01:25:36 Image size of job updated: 215668
+	211  -  MemoryUsage of job (MB)
+	215668  -  ResidentSetSize of job (KB)
+...
+006 (13791364.022.000) 11/20 01:30:36 Image size of job updated: 54766392
+	13920  -  MemoryUsage of job (MB)
+	14254068  -  ResidentSetSize of job (KB)
+...
+006 (13791364.022.000) 11/20 01:35:36 Image size of job updated: 60161520
+	34167  -  MemoryUsage of job (MB)
+	34986916  -  ResidentSetSize of job (KB)
+...
+006 (13791364.022.000) 11/20 01:38:05 Image size of job updated: 63448152
+	34168  -  MemoryUsage of job (MB)
+	34987600  -  ResidentSetSize of job (KB)
+...
+040 (13791364.022.000) 11/20 01:38:05 Started transferring output files
+...
+040 (13791364.022.000) 11/20 01:38:05 Finished transferring output files
+...
+005 (13791364.022.000) 11/20 01:38:05 Job terminated.
+	(1) Normal termination (return value 0)
+		Usr 0 00:32:08, Sys 0 00:02:29  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:32:08, Sys 0 00:02:29  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	18068  -  Run Bytes Sent By Job
+	1959  -  Run Bytes Received By Job
+	18068  -  Total Bytes Sent By Job
+	1959  -  Total Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated Assigned
+	   Cpus                 :     0.99       11        11 
+	   Disk (KB)            :    44           2      2049 
+	   GPUs                 :     0           1         1 "GPU-af018eac"
+	   GpusMemory (MB)      :   451                       
+	   Memory (MB)          : 34168       33000     33000 
+	   TimeExecute (s)      :   763                       
+	   TimeSlotBusy (s)     :   764                       
+
+	Job terminated of its own accord at 2025-11-20T00:38:05Z with exit-code 0.
+...

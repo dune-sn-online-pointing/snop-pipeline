@@ -1,0 +1,84 @@
+#!/usr/bin/env condor_submit
+#
+# Condor submission file for processing 50 categories (cat000001 to cat000050)
+# One job per category, each running all 5 scenarios
+#
+
+# Job universe and executable
+universe                = vanilla
+executable              = /afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_single_cat.sh
+arguments               = $(cat_name)
+
+# Output, error, and log files
+output                  = /afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/condor_logs/$(cat_name).out
+error                   = /afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/condor_logs/$(cat_name).err
+log                     = /afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/condor_logs/batch_50cats.log
+
+# Resource requirements
+request_cpus            = 1
+request_memory          = 32GB
+request_gpus            = 1
+
+# Job duration and flavour
++JobFlavour             = "workday"
+
+# Environment
+getenv                  = True
+
+# Notification
+notification            = Error
+notify_user             = evilla@cern.ch
+
+# Queue one job per category
+queue cat_name from (
+cat000001
+cat000002
+cat000003
+cat000004
+cat000005
+cat000006
+cat000007
+cat000008
+cat000009
+cat000010
+cat000011
+cat000012
+cat000013
+cat000014
+cat000015
+cat000016
+cat000017
+cat000018
+cat000019
+cat000020
+cat000021
+cat000022
+cat000023
+cat000024
+cat000025
+cat000026
+cat000027
+cat000028
+cat000029
+cat000030
+cat000031
+cat000032
+cat000033
+cat000034
+cat000035
+cat000036
+cat000037
+cat000038
+cat000039
+cat000040
+cat000041
+cat000042
+cat000043
+cat000044
+cat000045
+cat000046
+cat000047
+cat000048
+cat000049
+cat000050
+)

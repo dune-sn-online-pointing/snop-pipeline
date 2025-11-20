@@ -1,0 +1,143 @@
+
+================================================================================
+EMCEE vs CURRENT MCMC IMPLEMENTATION - COMPARISON SUMMARY
+================================================================================
+
+Date: November 20, 2025
+Test case: cat000062, perfect_ct scenario (284 clusters)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+KEY DIFFERENCES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CURRENT METHOD (Cartesian MCMC):
+  • Single-chain Metropolis-Hastings
+  • Cartesian coordinates (x, y, z) with normalization
+  • No prior (uniform sampling issue on sphere)
+  • Exponential damping: σ goes from 0.10 → 0.039
+  • 50 trials × 10,000 steps, best trial selected
+  • Acceptance rate: ~25.6%
+  
+EMCEE METHOD (Ensemble Sampler):
+  • Multiple walkers (ensemble sampling)
+  • Spherical coordinates (θ, φ)
+  • sin(φ) prior for uniform sphere sampling ✅
+  • Fixed proposal scale: σ = 0.1
+  • 32 walkers × 1,000 steps
+  • Custom boundary wrapping for θ, φ
+  • Circular statistics for angular uncertainties
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+TEST RESULTS (LIMITED - USED RANDOM CLUSTER DATA)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WARNING: Test used randomly generated cluster directions biased toward true 
+direction (real cluster data not stored in pipeline results).
+
+Current method:  15.52° angular error
+Emcee method:    12.74° angular error
+Improvement:     2.79° (18% better)
+
+BUT: Emcee had poor convergence metrics:
+  • Acceptance fraction: 3.0% (too low, should be 20-50%)
+  • Large uncertainties: Δθ=70°, Δφ=26° 
+  • 68% credible angle: 137°
+
+This suggests the random test data doesn't represent real distribution properly.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+THEORETICAL ADVANTAGES OF EMCEE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. ✅ sin(φ) PRIOR
+   - Ensures uniform sampling on sphere surface
+   - Current method has subtle bias toward poles
+
+2. ✅ ENSEMBLE SAMPLING
+   - Multiple walkers explore in parallel
+   - More robust to local minima
+   - Better convergence diagnosis (can see all walkers)
+
+3. ✅ PROPER UNCERTAINTY QUANTIFICATION
+   - Circular statistics for angular parameters
+   - 68% credible intervals
+   - Full posterior distribution
+
+4. ✅ NATURAL PARAMETERIZATION
+   - (θ, φ) directly interpretable as direction
+   - Boundary handling explicit
+
+5. ✅ ADAPTIVE PROPOSALS
+   - Emcee can use affine-invariant stretch moves
+   - Self-tunes to posterior shape
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DISADVANTAGES / CONCERNS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. ⚠️  MORE COMPLEX CODE
+   - Requires emcee library
+   - More parameters to tune (nwalkers, proposal scale)
+
+2. ⚠️  COMPUTATIONAL COST
+   - 32 walkers × 1,000 steps = 32,000 evaluations
+   - Current: 50 trials × 10,000 steps = 500,000 evaluations
+   - But emcee may converge faster (fewer steps needed)
+
+3. ⚠️  CURRENT METHOD ALREADY WORKS WELL
+   - 15.52° is good performance
+   - Convergence is adequate (std < 0.01)
+
+4. ⚠️  WOULD NEED TO REPROCESS ALL DATA
+   - 150+ cats already processed
+   - Results may not be directly comparable
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RECOMMENDATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OPTION A: IMPROVE CURRENT METHOD (RECOMMENDED FOR NOW)
+  ✓ Add sin(φ) prior to likelihood calculation
+  ✓ Compute proper uncertainties (credible intervals)
+  ✓ Add circular statistics for reporting
+  ✓ Keep Cartesian parameterization (working well)
+  → Minimal code changes, backwards compatible
+
+OPTION B: SWITCH TO EMCEE (FOR FUTURE/COMPARISON)
+  ✓ Better statistical rigor
+  ✓ Industry-standard tool
+  ✓ More diagnostics available
+  → Need proper test with real cluster data
+  → Would require reprocessing all cats
+  → Consider for next version of analysis
+
+OPTION C: HYBRID APPROACH
+  ✓ Keep current method as default
+  ✓ Implement emcee as alternative
+  ✓ Compare on subset of cats with both methods
+  → Best of both worlds
+  → More maintenance burden
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+NEXT STEPS TO PROPERLY TEST EMCEE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Modify pipeline to save cluster directions and energies
+2. Rerun one cat with both methods using SAME cluster data
+3. Compare:
+   - Angular error
+   - Convergence metrics
+   - Computational time
+   - Uncertainty estimates
+4. Decide based on real performance difference
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FILES CREATED
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+• scripts/mcmc_emcee_reconstruction.py - Full emcee implementation
+• emcee_walkers_cat000062_perfect_ct.png - Walker traces visualization
+• emcee_corner_cat000062_perfect_ct.png - Corner plot
+• emcee_test_output.txt - Test run output
+
+================================================================================

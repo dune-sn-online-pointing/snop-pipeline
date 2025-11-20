@@ -1,0 +1,45 @@
+000 (13791397.001.000) 11/20 02:47:03 Job submitted from host: <188.184.90.62:9618?addrs=188.184.90.62-9618+[2001-1458-201-e4--100-238]-9618&alias=bigbird16.cern.ch&noUDP&sock=schedd_5196_9a2f>
+...
+040 (13791397.001.000) 11/20 02:47:30 Started transferring input files
+	Transferring to host: <188.184.195.71:9618?addrs=188.184.195.71-9618+[2001-1458-301-72--100-384]-9618&alias=b9g47n2106.cern.ch&noUDP&sock=slot1_1_19410_d9ce_10034>
+...
+040 (13791397.001.000) 11/20 02:47:30 Finished transferring input files
+...
+001 (13791397.001.000) 11/20 02:47:31 Job executing on host: <188.184.195.71:9618?addrs=188.184.195.71-9618+[2001-1458-301-72--100-384]-9618&alias=b9g47n2106.cern.ch&noUDP&sock=startd_18295_6d40>
+	SlotName: slot1_1@b9g47n2106.cern.ch
+	AvailableGPUs = { GPUs_GPU_111bb3d1 }
+	CondorScratchDir = "/pool/condor/dir_3189207"
+	Cpus = 1
+	Disk = 2048
+	GPUs = 1
+	GPUs_GPU_111bb3d1 = [ Id = "GPU-111bb3d1"; ClockMhz = 1597.0; Capability = 7.0; CoresPerCU = 64; DeviceName = "Tesla V100S-PCIE-32GB"; DeviceUuid = "111bb3d1-80ae-ee28-1f54-4658e0d63886"; ECCEnabled = true; ComputeUnits = 80; DriverVersion = 13.0; DevicePciBusId = "0000:07:00.0"; GlobalMemoryMb = 32494; MaxSupportedVersion = 13000 ]
+	Memory = 3000
+...
+006 (13791397.001.000) 11/20 02:47:45 Image size of job updated: 178992
+	0  -  MemoryUsage of job (MB)
+	0  -  ResidentSetSize of job (KB)
+...
+040 (13791397.001.000) 11/20 02:47:45 Started transferring output files
+...
+040 (13791397.001.000) 11/20 02:47:45 Finished transferring output files
+...
+005 (13791397.001.000) 11/20 02:47:46 Job terminated.
+	(1) Normal termination (return value 2)
+		Usr 0 00:00:03, Sys 0 00:00:01  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:00:03, Sys 0 00:00:01  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	789  -  Run Bytes Sent By Job
+	54513  -  Run Bytes Received By Job
+	789  -  Total Bytes Sent By Job
+	54513  -  Total Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated Assigned
+	   Cpus                 :                 1         1 
+	   Disk (KB)            :       73       75      2048 
+	   GPUs                 :                 1         1 "GPU-111bb3d1"
+	   Memory (MB)          :        0     3000      3000 
+	   TimeExecute (s)      :       14                    
+	   TimeSlotBusy (s)     :       15                    
+
+	Job terminated of its own accord at 2025-11-20T01:47:45Z with exit-code 2.
+...

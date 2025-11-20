@@ -1,0 +1,62 @@
+000 (8781695.008.000) 11/19 23:12:09 Job submitted from host: <188.185.6.50:9618?addrs=188.185.6.50-9618+[2001-1458-d00-62--100-2b1]-9618&alias=bigbird25.cern.ch&noUDP&sock=schedd_1627_90ad>
+...
+040 (8781695.008.000) 11/19 23:13:04 Started transferring input files
+	Transferring to host: <188.185.190.99:9618?addrs=188.185.190.99-9618+[2001-1458-d03-b--100-8c]-9618&alias=b9pgpun030.cern.ch&noUDP&sock=slot1_1_257793_3d4c_6849>
+...
+040 (8781695.008.000) 11/19 23:13:04 Finished transferring input files
+...
+001 (8781695.008.000) 11/19 23:13:05 Job executing on host: <188.185.190.99:9618?addrs=188.185.190.99-9618+[2001-1458-d03-b--100-8c]-9618&alias=b9pgpun030.cern.ch&noUDP&sock=startd_253307_1c7e>
+	SlotName: slot1_1@b9pgpun030.cern.ch
+	AvailableGPUs = { GPUs_MIG_d4ac3753_c76f_51f7_81a7_569b1bfcb6e0 }
+	CondorScratchDir = "/pool/condor/dir_3103324"
+	Cpus = 11
+	Disk = 2048
+	GPUs = 1
+	GPUs_MIG_d4ac3753_c76f_51f7_81a7_569b1bfcb6e0 = [ Id = "MIG-d4ac3753-c76f-51f7-81a7-569b1bfcb6e0"; DeviceName = "NVIDIA H100L-2-24C MIG 2g.24gb"; DeviceUuid = "MIG-d4ac3753-c76f-51f7-81a7-569b1bfcb6e0"; ComputeUnits = 32; GlobalMemoryMb = 21547 ]
+	Memory = 33000
+...
+006 (8781695.008.000) 11/19 23:13:19 Image size of job updated: 283104
+	277  -  MemoryUsage of job (MB)
+	283104  -  ResidentSetSize of job (KB)
+...
+006 (8781695.008.000) 11/19 23:18:20 Image size of job updated: 37406752
+	36183  -  MemoryUsage of job (MB)
+	37050572  -  ResidentSetSize of job (KB)
+...
+006 (8781695.008.000) 11/19 23:23:20 Image size of job updated: 37601572
+	36262  -  MemoryUsage of job (MB)
+	37132004  -  ResidentSetSize of job (KB)
+...
+006 (8781695.008.000) 11/19 23:28:20 Image size of job updated: 37712632
+	36529  -  MemoryUsage of job (MB)
+	37405100  -  ResidentSetSize of job (KB)
+...
+006 (8781695.008.000) 11/19 23:48:22 Image size of job updated: 37769436
+	36885  -  MemoryUsage of job (MB)
+	37769436  -  ResidentSetSize of job (KB)
+...
+006 (8781695.008.000) 11/19 23:53:22 Image size of job updated: 37919044
+	36886  -  MemoryUsage of job (MB)
+	37770680  -  ResidentSetSize of job (KB)
+...
+040 (8781695.008.000) 11/20 00:06:48 Started transferring output files
+...
+040 (8781695.008.000) 11/20 00:06:48 Finished transferring output files
+...
+004 (8781695.008.000) 11/20 00:06:48 Job was evicted.
+	(0) CPU times
+		Usr 0 00:07:24, Sys 0 00:08:04  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+	10911  -  Run Bytes Sent By Job
+	1959  -  Run Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated Assigned
+	   Cpus                 :     0.21       11        11 
+	   Disk (KB)            :    36           2      2048 
+	   GPUs                 :                 1         1 "MIG-d4ac3753-c76f-51f7-81a7-569b1bfcb6e0"
+	   Memory (MB)          : 36886       33000     33000 
+	   TimeExecute (s)      :  3223                       
+	   TimeSlotBusy (s)     :  3224                       
+...
+009 (8781695.008.000) 11/20 00:06:48 Job was aborted.
+	via condor_rm (by user evilla)
+...

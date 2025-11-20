@@ -1,0 +1,13 @@
+# Condor submission for categories 51-150
+executable = scripts/run_single_cat.sh
+arguments = $(cat)
+
+log = condor_logs/$(cat).log
+output = condor_logs/$(cat).out
+error = condor_logs/$(cat).err
+
+request_memory = 32GB
+request_gpus = 1
++JobFlavour = "tomorrow"
+
+queue cat from /tmp/cats_51_150.txt

@@ -1,0 +1,21 @@
+#!/bin/bash
+# Condor submission file for scenario 3 analysis
+
+executable              = run_scenario3.sh
+output                  = logs/scenario3_$(ClusterId).out
+error                   = logs/scenario3_$(ClusterId).err
+log                     = logs/scenario3_$(ClusterId).log
+
+# Request GPU and memory
+request_gpus            = 1
+request_cpus            = 4
+request_memory          = 32GB
+request_disk            = 10GB
+
+# Use longer runtime queue
++JobFlavour             = "workday"
+
+# Environment
+getenv                  = True
+
+queue 1

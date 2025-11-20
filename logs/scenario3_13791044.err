@@ -1,0 +1,11 @@
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+W0000 00:00:1763568475.771561     111 gpu_device.cc:2342] Cannot dlopen some GPU libraries. Please make sure the missing libraries mentioned above are installed properly if you would like to use GPU. Follow the guide at https://www.tensorflow.org/install/gpu for how to download and setup the required libraries for your platform.
+Skipping registering GPU devices...
+Traceback (most recent call last):
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_cat000001_full_analysis.py", line 731, in <module>
+    main()
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_cat000001_full_analysis.py", line 700, in main
+    results['full_pipeline'] = run_scenario3_full_pipeline(
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_cat000001_full_analysis.py", line 553, in run_scenario3_full_pipeline
+    selected_volume_metadata = volume_metadata[es_candidates]
+IndexError: boolean index did not match indexed array along dimension 0; dimension is 3521 but corresponding boolean dimension is 7042

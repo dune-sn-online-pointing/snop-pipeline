@@ -1,0 +1,58 @@
+{
+  "description": "SN Burst Pipeline for cat000001",
+  "version": "2.0",
+  
+  "input_data": {
+    "cc_sample_folder": "/eos/project-e/ep-nu/evilla/sn-pointing/cat000001/cat000001_cluster_images_tick3_ch2_min2_tot3_e2p0/X",
+    "es_sample_folder": "/eos/project-e/ep-nu/evilla/sn-pointing/cat000001/cat000001_cluster_images_tick3_ch2_min2_tot3_e2p0/X",
+    "file_pattern": "*_planeX.npz",
+    "comment": "Using X plane cluster images from cat000001"
+  },
+  
+  "sample_selection": {
+    "n_es_events": 50,
+    "n_cc_events": 200,
+    "comment": "Small test run for cat000001"
+  },
+  
+  "neural_networks": {
+    "main_track_identifier": {
+      "model_path": "/afs/cern.ch/work/e/evilla/private/dune/ml_for_pointing/mt_identifier/outputs/mt_identifier/production_v5/mt_identifier/simple_cnn/plane_X/20251105_175528/simple_cnn.h5",
+      "threshold": 0.5,
+      "comment": "Main track identification CNN"
+    },
+    "channel_tagger": {
+      "model_path": "",
+      "threshold": 0.5,
+      "enabled": false,
+      "comment": "Channel tagging CNN - disabled for this test"
+    },
+    "electron_direction": {
+      "model_path": "",
+      "enabled": false,
+      "comment": "Electron direction predictor - not yet implemented"
+    }
+  },
+  
+  "volume_creation": {
+    "online_pointing_utils_path": "../online-pointing-utils",
+    "create_volumes_script": "python/app/create_volumes.py",
+    "volume_config_json": "json/volume_creation.json",
+    "output_folder": "selected_volume_images",
+    "comment": "Volume creation from selected main track clusters"
+  },
+  
+  "output": {
+    "base_folder": "results/pipeline_cat000001",
+    "metrics_json": "metrics.json",
+    "report_pdf": "pipeline_report.pdf",
+    "save_intermediate": true,
+    "comment": "Output paths for results and reports"
+  },
+  
+  "processing": {
+    "shuffle_clusters": true,
+    "random_seed": 42,
+    "verbose": true
+  }
+}

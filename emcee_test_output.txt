@@ -1,0 +1,32 @@
+
+================================================================================
+Testing emcee reconstruction on cat000062 (perfect_ct)
+================================================================================
+
+Loaded data:
+  True direction: (-0.4761, 0.1338, 0.8692)
+  Current method result: 15.52° error
+  N clusters: 284
+
+Note: Using simplified test - would need full cluster data for exact comparison
+
+Running emcee with 32 walkers for 1000 steps...
+Mean acceptance fraction: 0.030
+
+Results:
+  Mean direction: θ=125.33°, φ=93.20°
+  Cartesian: (-0.5774, -0.0558, 0.8146)
+  Uncertainties: Δθ=70.25°, Δφ=25.77°
+  68% credible angle: 136.96°
+
+================================================================================
+COMPARISON:
+================================================================================
+Current method: 15.52° error
+Emcee method:   12.74° error
+Difference:     -2.79°
+
+✅ Emcee method is BETTER by 2.79°
+
+✓ Saved walker plot: /eos/project-e/ep-nu/evilla/sn-pointing/cat000062/pipeline/emcee_walkers_cat000062_perfect_ct.png
+✓ Saved corner plot: /eos/project-e/ep-nu/evilla/sn-pointing/cat000062/pipeline/emcee_corner_cat000062_perfect_ct.png

@@ -1,0 +1,73 @@
+Testing improved damping on cat000062 (perfect_ct scenario)
+True direction: [-0.4761, 0.1338, 0.8692]
+Using 284 clusters
+Found 10 ES files
+
+PDF loaded and interpolator created
+
+======================================================================
+Running MCMC with IMPROVED damping schedule
+======================================================================
+  Trial 10/50 complete...
+  Trial 20/50 complete...
+  Trial 30/50 complete...
+  Trial 40/50 complete...
+  Trial 50/50 complete...
+
+MCMC completed in 57.7s
+
+Best trial: 12
+Final log likelihood: -363.6686
+Initial log likelihood: -448.8658
+Improvement: 85.1972
+
+Final 1000 steps:
+  Mean log likelihood: -363.6686
+  Std dev: 0.0000
+
+Final 5000 steps direction stability:
+  X std: 0.002805
+  Y std: 0.001811
+  Z std: 0.004495
+
+Jump size analysis:
+  Early (0-100): 0.012910
+  Middle: 0.000000
+  Late (last 100): 0.000000
+
+Acceptance rate: 0.4%
+
+Autocorrelation:
+  Lag    1: 0.9986
+  Lag   10: 0.9886
+  Lag   50: 0.9402
+  Lag  100: 0.9328
+  Lag  500: 0.8912
+  Lag 1000: 0.8307
+
+Reconstruction:
+  True direction:  [-0.4761, 0.1338, 0.8692]
+  Final direction: [0.2448, -0.9092, 0.3367]
+  Angular error: 86.87°
+  cos(θ): 0.0545
+
+======================================================================
+COMPARISON TO OLD RESULTS:
+======================================================================
+
+OLD (narrow damping):
+  Final log likelihood: -27.7027
+  Final 1000 std: 0.8794
+  Angular error: 15.52°
+
+NEW (improved damping):
+  Final log likelihood: -363.6686
+  Final 1000 std: 0.0000
+  Angular error: 86.87°
+
+IMPROVEMENT:
+  Δ log likelihood: -335.9659
+  Δ convergence (std): 0.8794 (negative = better)
+  Δ angular error: -71.35° (positive = better)
+
+✓ Test complete

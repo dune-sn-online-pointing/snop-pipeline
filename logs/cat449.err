@@ -1,0 +1,8 @@
+usage: run_cat000001_full_analysis.py [-h] [--cat-dir CAT_DIR]
+                                      [--cat-name CAT_NAME] --pdf-path
+                                      PDF_PATH [--ed-model ED_MODEL]
+                                      [--ct-model CT_MODEL] [--output OUTPUT]
+                                      [--scenarios {best_case,perfect_ct,full_pipeline,weighted_linear,weighted_squared,no_pdf,perfect_ct_e_gt_10mev,perfect_ct_e_gt_20mev} [{best_case,perfect_ct,full_pipeline,weighted_linear,weighted_squared,no_pdf,perfect_ct_e_gt_10mev,perfect_ct_e_gt_20mev} ...]]
+                                      [--use-eos-structure]
+                                      [--save-intermediate]
+run_cat000001_full_analysis.py: error: the following arguments are required: --pdf-path

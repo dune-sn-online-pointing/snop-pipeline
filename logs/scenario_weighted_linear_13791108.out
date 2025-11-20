@@ -1,0 +1,49 @@
+Starting scenario weighted_linear with improved MCMC and 3 MeV energy cut...
+
+Loading energy-cosine PDF from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/cosine_energy_pdf.npz
+PDF loaded: 18 energy bins, 100 cosine bins
+
+======================================================================
+SCENARIO 3: FULL PIPELINE (CT → ED → MCMC)
+======================================================================
+
+Loaded 3521 volumes
+
+Loading CT model from: /eos/user/e/evilla/dune/sn-tps/neural_networks/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras
+CT model input shape: (None, 208, 1242, 1)
+CT model output shape: (None, 2)
+
+Running CT inference...
+Volume input shape: (3521, 208, 1242, 1), dtype: float32
+CT selected 334 ES candidates from 3521 volumes
+  True ES volumes: 330
+  ES prob range: [0.000, 1.000]
+
+Matched 3232 3-plane clusters for ED inference
+
+Loading ED model from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras
+Running ED inference on 3232 clusters...
+After 3 MeV cut: 3208 clusters
+Using CT weights^1: range [0.502, 1.000]
+
+True neutrino direction: [-0.7739, 0.2285, 0.5907]
+Using 3208 ED-predicted directions for MCMC
+  MCMC: 50 initial trials, then 10001 chain steps
+  Best log-likelihood: -4154.98, final proposal_scale: 0.0023
+
+Reconstructed direction: [-0.4434, 0.6852, 0.5779]
+Angular error: 32.75°
+
+======================================================================
+Results saved to: results/cat000001_scenario_weighted_linear.npz
+======================================================================
+
+======================================================================
+SUMMARY
+======================================================================
+
+WEIGHTED_LINEAR:
+  Clusters used: 3208
+  Angular error: 32.75°
+  Log-likelihood: -4154.98
+Scenario weighted_linear completed with exit code: 0

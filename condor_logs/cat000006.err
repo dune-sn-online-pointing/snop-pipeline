@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_cat000001_full_analysis.py", line 920, in <module>
+    main()
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_cat000001_full_analysis.py", line 851, in main
+    results['perfect_ct'] = run_scenario2_perfect_ct(
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_cat000001_full_analysis.py", line 484, in run_scenario2_perfect_ct
+    ed_model = tf.keras.models.load_model(ed_model_path, compile=False)
+  File "/afs/cern.ch/user/e/evilla/.local/lib/python3.9/site-packages/keras/src/saving/saving_api.py", line 206, in load_model
+    raise ValueError(
+ValueError: File format not supported: filepath=/eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931. Keras 3 only supports V3 `.keras` files and legacy H5 format files (`.h5` extension). Note that the legacy SavedModel format is not supported by `load_model()` in Keras 3. In order to reload a TensorFlow SavedModel as an inference-only layer in Keras 3, use `keras.layers.TFSMLayer(/eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931, call_endpoint='serving_default')` (note that your `call_endpoint` might have a different name).

@@ -1,0 +1,47 @@
+Starting scenario 3 with 3 MeV energy cut...
+
+Loading energy-cosine PDF from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/cosine_energy_pdf.npz
+PDF loaded: 18 energy bins, 100 cosine bins
+
+======================================================================
+SCENARIO 3: FULL PIPELINE (CT → ED → MCMC)
+======================================================================
+
+Loaded 3521 volumes
+
+Loading CT model from: /eos/user/e/evilla/dune/sn-tps/neural_networks/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras
+CT model input shape: (None, 208, 1242, 1)
+CT model output shape: (None, 2)
+
+Running CT inference...
+Volume input shape: (3521, 208, 1242, 1), dtype: float32
+CT selected 334 ES candidates from 3521 volumes
+  True ES volumes: 330
+  ES prob range: [0.000, 1.000]
+
+Matched 3232 3-plane clusters for ED inference
+
+Loading ED model from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras
+Running ED inference on 3232 clusters...
+After 3 MeV cut: 3208 clusters
+
+True neutrino direction: [-0.7739, 0.2285, 0.5907]
+Using 3208 ED-predicted directions for MCMC
+  MCMC: 50 trials, best log-likelihood: -4461.01
+
+Reconstructed direction: [-0.7704, -0.5001, 0.3954]
+Angular error: 44.31°
+
+======================================================================
+Results saved to: results/cat000001_scenario3_full_pipeline.npz
+======================================================================
+
+======================================================================
+SUMMARY
+======================================================================
+
+FULL_PIPELINE:
+  Clusters used: 3208
+  Angular error: 44.31°
+  Log-likelihood: -4461.01
+Scenario 3 completed with exit code: 0

@@ -1,0 +1,50 @@
+000 (13791037.000.000) 11/19 16:18:07 Job submitted from host: <188.184.90.62:9618?addrs=188.184.90.62-9618+[2001-1458-201-e4--100-238]-9618&alias=bigbird16.cern.ch&noUDP&sock=schedd_5196_9a2f>
+...
+040 (13791037.000.000) 11/19 16:22:13 Started transferring input files
+	Transferring to host: <188.185.190.51:9618?addrs=188.185.190.51-9618+[2001-1458-d03-b--100-e9]-9618&alias=b9pgpun023.cern.ch&noUDP&sock=slot1_1_263118_2f05_6374>
+...
+040 (13791037.000.000) 11/19 16:22:13 Finished transferring input files
+...
+001 (13791037.000.000) 11/19 16:22:14 Job executing on host: <188.185.190.51:9618?addrs=188.185.190.51-9618+[2001-1458-d03-b--100-e9]-9618&alias=b9pgpun023.cern.ch&noUDP&sock=startd_254145_e8db>
+	SlotName: slot1_1@b9pgpun023.cern.ch
+	AvailableGPUs = { GPUs_MIG_c083ec97_d010_583d_966d_d30ce37b09d1 }
+	CondorScratchDir = "/pool/condor/dir_2713929"
+	Cpus = 6
+	Disk = 10486787
+	GPUs = 1
+	GPUs_MIG_c083ec97_d010_583d_966d_d30ce37b09d1 = [ Id = "MIG-c083ec97-d010-583d-966d-d30ce37b09d1"; DeviceName = "NVIDIA H100L-1-12C MIG 1g.12gb"; DeviceUuid = "MIG-c083ec97-d010-583d-966d-d30ce37b09d1"; ComputeUnits = 16; GlobalMemoryMb = 10564 ]
+	Memory = 18000
+...
+006 (13791037.000.000) 11/19 16:22:28 Image size of job updated: 41308
+	41  -  MemoryUsage of job (MB)
+	41308  -  ResidentSetSize of job (KB)
+...
+006 (13791037.000.000) 11/19 16:24:22 Image size of job updated: 14425696
+	41  -  MemoryUsage of job (MB)
+	41312  -  ResidentSetSize of job (KB)
+...
+021 (13791037.000.000) 11/19 16:24:22 Error from starter on slot1_1@b9pgpun023.cern.ch:
+	Job has gone over cgroup memory limit of 18000 megabytes. Last measured usage: 14087 megabytes.  Consider resubmitting with a higher request_memory.
+	Code 34 Subcode 0
+...
+004 (13791037.000.000) 11/19 16:24:22 Job was evicted.
+	(0) CPU times
+		Usr 0 00:01:03, Sys 0 00:00:24  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+	0  -  Run Bytes Sent By Job
+	806  -  Run Bytes Received By Job
+	Error from slot1_1@b9pgpun023.cern.ch: Job has gone over cgroup memory limit of 18000 megabytes. Last measured usage: 14087 megabytes.  Consider resubmitting with a higher request_memory.
+	Partitionable Resources :    Usage  Request Allocated Assigned
+	   Cpus                 :                 6         6 
+	   Disk (KB)            :       29 10485760  10486787 
+	   GPUs                 :                 1         1 "MIG-c083ec97-d010-583d-966d-d30ce37b09d1"
+	   Memory (MB)          :       41    18000     18000 
+	   TimeSlotBusy (s)     :      130                    
+...
+012 (13791037.000.000) 11/19 16:24:22 Job was held.
+	Error from slot1_1@b9pgpun023.cern.ch: Job has gone over cgroup memory limit of 18000 megabytes. Last measured usage: 14087 megabytes.  Consider resubmitting with a higher request_memory.
+	Code 34 Subcode 0
+...
+009 (13791037.000.000) 11/19 16:27:47 Job was aborted.
+	via condor_rm (by user evilla)
+...
