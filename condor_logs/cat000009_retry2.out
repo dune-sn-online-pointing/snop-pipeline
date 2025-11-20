@@ -1,0 +1,191 @@
+==========================================
+Processing: cat000009
+==========================================
+Category directory: /eos/project-e/ep-nu/evilla/sn-pointing/cat000009
+PDF path: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/cosine_energy_pdf.npz
+Script directory: /afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline
+
+
+Running all 5 scenarios...
+
+
+Loading energy-cosine PDF from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/cosine_energy_pdf.npz
+PDF loaded: 18 energy bins, 100 cosine bins
+
+======================================================================
+SCENARIO 1: BEST CASE (True Electron Directions)
+======================================================================
+
+Loaded 7078 total clusters
+ES main tracks: 308
+Valid directions: 308 / 308
+After 3 MeV cut: 308 clusters
+
+True neutrino direction: [0.5527, -0.8308, -0.0654]
+Using 308 electron directions for MCMC
+  MCMC: 50 initial trials, then 10001 chain steps
+  Best log-likelihood: 154.78, final proposal_scale: 0.0046
+
+Reconstructed direction: [0.3136, -0.8895, -0.3323]
+Angular error: 20.92°
+
+======================================================================
+SCENARIO 2: PERFECT CT (ES Main Tracks + ED Network)
+======================================================================
+
+Files found: 10 ES, 100 CC
+
+Loaded 3849 matched main-track clusters across U, V, X planes
+ES main tracks: 273 (expected ~400 from 10 ES files × 40 events)
+  Matched main tracks across all planes: 3849
+  ES main tracks: 273
+
+Loading ED model from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras
+ED model input shape: [(None, 128, 32, 1), (None, 128, 32, 1), (None, 128, 32, 1)]
+ED model output shape: (None, 3)
+
+Running ED inference on 273 clusters...
+ED predictions shape: (273, 3)
+After 3 MeV cut: 273 clusters
+
+True neutrino direction: [0.5527, -0.8308, -0.0654]
+Using 273 ED-predicted directions for MCMC
+  MCMC: 50 initial trials, then 10001 chain steps
+  Best log-likelihood: -142.11, final proposal_scale: 0.0147
+
+Reconstructed direction: [0.5824, -0.8125, 0.0247]
+Angular error: 5.54°
+
+======================================================================
+SCENARIO 3: FULL PIPELINE (CT → ED → MCMC)
+======================================================================
+
+Loaded 4201 volumes
+
+Loading CT model from: /eos/user/e/evilla/dune/sn-tps/neural_networks/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras
+CT model input shape: (None, 208, 1242, 1)
+CT model output shape: (None, 2)
+
+Running CT inference...
+Volume input shape: (4201, 208, 1242, 1), dtype: float32
+CT selected 378 ES candidates from 4201 volumes
+  True ES volumes: 353
+  ES prob range: [0.000, 1.000]
+
+Matched 3849 3-plane clusters for ED inference
+
+Loading ED model from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras
+Running ED inference on 3849 clusters...
+After 3 MeV cut: 3821 clusters
+
+True neutrino direction: [0.5527, -0.8308, -0.0654]
+Using 3821 ED-predicted directions for MCMC
+  MCMC: 50 initial trials, then 10001 chain steps
+  Best log-likelihood: -5372.01, final proposal_scale: 0.0038
+
+Reconstructed direction: [-0.3248, -0.6954, -0.6410]
+Angular error: 63.89°
+
+======================================================================
+SCENARIO 3: FULL PIPELINE (CT → ED → MCMC)
+======================================================================
+
+Loaded 4201 volumes
+
+Loading CT model from: /eos/user/e/evilla/dune/sn-tps/neural_networks/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras
+CT model input shape: (None, 208, 1242, 1)
+CT model output shape: (None, 2)
+
+Running CT inference...
+Volume input shape: (4201, 208, 1242, 1), dtype: float32
+CT selected 378 ES candidates from 4201 volumes
+  True ES volumes: 353
+  ES prob range: [0.000, 1.000]
+
+Matched 3849 3-plane clusters for ED inference
+
+Loading ED model from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras
+Running ED inference on 3849 clusters...
+After 3 MeV cut: 3821 clusters
+Using CT weights^1: range [0.522, 1.000]
+
+True neutrino direction: [0.5527, -0.8308, -0.0654]
+Using 3821 ED-predicted directions for MCMC
+  MCMC: 50 initial trials, then 10001 chain steps
+  Best log-likelihood: -5128.64, final proposal_scale: 0.0012
+
+Reconstructed direction: [-0.6827, -0.6729, -0.2848]
+Angular error: 78.45°
+
+======================================================================
+SCENARIO 3: FULL PIPELINE (CT → ED → MCMC)
+======================================================================
+
+Loaded 4201 volumes
+
+Loading CT model from: /eos/user/e/evilla/dune/sn-tps/neural_networks/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras
+CT model input shape: (None, 208, 1242, 1)
+CT model output shape: (None, 2)
+
+Running CT inference...
+Volume input shape: (4201, 208, 1242, 1), dtype: float32
+CT selected 378 ES candidates from 4201 volumes
+  True ES volumes: 353
+  ES prob range: [0.000, 1.000]
+
+Matched 3849 3-plane clusters for ED inference
+
+Loading ED model from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras
+Running ED inference on 3849 clusters...
+After 3 MeV cut: 3821 clusters
+Using CT weights^2: range [0.272, 1.000]
+
+True neutrino direction: [0.5527, -0.8308, -0.0654]
+Using 3821 ED-predicted directions for MCMC
+  MCMC: 50 initial trials, then 10001 chain steps
+  Best log-likelihood: -4932.79, final proposal_scale: 0.0042
+
+Reconstructed direction: [-0.3248, -0.6953, -0.6411]
+Angular error: 63.89°
+
+======================================================================
+Using EOS structure: /eos/project-e/ep-nu/evilla/sn-pointing/cat000009/pipeline
+======================================================================
+Saved best_case: /eos/project-e/ep-nu/evilla/sn-pointing/cat000009/pipeline/cat000009_scenario_best_case.npz
+Saved perfect_ct: /eos/project-e/ep-nu/evilla/sn-pointing/cat000009/pipeline/cat000009_scenario_perfect_ct.npz
+Saved full_pipeline: /eos/project-e/ep-nu/evilla/sn-pointing/cat000009/pipeline/cat000009_scenario_full_pipeline.npz
+Saved weighted_linear: /eos/project-e/ep-nu/evilla/sn-pointing/cat000009/pipeline/cat000009_scenario_weighted_linear.npz
+Saved weighted_squared: /eos/project-e/ep-nu/evilla/sn-pointing/cat000009/pipeline/cat000009_scenario_weighted_squared.npz
+
+======================================================================
+SUMMARY
+======================================================================
+
+BEST_CASE:
+  Clusters used: 308
+  Angular error: 20.92°
+  Log-likelihood: 154.78
+
+PERFECT_CT:
+  Clusters used: 273
+  Angular error: 5.54°
+  Log-likelihood: -142.11
+
+FULL_PIPELINE:
+  Clusters used: 3821
+  Angular error: 63.89°
+  Log-likelihood: -5372.01
+
+WEIGHTED_LINEAR:
+  Clusters used: 3821
+  Angular error: 78.45°
+  Log-likelihood: -5128.64
+
+WEIGHTED_SQUARED:
+  Clusters used: 3821
+  Angular error: 63.89°
+  Log-likelihood: -4932.79
+
+==========================================
+SUCCESS: cat000009 completed
+==========================================

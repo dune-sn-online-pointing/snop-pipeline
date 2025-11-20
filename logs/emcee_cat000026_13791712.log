@@ -1,0 +1,45 @@
+000 (13791712.025.000) 11/20 10:04:24 Job submitted from host: <188.184.90.62:9618?addrs=188.184.90.62-9618+[2001-1458-201-e4--100-238]-9618&alias=bigbird16.cern.ch&noUDP&sock=schedd_5196_9a2f>
+...
+040 (13791712.025.000) 11/20 10:05:18 Started transferring input files
+	Transferring to host: <188.185.93.218:9618?addrs=188.185.93.218-9618+[2001-1458-d00-6c--100-34c]-9618&alias=b9g57n0991.cern.ch&noUDP&sock=slot1_1_4005_a27c_9792>
+...
+040 (13791712.025.000) 11/20 10:05:18 Finished transferring input files
+...
+001 (13791712.025.000) 11/20 10:05:20 Job executing on host: <188.185.93.218:9618?addrs=188.185.93.218-9618+[2001-1458-d00-6c--100-34c]-9618&alias=b9g57n0991.cern.ch&noUDP&sock=startd_3640_50d2>
+	SlotName: slot1_1@b9g57n0991.cern.ch
+	AvailableGPUs = { GPUs_GPU_481212f1 }
+	CondorScratchDir = "/pool/condor/dir_3078790"
+	Cpus = 11
+	Disk = 4195195
+	GPUs = 1
+	GPUs_GPU_481212f1 = [ Id = "GPU-481212f1"; ClockMhz = 1410.0; Capability = 8.0; CoresPerCU = 64; DeviceName = "NVIDIA A100-PCIE-40GB"; DeviceUuid = "481212f1-d5bc-e456-f450-346df9467bda"; ECCEnabled = true; ComputeUnits = 108; DriverVersion = 13.0; DevicePciBusId = "0000:06:00.0"; GlobalMemoryMb = 40441; MaxSupportedVersion = 13000 ]
+	Memory = 33000
+...
+006 (13791712.025.000) 11/20 10:05:25 Image size of job updated: 1500
+	0  -  MemoryUsage of job (MB)
+	0  -  ResidentSetSize of job (KB)
+...
+040 (13791712.025.000) 11/20 10:05:25 Started transferring output files
+...
+040 (13791712.025.000) 11/20 10:05:25 Finished transferring output files
+...
+005 (13791712.025.000) 11/20 10:05:25 Job terminated.
+	(1) Normal termination (return value 0)
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	276  -  Run Bytes Sent By Job
+	1410814  -  Run Bytes Received By Job
+	276  -  Total Bytes Sent By Job
+	1410814  -  Total Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated Assigned
+	   Cpus                 :        0       11        11 
+	   Disk (KB)            :     1406  4194304   4195195 
+	   GPUs                 :                 1         1 "GPU-481212f1"
+	   Memory (MB)          :        0    33000     33000 
+	   TimeExecute (s)      :        6                    
+	   TimeSlotBusy (s)     :        8                    
+
+	Job terminated of its own accord at 2025-11-20T09:05:25Z with exit-code 0.
+...

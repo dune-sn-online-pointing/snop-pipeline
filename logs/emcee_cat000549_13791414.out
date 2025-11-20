@@ -1,0 +1,66 @@
+==================================================================
+Processing cat000549 with EMCEE - ALL SCENARIOS
+==================================================================
+======================================================================
+EMCEE RECONSTRUCTION FOR cat000549
+======================================================================
+
+Loading PDF from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/cosine_energy_pdf.npz
+PDF loaded
+
+======================================================================
+SCENARIO (EMCEE): PERFECT_CT
+======================================================================
+
+Loaded 3289 matched clusters across U, V, X planes
+
+✗ perfect_ct failed: No valid clusters found for scenario perfect_ct
+
+======================================================================
+SCENARIO (EMCEE): ES_MAIN_CC_SHOWER
+======================================================================
+
+Loaded 3289 matched clusters across U, V, X planes
+
+✗ es_main_cc_shower failed: No valid clusters found for scenario es_main_cc_shower
+
+======================================================================
+SCENARIO (EMCEE): ES_MAIN_CC_ALL
+======================================================================
+
+Loaded 3289 matched clusters across U, V, X planes
+
+✗ es_main_cc_all failed: No valid clusters found for scenario es_main_cc_all
+
+======================================================================
+SCENARIO (EMCEE): ES_ALL_CC_SHOWER
+======================================================================
+
+Loaded 3289 matched clusters across U, V, X planes
+
+✗ es_all_cc_shower failed: No valid clusters found for scenario es_all_cc_shower
+
+======================================================================
+SCENARIO (EMCEE): ES_ALL_CC_ALL
+======================================================================
+
+Loaded 3289 matched clusters across U, V, X planes
+
+✗ es_all_cc_all failed: No valid clusters found for scenario es_all_cc_all
+
+======================================================================
+SCENARIO (EMCEE): ALL_TRACKS_ALL_SHOWERS
+======================================================================
+
+Loaded 3289 matched clusters across U, V, X planes
+Selected clusters: 3289
+Running emcee: 64 walkers × 2000 steps...
+Acceptance fraction: 4.0%
+Mean direction: θ=-113.70°, φ=85.54°
+Uncertainties: Δθ=66.30°, Δφ=30.20°
+68% credible angle: 56.87°
+
+Angular error: 158.87°
+
+✓ Saved: /eos/project-e/ep-nu/evilla/sn-pointing/cat000549/pipeline/cat000549_scenario_all_tracks_all_showers_emcee.npz
+✓ cat000549 completed successfully

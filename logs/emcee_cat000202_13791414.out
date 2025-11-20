@@ -1,0 +1,106 @@
+==================================================================
+Processing cat000202 with EMCEE - ALL SCENARIOS
+==================================================================
+======================================================================
+EMCEE RECONSTRUCTION FOR cat000202
+======================================================================
+
+Loading PDF from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/cosine_energy_pdf.npz
+PDF loaded
+
+======================================================================
+SCENARIO (EMCEE): PERFECT_CT
+======================================================================
+
+Loaded 3068 matched clusters across U, V, X planes
+Selected clusters: 271
+Running emcee: 64 walkers × 2000 steps...
+Acceptance fraction: 19.7%
+Mean direction: θ=-0.39°, φ=49.79°
+Uncertainties: Δθ=35.97°, Δφ=14.47°
+68% credible angle: 27.60°
+
+Angular error: 19.90°
+
+======================================================================
+SCENARIO (EMCEE): ES_MAIN_CC_SHOWER
+======================================================================
+
+Loaded 3068 matched clusters across U, V, X planes
+Selected clusters: 271
+Running emcee: 64 walkers × 2000 steps...
+Acceptance fraction: 19.5%
+Mean direction: θ=7.10°, φ=48.39°
+Uncertainties: Δθ=35.77°, Δφ=15.23°
+68% credible angle: 33.18°
+
+Angular error: 18.57°
+
+======================================================================
+SCENARIO (EMCEE): ES_MAIN_CC_ALL
+======================================================================
+
+Loaded 3068 matched clusters across U, V, X planes
+Selected clusters: 271
+Running emcee: 64 walkers × 2000 steps...
+Acceptance fraction: 18.6%
+Mean direction: θ=4.48°, φ=49.04°
+Uncertainties: Δθ=36.80°, Δφ=14.53°
+68% credible angle: 31.33°
+
+Angular error: 19.07°
+
+======================================================================
+SCENARIO (EMCEE): ES_ALL_CC_SHOWER
+======================================================================
+
+Loaded 3068 matched clusters across U, V, X planes
+Selected clusters: 271
+Running emcee: 64 walkers × 2000 steps...
+Acceptance fraction: 18.6%
+Mean direction: θ=-16.27°, φ=46.42°
+Uncertainties: Δθ=33.09°, Δφ=16.66°
+68% credible angle: 31.42°
+
+Angular error: 20.09°
+
+======================================================================
+SCENARIO (EMCEE): ES_ALL_CC_ALL
+======================================================================
+
+Loaded 3068 matched clusters across U, V, X planes
+Selected clusters: 271
+Running emcee: 64 walkers × 2000 steps...
+Acceptance fraction: 18.1%
+Mean direction: θ=-3.02°, φ=47.27°
+Uncertainties: Δθ=35.47°, Δφ=16.33°
+68% credible angle: 29.49°
+
+Angular error: 17.64°
+
+======================================================================
+SCENARIO (EMCEE): ALL_TRACKS_ALL_SHOWERS
+======================================================================
+
+Loaded 3068 matched clusters across U, V, X planes
+Selected clusters: 3068
+Running emcee: 64 walkers × 2000 steps...
+Acceptance fraction: 4.8%
+Mean direction: θ=-10.94°, φ=77.26°
+Uncertainties: Δθ=91.41°, Δφ=40.24°
+68% credible angle: 73.10°
+
+Angular error: 48.35°
+
+✓ Saved: /eos/project-e/ep-nu/evilla/sn-pointing/cat000202/pipeline/cat000202_scenario_perfect_ct_emcee.npz
+
+✓ Saved: /eos/project-e/ep-nu/evilla/sn-pointing/cat000202/pipeline/cat000202_scenario_es_main_cc_shower_emcee.npz
+
+✓ Saved: /eos/project-e/ep-nu/evilla/sn-pointing/cat000202/pipeline/cat000202_scenario_es_main_cc_all_emcee.npz
+
+✓ Saved: /eos/project-e/ep-nu/evilla/sn-pointing/cat000202/pipeline/cat000202_scenario_es_all_cc_shower_emcee.npz
+
+✓ Saved: /eos/project-e/ep-nu/evilla/sn-pointing/cat000202/pipeline/cat000202_scenario_es_all_cc_all_emcee.npz
+
+✓ Saved: /eos/project-e/ep-nu/evilla/sn-pointing/cat000202/pipeline/cat000202_scenario_all_tracks_all_showers_emcee.npz
+✓ cat000202 completed successfully

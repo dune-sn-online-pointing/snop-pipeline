@@ -1,0 +1,23 @@
+{
+  "models": {
+    "ed_model": "/eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras",
+    "ct_model": "/eos/user/e/evilla/dune/sn-tps/neural_networks/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras",
+    "pdf_file": "/eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/cosine_energy_pdf.npz"
+  },
+  "paths": {
+    "base_path": "/eos/project-e/ep-nu/evilla/sn-pointing"
+  },
+  "emcee_params": {
+    "nwalkers": 64,
+    "nsteps": 2000,
+    "discard": 400
+  },
+  "scenarios": [
+    "best_case",
+    "perfect_ct",
+    "full_pipeline",
+    "weighted_ct",
+    "perfect_ct_e_gt_10mev",
+    "perfect_ct_e_gt_20mev"
+  ]
+}

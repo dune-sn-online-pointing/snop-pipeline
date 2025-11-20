@@ -1,0 +1,100 @@
+Processing cat000545 with 6 scenarios...
+Cat directory: /eos/project-e/ep-nu/evilla/sn-pointing/cat000545
+======================================================================
+EMCEE RECONSTRUCTION FOR cat000545
+======================================================================
+
+Loading PDF from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/cosine_energy_pdf.npz
+PDF loaded
+
+======================================================================
+SCENARIO (EMCEE): BEST_CASE
+======================================================================
+
+Loaded 2922 matched main-track clusters across U, V, X planes
+Selected 0 ES main tracks
+After E > 3 MeV cut: 0 clusters
+
+✗ best_case failed: No clusters remaining for scenario best_case
+
+======================================================================
+SCENARIO (EMCEE): PERFECT_CT
+======================================================================
+
+Loaded 2922 matched main-track clusters across U, V, X planes
+Selected 0 ES main tracks
+Loading ED model from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras
+Running ED inference...
+
+✗ perfect_ct failed: local variable 'batch_outputs' referenced before assignment
+
+======================================================================
+SCENARIO (EMCEE): FULL_PIPELINE
+======================================================================
+
+Loaded 2922 matched main-track clusters across U, V, X planes
+Using all 2922 main-track clusters
+Loading CT model from: /eos/user/e/evilla/dune/sn-tps/neural_networks/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras
+Running CT inference...
+CT selected 2642 ES candidates from 2922 clusters
+  ES prob range: [0.000, 1.000]
+Loading ED model from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras
+Running ED inference on 2642 clusters...
+After E > 3 MeV cut: 2623 clusters
+Running emcee: 64 walkers × 2000 steps...
+Acceptance fraction: 3.3%
+Mean direction: θ=147.97°, φ=91.64°
+Uncertainties: Δθ=92.54°, Δφ=36.31°
+68% credible angle: 94.78°
+
+Angular error: 40.35°
+
+======================================================================
+SCENARIO (EMCEE): WEIGHTED_CT
+======================================================================
+
+Loaded 2922 matched main-track clusters across U, V, X planes
+Using all 2922 main-track clusters
+Loading CT model from: /eos/user/e/evilla/dune/sn-tps/neural_networks/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras
+Running CT inference...
+CT selected 2642 ES candidates from 2922 clusters
+  ES prob range: [0.000, 1.000]
+Loading ED model from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras
+Running ED inference on 2642 clusters...
+Using CT weights (ES probabilities)
+After E > 3 MeV cut: 2623 clusters
+Running weighted MCMC with 2623 weights
+Running emcee: 64 walkers × 2000 steps...
+Acceptance fraction: 4.8%
+Mean direction: θ=-147.13°, φ=93.87°
+Uncertainties: Δθ=77.82°, Δφ=34.21°
+68% credible angle: 79.01°
+
+Angular error: 48.55°
+
+======================================================================
+SCENARIO (EMCEE): PERFECT_CT_E_GT_10MEV
+======================================================================
+
+Loaded 2922 matched main-track clusters across U, V, X planes
+Selected 0 ES main tracks
+Loading ED model from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras
+Running ED inference...
+
+✗ perfect_ct_e_gt_10mev failed: local variable 'batch_outputs' referenced before assignment
+
+======================================================================
+SCENARIO (EMCEE): PERFECT_CT_E_GT_20MEV
+======================================================================
+
+Loaded 2922 matched main-track clusters across U, V, X planes
+Selected 0 ES main tracks
+Loading ED model from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras
+Running ED inference...
+
+✗ perfect_ct_e_gt_20mev failed: local variable 'batch_outputs' referenced before assignment
+
+✓ Saved: /eos/project-e/ep-nu/evilla/sn-pointing/cat000545/pipeline/cat000545_scenario_full_pipeline_emcee.npz
+
+✓ Saved: /eos/project-e/ep-nu/evilla/sn-pointing/cat000545/pipeline/cat000545_scenario_weighted_ct_emcee.npz
+✓ cat000545 completed successfully

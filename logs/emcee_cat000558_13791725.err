@@ -1,0 +1,47 @@
+2025-11-20 11:47:12.092750: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-11-20 11:47:12.148503: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI AVX512_BF16 AVX512_FP16 AVX_VNNI AMX_TILE AMX_INT8 AMX_BF16 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2025-11-20 11:47:14.652408: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+Traceback (most recent call last):
+  File "/pool/condor/dir_3352821/run_cat_analysis_emcee_corrected.py", line 527, in main
+    results[scenario] = run_scenario_emcee(
+  File "/pool/condor/dir_3352821/run_cat_analysis_emcee_corrected.py", line 440, in run_scenario_emcee
+    raise ValueError(f"No clusters remaining for scenario {scenario}")
+ValueError: No clusters remaining for scenario best_case
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+W0000 00:00:1763635650.990612     119 gpu_device.cc:2342] Cannot dlopen some GPU libraries. Please make sure the missing libraries mentioned above are installed properly if you would like to use GPU. Follow the guide at https://www.tensorflow.org/install/gpu for how to download and setup the required libraries for your platform.
+Skipping registering GPU devices...
+2025-11-20 11:47:31.491659: I tensorflow/core/framework/local_rendezvous.cc:407] Local rendezvous is aborting with status: OUT_OF_RANGE: End of sequence
+/afs/cern.ch/user/e/evilla/.local/lib/python3.9/site-packages/keras/src/trainers/epoch_iterator.py:160: UserWarning: Your input ran out of data; interrupting training. Make sure that your dataset or generator can generate at least `steps_per_epoch * epochs` batches. You may need to use the `.repeat()` function when building your dataset.
+  self._interrupted_warning()
+Traceback (most recent call last):
+  File "/pool/condor/dir_3352821/run_cat_analysis_emcee_corrected.py", line 527, in main
+    results[scenario] = run_scenario_emcee(
+  File "/pool/condor/dir_3352821/run_cat_analysis_emcee_corrected.py", line 316, in run_scenario_emcee
+    pred_directions = ed_model.predict([sel_images_u_input, sel_images_v_input, sel_images_x_input],
+  File "/afs/cern.ch/user/e/evilla/.local/lib/python3.9/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
+    raise e.with_traceback(filtered_tb) from None
+  File "/afs/cern.ch/user/e/evilla/.local/lib/python3.9/site-packages/keras/src/backend/tensorflow/trainer.py", line 573, in predict
+    batch_outputs, potentially_ragged_concat, outputs
+UnboundLocalError: local variable 'batch_outputs' referenced before assignment
+2025-11-20 11:48:42.479085: I tensorflow/core/framework/local_rendezvous.cc:407] Local rendezvous is aborting with status: OUT_OF_RANGE: End of sequence
+Traceback (most recent call last):
+  File "/pool/condor/dir_3352821/run_cat_analysis_emcee_corrected.py", line 527, in main
+    results[scenario] = run_scenario_emcee(
+  File "/pool/condor/dir_3352821/run_cat_analysis_emcee_corrected.py", line 316, in run_scenario_emcee
+    pred_directions = ed_model.predict([sel_images_u_input, sel_images_v_input, sel_images_x_input],
+  File "/afs/cern.ch/user/e/evilla/.local/lib/python3.9/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
+    raise e.with_traceback(filtered_tb) from None
+  File "/afs/cern.ch/user/e/evilla/.local/lib/python3.9/site-packages/keras/src/backend/tensorflow/trainer.py", line 573, in predict
+    batch_outputs, potentially_ragged_concat, outputs
+UnboundLocalError: local variable 'batch_outputs' referenced before assignment
+Traceback (most recent call last):
+  File "/pool/condor/dir_3352821/run_cat_analysis_emcee_corrected.py", line 527, in main
+    results[scenario] = run_scenario_emcee(
+  File "/pool/condor/dir_3352821/run_cat_analysis_emcee_corrected.py", line 316, in run_scenario_emcee
+    pred_directions = ed_model.predict([sel_images_u_input, sel_images_v_input, sel_images_x_input],
+  File "/afs/cern.ch/user/e/evilla/.local/lib/python3.9/site-packages/keras/src/utils/traceback_utils.py", line 122, in error_handler
+    raise e.with_traceback(filtered_tb) from None
+  File "/afs/cern.ch/user/e/evilla/.local/lib/python3.9/site-packages/keras/src/backend/tensorflow/trainer.py", line 573, in predict
+    batch_outputs, potentially_ragged_concat, outputs
+UnboundLocalError: local variable 'batch_outputs' referenced before assignment

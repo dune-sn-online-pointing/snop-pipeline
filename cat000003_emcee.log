@@ -1,0 +1,27 @@
+2025-11-20 04:18:24.577804: I external/local_xla/xla/tsl/cuda/cudart_stub.cc:31] Could not find cuda drivers on your machine, GPU will not be used.
+2025-11-20 04:18:24.627594: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2025-11-20 04:18:27.614982: I external/local_xla/xla/tsl/cuda/cudart_stub.cc:31] Could not find cuda drivers on your machine, GPU will not be used.
+2025-11-20 04:18:45.545737: E external/local_xla/xla/stream_executor/cuda/cuda_platform.cc:51] failed call to cuInit: INTERNAL: CUDA error: Failed call to cuInit: UNKNOWN ERROR (303)
+======================================================================
+EMCEE RECONSTRUCTION FOR cat000003
+======================================================================
+
+Loading PDF from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/cosine_energy_pdf.npz
+PDF loaded: 18 energy bins, 100 cosine bins
+
+======================================================================
+SCENARIO 2 (EMCEE): PERFECT CT (ES Main Tracks + ED Network)
+======================================================================
+
+Loaded 3804 matched clusters across U, V, X planes
+ES clusters: 246
+Running emcee: 32 walkers × 1000 steps...
+Acceptance fraction: 10.3%
+Mean direction: θ=178.94°, φ=103.11°
+Uncertainties: Δθ=22.51°, Δφ=17.11°
+68% credible angle: 25.87°
+
+Angular error: 10.96°
+
+✓ Saved: /eos/project-e/ep-nu/evilla/sn-pointing/cat000003/pipeline/cat000003_scenario_perfect_ct_emcee.npz

@@ -1,0 +1,133 @@
+Processing cat000350 with 6 scenarios...
+Cat directory: /eos/project-e/ep-nu/evilla/sn-pointing/cat000350
+======================================================================
+EMCEE RECONSTRUCTION FOR cat000350
+======================================================================
+
+Loading PDF from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/cosine_energy_pdf.npz
+PDF loaded
+
+======================================================================
+SCENARIO (EMCEE): BEST_CASE
+======================================================================
+
+Loaded 3603 matched main-track clusters across U, V, X planes
+Selected 283 ES main tracks
+After E > 3 MeV cut: 283 clusters
+Running emcee: 64 walkers × 2000 steps...
+Acceptance fraction: 9.9%
+Mean direction: θ=-76.48°, φ=52.70°
+Uncertainties: Δθ=46.45°, Δφ=30.80°
+68% credible angle: 24.91°
+
+Angular error: 3.35°
+
+======================================================================
+SCENARIO (EMCEE): PERFECT_CT
+======================================================================
+
+Loaded 3603 matched main-track clusters across U, V, X planes
+Selected 283 ES main tracks
+Loading ED model from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras
+Running ED inference...
+After energy cut: 283 clusters
+Running emcee: 64 walkers × 2000 steps...
+Acceptance fraction: 9.7%
+Mean direction: θ=-93.19°, φ=49.17°
+Uncertainties: Δθ=45.83°, Δφ=19.21°
+68% credible angle: 31.82°
+
+Angular error: 10.35°
+
+======================================================================
+SCENARIO (EMCEE): FULL_PIPELINE
+======================================================================
+
+Loaded 3603 matched main-track clusters across U, V, X planes
+Using all 3603 main-track clusters
+Loading CT model from: /eos/user/e/evilla/dune/sn-tps/neural_networks/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras
+Running CT inference...
+CT selected 3296 ES candidates from 3603 clusters
+  ES prob range: [0.000, 1.000]
+Loading ED model from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras
+Running ED inference on 3296 clusters...
+After E > 3 MeV cut: 3275 clusters
+Running emcee: 64 walkers × 2000 steps...
+Acceptance fraction: 3.1%
+Mean direction: θ=-160.58°, φ=82.27°
+Uncertainties: Δθ=93.37°, Δφ=35.22°
+68% credible angle: 87.91°
+
+Angular error: 77.30°
+
+======================================================================
+SCENARIO (EMCEE): WEIGHTED_CT
+======================================================================
+
+Loaded 3603 matched main-track clusters across U, V, X planes
+Using all 3603 main-track clusters
+Loading CT model from: /eos/user/e/evilla/dune/sn-tps/neural_networks/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras
+Running CT inference...
+CT selected 3296 ES candidates from 3603 clusters
+  ES prob range: [0.000, 1.000]
+Loading ED model from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras
+Running ED inference on 3296 clusters...
+Using CT weights (ES probabilities)
+After E > 3 MeV cut: 3275 clusters
+Running weighted MCMC with 3275 weights
+Running emcee: 64 walkers × 2000 steps...
+Acceptance fraction: 3.9%
+Mean direction: θ=-139.14°, φ=85.03°
+Uncertainties: Δθ=98.49°, Δφ=28.88°
+68% credible angle: 96.86°
+
+Angular error: 62.13°
+
+======================================================================
+SCENARIO (EMCEE): PERFECT_CT_E_GT_10MEV
+======================================================================
+
+Loaded 3603 matched main-track clusters across U, V, X planes
+Selected 283 ES main tracks
+Loading ED model from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras
+Running ED inference...
+Applying E > 10 MeV cut
+After energy cut: 152 clusters
+Running emcee: 64 walkers × 2000 steps...
+Acceptance fraction: 22.0%
+Mean direction: θ=-83.58°, φ=64.65°
+Uncertainties: Δθ=46.06°, Δφ=20.47°
+68% credible angle: 19.41°
+
+Angular error: 12.13°
+
+======================================================================
+SCENARIO (EMCEE): PERFECT_CT_E_GT_20MEV
+======================================================================
+
+Loaded 3603 matched main-track clusters across U, V, X planes
+Selected 283 ES main tracks
+Loading ED model from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras
+Running ED inference...
+Applying E > 20 MeV cut
+After energy cut: 33 clusters
+Running emcee: 64 walkers × 2000 steps...
+Acceptance fraction: 15.1%
+Mean direction: θ=-143.11°, φ=75.33°
+Uncertainties: Δθ=133.49°, Δφ=32.43°
+68% credible angle: 107.62°
+
+Angular error: 59.35°
+
+✓ Saved: /eos/project-e/ep-nu/evilla/sn-pointing/cat000350/pipeline/cat000350_scenario_best_case_emcee.npz
+
+✓ Saved: /eos/project-e/ep-nu/evilla/sn-pointing/cat000350/pipeline/cat000350_scenario_perfect_ct_emcee.npz
+
+✓ Saved: /eos/project-e/ep-nu/evilla/sn-pointing/cat000350/pipeline/cat000350_scenario_full_pipeline_emcee.npz
+
+✓ Saved: /eos/project-e/ep-nu/evilla/sn-pointing/cat000350/pipeline/cat000350_scenario_weighted_ct_emcee.npz
+
+✓ Saved: /eos/project-e/ep-nu/evilla/sn-pointing/cat000350/pipeline/cat000350_scenario_perfect_ct_e_gt_10mev_emcee.npz
+
+✓ Saved: /eos/project-e/ep-nu/evilla/sn-pointing/cat000350/pipeline/cat000350_scenario_perfect_ct_e_gt_20mev_emcee.npz
+✓ cat000350 completed successfully

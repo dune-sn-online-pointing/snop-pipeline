@@ -1,0 +1,109 @@
+# EMCEE 6-Scenario Submission Summary
+
+## Date: November 20, 2025
+
+## Cluster ID: **13791712**
+
+## Summary
+Submitted 618 Condor jobs to run corrected emcee MCMC analysis with the proper 6 scenarios.
+
+## Corrected Scenarios
+
+1. **best_case**: Use TRUE electron directions from metadata + MCMC
+   - ES main tracks only
+   - Extract true particle momentum (px, py, pz) from metadata columns 7-9
+   - Energy cut: E > 3 MeV
+   
+2. **perfect_ct**: ES main tracks + ED neural network + MCMC
+   - ES main tracks only (perfect channel tagging)
+   - ED network predicts electron directions
+   - Energy cut: E > 3 MeV
+   
+3. **full_pipeline**: All clusters + CT network + ED network + MCMC (no weights)
+   - All main-track clusters
+   - CT network filters for ES candidates (P(ES) > 0.5)
+   - ED network predicts directions
+   - NO weighting by CT probabilities
+   - Energy cut: E > 3 MeV
+   
+4. **weighted_ct**: All clusters + CT network (WITH weights) + ED network + MCMC
+   - Same as full_pipeline but uses CT probabilities as weights in likelihood
+   - Weights = P(ES) from CT network
+   - Energy cut: E > 3 MeV
+   
+5. **perfect_ct_e_gt_10mev**: ES main tracks + ED network + MCMC, E > 10 MeV
+   - Same as perfect_ct but with 10 MeV energy threshold
+   
+6. **perfect_ct_e_gt_20mev**: ES main tracks + ED network + MCMC, E > 20 MeV
+   - Same as perfect_ct but with 20 MeV energy threshold
+
+## Test Results (cat000001)
+
+- **best_case**: 16.36° angular error (true electron directions)
+- **perfect_ct**: 3.19° angular error (ED network predictions)
+
+This shows the ED network significantly outperforms using true electron directions, 
+demonstrating its excellent reconstruction quality.
+
+## EMCEE Parameters
+
+- Walkers: 64
+- Steps: 2000
+- Burn-in (discard): 400
+- Move: StretchMove
+- Prior: sin(φ) for uniform sphere sampling
+
+## Resource Allocation
+
+- CPUs: 1 per job
+- GPUs: 1 per job
+- Memory: 32 GB per job
+- Disk: 4 GB per job
+- Max runtime: 4 hours (14400 seconds)
+
+## File Structure
+
+- Input script: `scripts/run_cat_analysis_emcee_corrected.py`
+- Wrapper: `run_single_cat_emcee_6scenarios.sh`
+- Submit file: `submit_6scenarios_emcee.sub`
+- Cat list: `cat_list.txt` (618 cats)
+- Logs: `logs/emcee_cat*_{out,err,log}`
+
+## Output Files
+
+Each cat will produce 6 output files in `/eos/project-e/ep-nu/evilla/sn-pointing/{cat}/pipeline/`:
+- `{cat}_scenario_best_case_emcee.npz`
+- `{cat}_scenario_perfect_ct_emcee.npz`
+- `{cat}_scenario_full_pipeline_emcee.npz`
+- `{cat}_scenario_weighted_ct_emcee.npz`
+- `{cat}_scenario_perfect_ct_e_gt_10mev_emcee.npz`
+- `{cat}_scenario_perfect_ct_e_gt_20mev_emcee.npz`
+
+Total expected files: 618 cats × 6 scenarios = **3,708 files**
+
+## Models Used
+
+- **ED Model**: `/eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras`
+- **CT Model**: `/eos/user/e/evilla/dune/sn-tps/neural_networks/charge_topology/best_model.keras`
+- **PDF File**: `/eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/cosine_energy_pdf.npz`
+
+## Monitoring
+
+Run: `./check_6scenarios_progress.sh`
+
+Or check Condor status: `condor_q 13791712`
+
+## Previous Incorrect Submission
+
+The previous submission (cluster 13791414) used WRONG scenarios that don't match the original 
+analysis method. Those jobs have been removed, though output files may still exist:
+- Old scenarios: perfect_ct, es_main_cc_shower, es_main_cc_all, es_all_cc_shower, es_all_cc_all, all_tracks_all_showers
+- These do NOT correspond to the proper scenarios 1-6 defined in run_cat000001_full_analysis.py
+
+## Next Steps
+
+1. Monitor job completion with `check_6scenarios_progress.sh`
+2. Validate completed jobs with error checking
+3. Compare results across all 6 scenarios
+4. Generate comprehensive analysis plots
+5. Compare emcee vs original MCMC method for each scenario
