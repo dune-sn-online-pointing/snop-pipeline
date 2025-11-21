@@ -1,0 +1,46 @@
+000 (12941097.000.000) 11/17 18:16:43 Job submitted from host: <188.185.121.235:9618?addrs=188.185.121.235-9618+[2001-1458-d00-49--100-36e]-9618&alias=bigbird22.cern.ch&noUDP&sock=schedd_232129_c3ca>
+...
+040 (12941097.000.000) 11/17 18:16:47 Started transferring input files
+	Transferring to host: <188.185.190.51:9618?addrs=188.185.190.51-9618+[2001-1458-d03-b--100-e9]-9618&alias=b9pgpun023.cern.ch&noUDP&sock=slot1_1_263118_2f05_5031>
+...
+040 (12941097.000.000) 11/17 18:16:47 Finished transferring input files
+...
+001 (12941097.000.000) 11/17 18:16:48 Job executing on host: <188.185.190.51:9618?addrs=188.185.190.51-9618+[2001-1458-d03-b--100-e9]-9618&alias=b9pgpun023.cern.ch&noUDP&sock=startd_254145_e8db>
+	SlotName: slot1_1@b9pgpun023.cern.ch
+	AvailableGPUs = { GPUs_MIG_c083ec97_d010_583d_966d_d30ce37b09d1 }
+	CondorScratchDir = "/pool/condor/dir_2060981"
+	Cpus = 6
+	Disk = 4195337
+	GPUs = 1
+	GPUs_MIG_c083ec97_d010_583d_966d_d30ce37b09d1 = [ Id = "MIG-c083ec97-d010-583d-966d-d30ce37b09d1"; DeviceName = "NVIDIA H100L-1-12C MIG 1g.12gb"; DeviceUuid = "MIG-c083ec97-d010-583d-966d-d30ce37b09d1"; ComputeUnits = 16; GlobalMemoryMb = 10564 ]
+	Memory = 18000
+...
+006 (12941097.000.000) 11/17 18:17:02 Image size of job updated: 55688
+	55  -  MemoryUsage of job (MB)
+	55688  -  ResidentSetSize of job (KB)
+...
+006 (12941097.000.000) 11/17 18:22:02 Image size of job updated: 1633948
+	375  -  MemoryUsage of job (MB)
+	383232  -  ResidentSetSize of job (KB)
+...
+006 (12941097.000.000) 11/17 18:26:55 Image size of job updated: 1840900
+	375  -  MemoryUsage of job (MB)
+	383232  -  ResidentSetSize of job (KB)
+...
+004 (12941097.000.000) 11/17 18:26:55 Job was evicted.
+	(0) CPU times
+		Usr 0 00:07:58, Sys 0 00:00:32  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+	0  -  Run Bytes Sent By Job
+	1408  -  Run Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated Assigned
+	   Cpus                 :     0.81        6         6 
+	   Disk (KB)            :    68     4194304   4195337 
+	   GPUs                 :                 1         1 "MIG-c083ec97-d010-583d-966d-d30ce37b09d1"
+	   Memory (MB)          :   375       18000     18000 
+	   TimeExecute (s)      :   607                       
+	   TimeSlotBusy (s)     :   609                       
+...
+009 (12941097.000.000) 11/17 18:26:55 Job was aborted.
+	via condor_rm (by user evilla)
+...

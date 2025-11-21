@@ -1,0 +1,30 @@
+# HTCondor submission script for SN systematic analysis on GPU
+
+universe              = vanilla
+executable            = /afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/condor/condor_wrapper_sn_analysis.sh
+
+output                = /afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/condor/logs/sn_analysis_gpu_$(ClusterId).out
+error                 = /afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/condor/logs/sn_analysis_gpu_$(ClusterId).err
+log                   = /afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/condor/logs/sn_analysis_gpu_$(ClusterId).log
+
+# Request GPU resources
+request_gpus          = 1
+request_cpus          = 4
+request_memory        = 16GB
+request_disk          = 4GB
+
+
+# Long job - use tomorrow or testmatch flavour
++JobFlavour           = "longlunch"
+
+# Environment setup
+environment           = "LCG_VIEW=/cvmfs/sft.cern.ch/lcg/views/LCG_106_cuda/x86_64-el9-gcc13-opt"
+
+# Notification
+notify_user           = evilla@cern.ch
+notification          = Complete
+
+# Transfer files if needed (not required for AFS/EOS access)
+should_transfer_files = NO
+
+queue 1

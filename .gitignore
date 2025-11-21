@@ -1,7 +1,54 @@
-*/__pycache__/
-output/
-# json/
-external_libs/
-condor/
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Analysis outputs
+analysis_outputs/reports/*.pdf
+analysis_outputs/reports/*.png
+analysis_outputs/cat_examples/*.png
+analysis_outputs/aggregated_data/
+
+# Results (on EOS)
+results/
+outputs/
+
+# Logs
+logs/*.log
+condor_logs/*.log
+*.out
+*.err
+nohup.out
+
+# HTCondor
+condor/*.log
+condor/*.out
+condor/*.err
+
+# Backups
+*.backup
+*.bak
+*.tmp
+*~
+
+# IDE
+.vscode/
+.idea/
+
+# Credentials
 *.cc
-**/*.cc
+evilla.cc
+
+# Large files
+*.npz
+*.root
+
+# Archives
+archive/
+
+# External
+external_libs/

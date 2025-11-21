@@ -1,0 +1,26 @@
+#!/bin/bash
+# Condor submission file for scenarios 3, 4, 5
+
+executable              = run_scenario_weighted.sh
+arguments               = $(scenario)
+output                  = logs/scenario_$(scenario)_$(ClusterId).out
+error                   = logs/scenario_$(scenario)_$(ClusterId).err
+log                     = logs/scenario_$(scenario)_$(ClusterId).log
+
+# Request GPU and memory
+request_gpus            = 1
+request_cpus            = 4
+request_memory          = 32GB
+request_disk            = 10GB
+
+# Use longer runtime queue
++JobFlavour             = "workday"
+
+# Environment
+getenv                  = True
+
+queue scenario from (
+    full_pipeline
+    weighted_linear
+    weighted_squared
+)

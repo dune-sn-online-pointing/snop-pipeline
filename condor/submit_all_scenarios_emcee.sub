@@ -1,0 +1,18 @@
+# Condor submission file for emcee reconstruction - all scenarios
+executable = run_single_cat_emcee_all_scenarios.sh
+arguments = $(cat_name)
+
+output = logs/emcee_$(cat_name)_$(ClusterId).out
+error = logs/emcee_$(cat_name)_$(ClusterId).err
+log = logs/emcee_$(cat_name)_$(ClusterId).log
+
+# Request GPU
+request_gpus = 1
+request_cpus = 1
+request_memory = 32GB
+request_disk = 4GB
+
++MaxRuntime = 14400
+
+# Queue for all cats
+queue cat_name from cat_list.txt

@@ -1,2 +1,58 @@
 000 (6420432.089.000) 11/20 17:10:12 Job submitted from host: <188.185.125.71:9618?addrs=188.185.125.71-9618+[2001-1458-d00-4a--100-15e]-9618&alias=bigbird28.cern.ch&noUDP&sock=schedd_2239_58a3>
 ...
+040 (6420432.089.000) 11/20 19:31:01 Started transferring input files
+	Transferring to host: <188.184.195.125:9618?addrs=188.184.195.125-9618+[2001-1458-301-72--100-46]-9618&alias=b9g47n4484.cern.ch&noUDP&sock=slot1_1_1118192_2b98_580>
+...
+040 (6420432.089.000) 11/20 19:31:01 Finished transferring input files
+...
+001 (6420432.089.000) 11/20 19:31:02 Job executing on host: <188.184.195.125:9618?addrs=188.184.195.125-9618+[2001-1458-301-72--100-46]-9618&alias=b9g47n4484.cern.ch&noUDP&sock=startd_18735_3aec>
+	SlotName: slot1_1@b9g47n4484.cern.ch
+	AvailableGPUs = { GPUs_GPU_af018eac }
+	CondorScratchDir = "/pool/condor/dir_1254194"
+	Cpus = 11
+	Disk = 8389632
+	GPUs = 1
+	GPUs_GPU_af018eac = [ Id = "GPU-af018eac"; ClockMhz = 1590.0; Capability = 7.5; CoresPerCU = 64; DeviceName = "Tesla T4"; DeviceUuid = "af018eac-0217-6a0c-1f02-a7671647c0bf"; ECCEnabled = true; ComputeUnits = 40; DriverVersion = 13.0; DevicePciBusId = "0000:07:00.0"; GlobalMemoryMb = 14913; MaxSupportedVersion = 13000 ]
+	Memory = 33000
+...
+006 (6420432.089.000) 11/20 19:31:15 Image size of job updated: 297092
+	291  -  MemoryUsage of job (MB)
+	297092  -  ResidentSetSize of job (KB)
+...
+006 (6420432.089.000) 11/20 19:36:15 Image size of job updated: 1437196
+	1367  -  MemoryUsage of job (MB)
+	1399276  -  ResidentSetSize of job (KB)
+...
+006 (6420432.089.000) 11/20 19:41:17 Image size of job updated: 1568212
+	1408  -  MemoryUsage of job (MB)
+	1441084  -  ResidentSetSize of job (KB)
+...
+006 (6420432.089.000) 11/20 19:43:30 Image size of job updated: 1583500
+	1408  -  MemoryUsage of job (MB)
+	1441084  -  ResidentSetSize of job (KB)
+...
+040 (6420432.089.000) 11/20 19:43:32 Started transferring output files
+...
+040 (6420432.089.000) 11/20 19:43:32 Finished transferring output files
+...
+005 (6420432.089.000) 11/20 19:43:33 Job terminated.
+	(1) Normal termination (return value 0)
+		Usr 0 00:22:38, Sys 0 00:01:08  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:22:38, Sys 0 00:01:08  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	33208  -  Run Bytes Sent By Job
+	1412394  -  Run Bytes Received By Job
+	33208  -  Total Bytes Sent By Job
+	1412394  -  Total Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated Assigned
+	   Cpus                 :     0.99       11        11 
+	   Disk (KB)            :  1437     8388608   8389632 
+	   GPUs                 :     0           1         1 "GPU-af018eac"
+	   GpusMemory (MB)      :   451                       
+	   Memory (MB)          :  1408       33000     33000 
+	   TimeExecute (s)      :   748                       
+	   TimeSlotBusy (s)     :   751                       
+
+	Job terminated of its own accord at 2025-11-20T18:43:30Z with exit-code 0.
+...

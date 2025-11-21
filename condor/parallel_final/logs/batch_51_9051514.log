@@ -1,0 +1,45 @@
+000 (9051514.051.000) 11/17 23:29:26 Job submitted from host: <188.185.8.79:9618?addrs=188.185.8.79-9618+[2001-1458-d00-63--100-23a]-9618&alias=bigbird26.cern.ch&noUDP&sock=schedd_3453776_a447>
+...
+040 (9051514.051.000) 11/17 23:51:22 Started transferring input files
+	Transferring to host: <188.185.190.94:9618?addrs=188.185.190.94-9618+[2001-1458-d03-b--100-15]-9618&alias=b9pgpun004.cern.ch&noUDP&sock=slot1_2_24573_a6c0_7475>
+...
+040 (9051514.051.000) 11/17 23:51:22 Finished transferring input files
+...
+001 (9051514.051.000) 11/17 23:51:23 Job executing on host: <188.185.190.94:9618?addrs=188.185.190.94-9618+[2001-1458-d03-b--100-15]-9618&alias=b9pgpun004.cern.ch&noUDP&sock=startd_24526_5fde>
+	SlotName: slot1_2@b9pgpun004.cern.ch
+	AvailableGPUs = { GPUs_GPU_76f72c0d }
+	CondorScratchDir = "/pool/condor/dir_1193952"
+	Cpus = 3
+	Disk = 3577
+	GPUs = 1
+	GPUs_GPU_76f72c0d = [ Id = "GPU-76f72c0d"; ClockMhz = 1785.0; Capability = 9.0; CoresPerCU = 128; DeviceName = "NVIDIA H100 NVL"; DeviceUuid = "76f72c0d-56fe-10ae-ad99-9fde1e23639d"; ECCEnabled = true; ComputeUnits = 132; DriverVersion = 13.0; DevicePciBusId = "0000:07:00.0"; GlobalMemoryMb = 95320; MaxSupportedVersion = 13000 ]
+	Memory = 9000
+...
+006 (9051514.051.000) 11/17 23:51:28 Image size of job updated: 88
+	0  -  MemoryUsage of job (MB)
+	0  -  ResidentSetSize of job (KB)
+...
+040 (9051514.051.000) 11/17 23:51:28 Started transferring output files
+...
+040 (9051514.051.000) 11/17 23:51:28 Finished transferring output files
+...
+005 (9051514.051.000) 11/17 23:51:28 Job terminated.
+	(1) Normal termination (return value 1)
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	375  -  Run Bytes Sent By Job
+	16365  -  Run Bytes Received By Job
+	375  -  Total Bytes Sent By Job
+	16365  -  Total Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated Assigned
+	   Cpus                 :        0        3         3 
+	   Disk (KB)            :       74       17      3577 
+	   GPUs                 :        0        1         1 "GPU-76f72c0d"
+	   Memory (MB)          :        0     9000      9000 
+	   TimeExecute (s)      :        5                    
+	   TimeSlotBusy (s)     :        6                    
+
+	Job terminated of its own accord at 2025-11-17T22:51:28Z with exit-code 1.
+...

@@ -1,0 +1,62 @@
+000 (9053417.101.000) 11/18 00:08:00 Job submitted from host: <188.185.8.79:9618?addrs=188.185.8.79-9618+[2001-1458-d00-63--100-23a]-9618&alias=bigbird26.cern.ch&noUDP&sock=schedd_3453776_a447>
+...
+040 (9053417.101.000) 11/18 01:21:36 Started transferring input files
+	Transferring to host: <188.185.92.184:9618?addrs=188.185.92.184-9618+[2001-1458-d00-6c--100-192]-9618&alias=b9g57n4080.cern.ch&noUDP&sock=slot1_1_15354_0829_5333>
+...
+040 (9053417.101.000) 11/18 01:21:36 Finished transferring input files
+...
+001 (9053417.101.000) 11/18 01:21:37 Job executing on host: <188.185.92.184:9618?addrs=188.185.92.184-9618+[2001-1458-d00-6c--100-192]-9618&alias=b9g57n4080.cern.ch&noUDP&sock=startd_14315_7a51>
+	SlotName: slot1_1@b9g57n4080.cern.ch
+	AvailableGPUs = { GPUs_GPU_a841436e }
+	CondorScratchDir = "/pool/condor/dir_1212631"
+	Cpus = 3
+	Disk = 2048
+	GPUs = 1
+	GPUs_GPU_a841436e = [ Id = "GPU-a841436e"; ClockMhz = 1410.0; Capability = 8.0; CoresPerCU = 64; DeviceName = "NVIDIA A100-PCIE-40GB"; DeviceUuid = "a841436e-1cae-5da0-0a02-7b844fb8ca33"; ECCEnabled = true; ComputeUnits = 108; DriverVersion = 13.0; DevicePciBusId = "0000:06:00.0"; GlobalMemoryMb = 40441; MaxSupportedVersion = 13000 ]
+	Memory = 9000
+...
+006 (9053417.101.000) 11/18 01:21:50 Image size of job updated: 58812
+	58  -  MemoryUsage of job (MB)
+	58812  -  ResidentSetSize of job (KB)
+...
+006 (9053417.101.000) 11/18 01:26:50 Image size of job updated: 2271100
+	2218  -  MemoryUsage of job (MB)
+	2271100  -  ResidentSetSize of job (KB)
+...
+006 (9053417.101.000) 11/18 01:31:51 Image size of job updated: 2272800
+	2218  -  MemoryUsage of job (MB)
+	2271100  -  ResidentSetSize of job (KB)
+...
+006 (9053417.101.000) 11/18 01:36:52 Image size of job updated: 2330764
+	2277  -  MemoryUsage of job (MB)
+	2330764  -  ResidentSetSize of job (KB)
+...
+006 (9053417.101.000) 11/18 01:41:52 Image size of job updated: 2471604
+	2277  -  MemoryUsage of job (MB)
+	2330764  -  ResidentSetSize of job (KB)
+...
+040 (9053417.101.000) 11/18 01:45:55 Started transferring output files
+...
+040 (9053417.101.000) 11/18 01:45:55 Finished transferring output files
+...
+005 (9053417.101.000) 11/18 01:45:55 Job terminated.
+	(1) Normal termination (return value 0)
+		Usr 0 00:19:06, Sys 0 00:03:27  -  Run Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Run Local Usage
+		Usr 0 00:19:06, Sys 0 00:03:27  -  Total Remote Usage
+		Usr 0 00:00:00, Sys 0 00:00:00  -  Total Local Usage
+	36692  -  Run Bytes Sent By Job
+	16366  -  Run Bytes Received By Job
+	36692  -  Total Bytes Sent By Job
+	16366  -  Total Bytes Received By Job
+	Partitionable Resources :    Usage  Request Allocated Assigned
+	   Cpus                 :     1.00        3         3 
+	   Disk (KB)            :    76          17      2048 
+	   GPUs                 :     0.00        1         1 "GPU-a841436e"
+	   GpusMemory (MB)      : 39450                       
+	   Memory (MB)          :  2277        9000      9000 
+	   TimeExecute (s)      :  1458                       
+	   TimeSlotBusy (s)     :  1459                       
+
+	Job terminated of its own accord at 2025-11-18T00:45:55Z with exit-code 0.
+...
