@@ -108,10 +108,10 @@ def loglike_with_pdf(args, pred_x, pred_y, pred_z, energies, pdf_interpolator, w
     """Log-likelihood using PDF in spherical coordinates."""
     theta, phi = args
     
-    # True direction in Cartesian
-    true_x = np.sin(phi) * np.cos(theta)
-    true_y = np.sin(phi) * np.sin(theta)
-    true_z = np.cos(phi)
+    # True direction in Cartesian (theta=polar from Z, phi=azimuthal from X)
+    true_x = np.sin(theta) * np.cos(phi)
+    true_y = np.sin(theta) * np.sin(phi)
+    true_z = np.cos(theta)
     
     # Cosine angles between true and predictions
     cos_angles = pred_x * true_x + pred_y * true_y + pred_z * true_z
@@ -132,17 +132,17 @@ def loglike_with_pdf(args, pred_x, pred_y, pred_z, energies, pdf_interpolator, w
 
 
 def logprior(args):
-    """Log-prior with sin(φ) for uniform sampling on sphere."""
+    """Log-prior with sin(θ) for uniform sampling on sphere."""
     theta, phi = args
     
-    # Bounds
-    if not (-np.pi <= theta <= np.pi):
+    # Bounds: theta is polar [0, π], phi is azimuthal [-π, π]
+    if not (0 <= theta <= np.pi):
         return -np.inf
-    if not (0 <= phi <= np.pi):
+    if not (-np.pi <= phi <= np.pi):
         return -np.inf
     
-    # sin(φ) prior for uniform sphere sampling
-    return np.log(np.sin(phi) + 1e-10)
+    # sin(θ) prior for uniform sphere sampling
+    return np.log(np.sin(theta) + 1e-10)
 
 
 def logpost(args, pred_x, pred_y, pred_z, energies, pdf_interpolator, weights=None):
@@ -193,13 +193,13 @@ def run_emcee_mcmc(pred_x, pred_y, pred_z, energies, pdf_interpolator,
     phi_std = phi_samples.std()
     
     # 68% credible angle
-    mean_x = np.sin(mean_phi) * np.cos(mean_theta)
-    mean_y = np.sin(mean_phi) * np.sin(mean_theta)
-    mean_z = np.cos(mean_phi)
+    mean_x = np.sin(mean_theta) * np.cos(mean_phi)
+    mean_y = np.sin(mean_theta) * np.sin(mean_phi)
+    mean_z = np.cos(mean_theta)
     
-    sample_x = np.sin(phi_samples) * np.cos(theta_samples)
-    sample_y = np.sin(phi_samples) * np.sin(theta_samples)
-    sample_z = np.cos(phi_samples)
+    sample_x = np.sin(theta_samples) * np.cos(phi_samples)
+    sample_y = np.sin(theta_samples) * np.sin(phi_samples)
+    sample_z = np.cos(theta_samples)
     
     cos_angles = sample_x * mean_x + sample_y * mean_y + sample_z * mean_z
     cos_angles = np.clip(cos_angles, -1, 1)
@@ -379,8 +379,8 @@ def run_scenario_emcee(cat_dir, cat_name, scenario, ed_model_path, ct_model_path
         else:
             es_probs = ct_predictions.flatten()
         
-        # Select ES candidates (ES prob > 0.5)
-        es_candidates = es_probs > 0.5
+        # Select ES candidates (ES prob > 0.8)
+        es_candidates = es_probs > 0.8
         
         if verbose:
             print(f"CT selected {es_candidates.sum()} ES candidates from {len(es_probs)} clusters")
@@ -453,9 +453,9 @@ def run_scenario_emcee(cat_dir, cat_name, scenario, ed_model_path, ct_model_path
     theta = mcmc_result['theta']
     phi = mcmc_result['phi']
     
-    best_x = np.sin(phi) * np.cos(theta)
-    best_y = np.sin(phi) * np.sin(theta)
-    best_z = np.cos(phi)
+    best_x = np.sin(theta) * np.cos(phi)
+    best_y = np.sin(theta) * np.sin(phi)
+    best_z = np.cos(theta)
     
     # Compare with true direction
     true_nu_px = sel_metadata[0, 15]

@@ -1,0 +1,17 @@
+executable = run_5cats_emcee_6scenarios.sh
+output = condor_logs/emcee_5cats_$(ClusterId)_$(ProcId).out
+error = condor_logs/emcee_5cats_$(ClusterId)_$(ProcId).err
+log = condor_logs/emcee_5cats_$(ClusterId)_$(ProcId).log
+
+
+
+# Resource requirements - 5 cats per batch with GPU
+request_cpus = 1
+request_memory = 8GB
+request_disk = 2GB
+request_gpus = 1
++JobFlavour = "longlunch"
+
+# Queue one job per batch (5 cats per job)
+arguments = $(cat1) $(cat2) $(cat3) $(cat4) $(cat5)
+queue cat1,cat2,cat3,cat4,cat5 from cat_batches_5.txt

@@ -11,19 +11,19 @@ import sys
 SCENARIOS = [
     'best_case',
     'perfect_ct',
-    'full_pipeline',
-    'weighted_ct',
+    'perfect_ct_e_gt_5mev',
     'perfect_ct_e_gt_10mev',
-    'perfect_ct_e_gt_5mev'
+    'full_pipeline',
+    'weighted_ct'
 ]
 
 SCENARIO_LABELS = {
-    'best_case': 'Best Case (True e⁻)',
-    'perfect_ct': 'Perfect CT (ES + ED)',
-    'full_pipeline': 'Full Pipeline (CT + ED)',
-    'weighted_ct': 'Weighted CT',
-    'perfect_ct_e_gt_10mev': 'Perfect CT (E>10 MeV)',
-    'perfect_ct_e_gt_5mev': 'Perfect CT (E>5 MeV)'
+    'best_case': '1. True Electron Dir',
+    'perfect_ct': '2. Perfect CT',
+    'perfect_ct_e_gt_5mev': '3. Perfect CT > 5 MeV',
+    'perfect_ct_e_gt_10mev': '4. Perfect CT > 10 MeV',
+    'full_pipeline': '5. Applied CT',
+    'weighted_ct': '6. Weighted CT'
 }
 
 def load_results(base_path='/eos/project-e/ep-nu/evilla/sn-pointing', min_es_files=9):
@@ -476,16 +476,16 @@ def create_best_cat_skymap_page(results, cat_names, pdf, base_path='/eos/project
     ax1.scatter(elec_lon, elec_lat, c='#FFD700', alpha=0.3, s=3, 
                label=f'Electrons (N={len(electron_dirs_norm)})', rasterized=True, zorder=5)
     
-    # Plot true direction as a red star
+    # Plot true direction as a tiny red dot
     true_lat = np.pi/2 - true_theta[0]
     true_lon = true_phi[0]
-    ax1.scatter(true_lon, true_lat, marker='*', c='red', s=600, 
-               edgecolors='white', linewidths=2.5, label='True ν Direction', zorder=10)
+    ax1.scatter(true_lon, true_lat, marker='o', c='red', s=20, 
+               edgecolors='white', linewidths=0.5, label='True ν Direction', zorder=10)
     
-    # Plot EMCEE best-fit as a yellow star
+    # Plot EMCEE best-fit as a circle
     emcee_lat = np.pi/2 - emcee_theta[0]
     emcee_lon = emcee_phi[0]
-    ax1.scatter(emcee_lon, emcee_lat, marker='*', c='#FFD700', s=500, 
+    ax1.scatter(emcee_lon, emcee_lat, marker='o', c='#FFD700', s=150, 
                edgecolors='black', linewidths=2, label=f'EMCEE Best ({best_error:.2f}°)', zorder=10)
     
     ax1.set_title(f'Sky Map: Best Cat ({best_cat})', 
@@ -544,12 +544,12 @@ def create_best_cat_skymap_page(results, cat_names, pdf, base_path='/eos/project
         
         # Plot EMCEE best-fit
         emcee_x, emcee_y = gnomonic_project(emcee_best_norm.reshape(1, -1), true_dir_norm)
-        ax2.scatter(emcee_x, emcee_y, marker='*', c='#FFD700', s=500, 
+        ax2.scatter(emcee_x, emcee_y, marker='o', c='#FFD700', s=150, 
                    edgecolors='black', linewidths=2, label=f'EMCEE Best', zorder=10)
         
-        # Plot true direction at origin
-        ax2.scatter(0, 0, marker='*', c='red', s=600, 
-                   edgecolors='white', linewidths=2.5, label='True ν', zorder=10)
+        # Plot true direction at origin as tiny red dot
+        ax2.scatter(0, 0, marker='o', c='red', s=20, 
+                   edgecolors='white', linewidths=0.5, label='True ν', zorder=10)
         
         # Add circles for angular scales
         for radius_deg in [5, 10, 15, 20, 25, 30]:
@@ -1219,12 +1219,13 @@ def plot_aggregate_analysis(results, cat_names, cos_theta_results, cluster_track
             ax.set_xlabel('cos(θ_true - θ_reco)', fontsize=10, fontweight='bold')
             ax.set_ylabel('Count', fontsize=10, fontweight='bold')
             ax.set_xlim(-1, 1)
-            ax.set_title(f'{SCENARIO_LABELS[scenario]}\n(N={stats[scenario]["n"]})',
-                        fontsize=11, fontweight='bold')
+            # Get mean ES files used across categories
+            n_cats = stats[scenario]['n']
+            es_mean = cluster_tracking[scenario]['es_main_mean'] if scenario in cluster_tracking and 'es_main_mean' in cluster_tracking[scenario] else 0
+            ax.set_title(f'{SCENARIO_LABELS[scenario]}\n(N_cats={n_cats}, N_ES≈{es_mean:.0f})',
+                         fontsize=11, fontweight='bold')
             ax.legend(fontsize=8, loc='upper left')
-            ax.grid(True, alpha=0.3)
-    
-    plt.suptitle('Cosine Distribution: cos(θ_true - θ_reco) - Full Range',
+            ax.grid(True, alpha=0.3)    plt.suptitle('Cosine Distribution: cos(θ_true - θ_reco) - Full Range',
                 fontsize=16, fontweight='bold', y=0.995)
     plt.tight_layout()
     
@@ -1257,15 +1258,17 @@ def plot_aggregate_analysis(results, cat_names, cos_theta_results, cluster_track
                 ax.axvline(mean_cos, color='blue', linestyle='-', linewidth=2, alpha=0.7,
                           label=f'Mean: {mean_cos:.4f} ({angle_mean:.1f}°)')
             
+            
             ax.set_xlabel('cos(θ_true - θ_reco)', fontsize=10, fontweight='bold')
             ax.set_ylabel('Count', fontsize=10, fontweight='bold')
             ax.set_xlim(0.9, 1.0)
-            ax.set_title(f'{SCENARIO_LABELS[scenario]}\n(N={stats[scenario]["n"]})',
-                        fontsize=11, fontweight='bold')
+            # Get mean ES files used across categories
+            n_cats = stats[scenario]['n']
+            es_mean = cluster_tracking[scenario]['es_main_mean'] if scenario in cluster_tracking and 'es_main_mean' in cluster_tracking[scenario] else 0
+            ax.set_title(f'{SCENARIO_LABELS[scenario]}\n(N_cats={n_cats}, N_ES≈{es_mean:.0f})',
+                         fontsize=11, fontweight='bold')
             ax.legend(fontsize=8, loc='upper left')
-            ax.grid(True, alpha=0.3)
-    
-    plt.suptitle('Cosine Distribution: cos(θ_true - θ_reco) - Zoomed (0.9-1.0)',
+            ax.grid(True, alpha=0.3)    plt.suptitle('Cosine Distribution: cos(θ_true - θ_reco) - Zoomed (0.9-1.0)',
                 fontsize=16, fontweight='bold', y=0.995)
     plt.tight_layout()
     
