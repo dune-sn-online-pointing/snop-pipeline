@@ -14,7 +14,12 @@ import emcee
 
 def load_matched_cluster_images_3plane(cat_dir, cat_name):
     """Load cluster images matched across U, V, X planes file-by-file."""
+    # Try two possible locations for cluster images
     cluster_dir_base = Path(cat_dir) / f"{cat_name}_cluster_images_tick3_ch2_min2_tot3_e3p0"
+    if not cluster_dir_base.exists():
+        # Try alternative location
+        alt_cat_dir = f"/eos/project-e/ep-nu/evilla/sn-pointing/{cat_name}"
+        cluster_dir_base = Path(alt_cat_dir) / f"{cat_name}_cluster_images_tick3_ch2_min2_tot3_e3p0"
     
     images_u_all = []
     images_v_all = []
@@ -230,7 +235,7 @@ def run_emcee_mcmc(pred_x, pred_y, pred_z, energies, pdf_interpolator,
 def run_scenario_emcee(cat_dir, cat_name, scenario, ed_model_path, ct_model_path, pdf_interpolator,
                        nwalkers=64, nsteps=2000, discard=400, verbose=True):
     """
-    Run scenario using emcee MCMC.
+    Run scenario using emcee MCMC or simple averaging.
     
     Scenarios:
     1. best_case: Use true electron directions + MCMC
@@ -238,7 +243,10 @@ def run_scenario_emcee(cat_dir, cat_name, scenario, ed_model_path, ct_model_path
     3. full_pipeline: All clusters + CT network + ED network + MCMC (no weights)
     4. weighted_ct: All clusters + CT network (with weights) + ED network + MCMC
     5. perfect_ct_e_gt_10mev: ES main tracks + ED network + MCMC, E > 10 MeV cut
-    6. perfect_ct_e_gt_20mev: ES main tracks + ED network + MCMC, E > 5 MeV cut
+    6. perfect_ct_e_gt_5mev: ES main tracks + ED network + MCMC, E > 5 MeV cut
+    7. simple_average: ES main tracks + ED network, simple average (no MCMC)
+    8. weighted_average: ES main tracks + ED network, energy-weighted average (no MCMC)
+    9. simple_average_ct: All clusters + CT network (threshold 0.8) + ED network, simple average (no MCMC)
     """
     import tensorflow as tf
     
@@ -433,10 +441,275 @@ def run_scenario_emcee(cat_dir, cat_name, scenario, ed_model_path, ct_model_path
         if verbose:
             print(f"After E > 3 MeV cut: {len(energies)} clusters")
     
+    elif scenario == 'simple_average_ct':
+        # Scenario 9: All clusters + CT network (threshold 0.8) + ED network, simple average (no MCMC)
+        sel_images_u = images_u
+        sel_images_v = images_v
+        sel_images_x = images_x
+        sel_metadata = metadata
+        
+        if verbose:
+            print(f"Using all {len(sel_images_u)} main-track clusters")
+        
+        # Load CT model to filter
+        if ct_model_path is None:
+            raise ValueError(f"Scenario {scenario} requires --ct-model")
+        
+        if verbose:
+            print(f"Loading CT model from: {ct_model_path}")
+        ct_model = tf.keras.models.load_model(ct_model_path, compile=False)
+        
+        volume_images_input = sel_images_x[..., np.newaxis]
+        
+        if verbose:
+            print("Running CT inference...")
+        ct_predictions = ct_model.predict(volume_images_input, verbose=0, batch_size=16)
+        
+        # CT outputs [N, 2]: [P(ES), P(CC)]
+        if ct_predictions.shape[1] == 2:
+            es_probs = ct_predictions[:, 0]
+        else:
+            es_probs = ct_predictions.flatten()
+        
+        # Select ES candidates (ES prob > 0.8)
+        es_candidates = es_probs > 0.8
+        
+        if verbose:
+            print(f"CT selected {es_candidates.sum()} ES candidates from {len(es_probs)} clusters")
+            print(f"  ES prob range: [{es_probs.min():.3f}, {es_probs.max():.3f}]")
+        
+        # Filter to ES candidates
+        sel_images_u = sel_images_u[es_candidates]
+        sel_images_v = sel_images_v[es_candidates]
+        sel_images_x = sel_images_x[es_candidates]
+        sel_metadata = sel_metadata[es_candidates]
+        
+        # Load ED model and predict
+        if verbose:
+            print(f"Loading ED model from: {ed_model_path}")
+        import keras
+        ed_model = keras.saving.load_model(ed_model_path, compile=False)
+        
+        sel_images_u_input = sel_images_u[..., np.newaxis]
+        sel_images_v_input = sel_images_v[..., np.newaxis]
+        sel_images_x_input = sel_images_x[..., np.newaxis]
+        
+        if verbose:
+            print(f"Running ED inference on {len(sel_images_u)} clusters...")
+        pred_directions = ed_model.predict([sel_images_u_input, sel_images_v_input, sel_images_x_input],
+                                          verbose=0, batch_size=32)
+        
+        norms = np.linalg.norm(pred_directions, axis=1, keepdims=True)
+        pred_directions = pred_directions / norms
+        
+        pred_x = pred_directions[:, 0]
+        pred_y = pred_directions[:, 1]
+        pred_z = pred_directions[:, 2]
+        
+        # Apply 3 MeV energy cut
+        energies = sel_metadata[:, 11]
+        energy_cut = energies >= 3.0
+        pred_x = pred_x[energy_cut]
+        pred_y = pred_y[energy_cut]
+        pred_z = pred_z[energy_cut]
+        energies = energies[energy_cut]
+        sel_metadata = sel_metadata[energy_cut]
+        
+        if verbose:
+            print(f"After E > 3 MeV cut: {len(energies)} clusters")
+        
+        # Simple average: equal weights
+        weights = np.ones(len(energies))
+        
+        # Weighted average of x, y, z components
+        weight_sum = weights.sum()
+        avg_x = np.sum(weights * pred_x) / weight_sum
+        avg_y = np.sum(weights * pred_y) / weight_sum
+        avg_z = np.sum(weights * pred_z) / weight_sum
+        
+        # Normalize
+        norm = np.sqrt(avg_x**2 + avg_y**2 + avg_z**2)
+        avg_x /= norm
+        avg_y /= norm
+        avg_z /= norm
+        
+        # Convert to spherical
+        avg_theta = np.degrees(np.arccos(np.clip(avg_z, -1, 1)))
+        avg_phi = np.degrees(np.arctan2(avg_y, avg_x))
+        
+        if verbose:
+            print(f"Average direction: θ={avg_theta:.2f}°, φ={avg_phi:.2f}°")
+        
+        # Get true direction (columns 15-17)
+        true_nu_px = sel_metadata[0, 15]
+        true_nu_py = sel_metadata[0, 16]
+        true_nu_pz = sel_metadata[0, 17]
+        
+        # Normalize
+        true_norm = np.sqrt(true_nu_px**2 + true_nu_py**2 + true_nu_pz**2)
+        true_nu_px /= true_norm
+        true_nu_py /= true_norm
+        true_nu_pz /= true_norm
+        
+        # Calculate error
+        cos_angle = np.clip(avg_x * true_nu_px + avg_y * true_nu_py + avg_z * true_nu_pz, -1, 1)
+        angular_error = np.degrees(np.arccos(cos_angle))
+        
+        if verbose:
+            print(f"\nAngular error: {angular_error:.2f}°\n")
+        
+        # Return result (no MCMC)
+        return {
+            'theta': avg_theta,
+            'phi': avg_phi,
+            'best_dir_x': avg_x,
+            'best_dir_y': avg_y,
+            'best_dir_z': avg_z,
+            'angular_error': angular_error,
+            'cos_theta': cos_angle,
+            'theta_std': 0.0,
+            'phi_std': 0.0,
+            'omega_68': 0.0,
+            'acceptance_fraction': 1.0,
+            'n_clusters_used': len(energies),
+            'n_es_clusters': int(np.sum(sel_metadata[:, 3] == 1)),
+            'n_cc_clusters': int(np.sum(sel_metadata[:, 3] == 0)),
+            'true_nu_px': true_nu_px,
+            'true_nu_py': true_nu_py,
+            'true_nu_pz': true_nu_pz,
+            'chain': None,
+            'log_prob': None
+        }
+    
+    elif scenario == 'weighted_average_ct':
+        # Scenario 10: All clusters + CT weights + ED network, energy-weighted average (no threshold, no MCMC)
+        sel_images_u = images_u
+        sel_images_v = images_v
+        sel_images_x = images_x
+        sel_metadata = metadata
+        
+        if verbose:
+            print(f"Using all {len(sel_images_u)} main-track clusters")
+        
+        # Load CT model to get weights
+        if ct_model_path is None:
+            raise ValueError(f"Scenario {scenario} requires --ct-model")
+        
+        if verbose:
+            print(f"Loading CT model from: {ct_model_path}")
+        ct_model = tf.keras.models.load_model(ct_model_path, compile=False)
+        
+        # For CT model, we need volume images
+        volume_images_input = sel_images_x[..., np.newaxis]
+        
+        if verbose:
+            print("Running CT inference...")
+        ct_predictions = ct_model.predict(volume_images_input, verbose=0, batch_size=16)
+        
+        # CT outputs [N, 2]: [P(ES), P(CC)]
+        if ct_predictions.shape[1] == 2:
+            es_probs = ct_predictions[:, 0]
+        else:
+            es_probs = ct_predictions.flatten()
+        
+        if verbose:
+            print(f"CT ES prob range: [{es_probs.min():.3f}, {es_probs.max():.3f}]")
+            print(f"Using all {len(es_probs)} clusters with CT weights (no threshold)")
+        
+        # Load ED model and predict
+        if verbose:
+            print(f"Loading ED model from: {ed_model_path}")
+        ed_model = tf.keras.models.load_model(ed_model_path, compile=False)
+        
+        sel_images_u_input = sel_images_u[..., np.newaxis]
+        sel_images_v_input = sel_images_v[..., np.newaxis]
+        sel_images_x_input = sel_images_x[..., np.newaxis]
+        
+        if verbose:
+            print("Running ED inference...")
+        ed_predictions = ed_model.predict(
+            [sel_images_u_input, sel_images_v_input, sel_images_x_input],
+            verbose=0,
+            batch_size=16
+        )
+        
+        pred_x = ed_predictions[:, 0]
+        pred_y = ed_predictions[:, 1]
+        pred_z = ed_predictions[:, 2]
+        
+        # Apply 3 MeV energy cut
+        energies = sel_metadata[:, 11]
+        energy_cut = energies >= 3.0
+        pred_x = pred_x[energy_cut]
+        pred_y = pred_y[energy_cut]
+        pred_z = pred_z[energy_cut]
+        energies = energies[energy_cut]
+        sel_metadata = sel_metadata[energy_cut]
+        es_probs = es_probs[energy_cut]
+        
+        if verbose:
+            print(f"After E > 3 MeV cut: {len(energies)} clusters")
+        
+        # Compute combined weights: energy * CT_weight
+        energy_weights = energies / np.sum(energies)
+        combined_weights = energy_weights * es_probs
+        combined_weights = combined_weights / np.sum(combined_weights)  # Normalize
+        
+        if verbose:
+            print(f"Using combined weights (energy * CT ES prob)")
+            print(f"  Combined weight range: [{combined_weights.min():.6f}, {combined_weights.max():.6f}]")
+        
+        # Weighted average direction
+        avg_x = np.sum(pred_x * combined_weights)
+        avg_y = np.sum(pred_y * combined_weights)
+        avg_z = np.sum(pred_z * combined_weights)
+        
+        # Normalize
+        norm = np.sqrt(avg_x**2 + avg_y**2 + avg_z**2)
+        reco_direction = np.array([avg_x, avg_y, avg_z]) / norm
+        
+        # Compute angular error
+        true_nu_px = sel_metadata[0, 15]
+        true_nu_py = sel_metadata[0, 16]
+        true_nu_pz = sel_metadata[0, 17]
+        true_norm = np.sqrt(true_nu_px**2 + true_nu_py**2 + true_nu_pz**2)
+        true_direction = np.array([true_nu_px, true_nu_py, true_nu_pz]) / true_norm
+        
+        cos_theta = np.dot(reco_direction, true_direction)
+        cos_theta = np.clip(cos_theta, -1.0, 1.0)
+        angular_error_deg = np.degrees(np.arccos(cos_theta))
+        
+        if verbose:
+            print(f"Reconstructed direction: [{reco_direction[0]:.4f}, {reco_direction[1]:.4f}, {reco_direction[2]:.4f}]")
+            print(f"Angular error: {angular_error_deg:.2f} degrees")
+        
+        # Count ES and CC clusters
+        n_es_clusters = int(np.sum(sel_metadata[:, 3] == 1))
+        n_cc_clusters = int(np.sum(sel_metadata[:, 3] == 0))
+        
+        if verbose:
+            print(f"ES clusters: {n_es_clusters}, CC clusters: {n_cc_clusters}")
+        
+        # Save results and return early (no MCMC)
+        results = {
+            f'{scenario}_reco_direction': reco_direction,
+            f'{scenario}_angular_error_deg': angular_error_deg,
+            f'{scenario}_cos_theta': cos_theta,
+            f'{scenario}_n_clusters_used': len(energies),
+            f'{scenario}_avg_energy': float(np.mean(energies)),
+            'n_es_clusters': n_es_clusters,
+            'n_cc_clusters': n_cc_clusters,
+            'total_clusters': len(energies),
+            'chain': None,
+            'log_prob': None
+        }
+        
+        return results
+    
+
     else:
         raise ValueError(f"Unknown scenario: {scenario}")
-    
-    if len(energies) == 0:
+if len(energies) == 0:
         raise ValueError(f"No clusters remaining for scenario {scenario}")
     
     # Run emcee MCMC (weights can be None for unweighted scenarios)
@@ -488,6 +761,8 @@ def run_scenario_emcee(cat_dir, cat_name, scenario, ed_model_path, ct_model_path
         'emcee_omega_68': mcmc_result['omega_68'],
         'emcee_acceptance_fraction': mcmc_result['acceptance_fraction'],
         'emcee_n_clusters_used': len(pred_x),
+        'emcee_n_es_clusters': int(np.sum(sel_metadata[:, 3] == 1)),
+        'emcee_n_cc_clusters': int(np.sum(sel_metadata[:, 3] == 0)),
         'emcee_true_nu_px': true_nu_px,
         'emcee_true_nu_py': true_nu_py,
         'emcee_true_nu_pz': true_nu_pz
@@ -503,7 +778,7 @@ def main():
     parser.add_argument('--pdf-file', required=True, help='PDF file path')
     parser.add_argument('--scenarios', nargs='+', 
                         default=['best_case', 'perfect_ct', 'full_pipeline'], 
-                        help='Scenarios: best_case, perfect_ct, full_pipeline, weighted_ct, perfect_ct_e_gt_10mev, perfect_ct_e_gt_5mev')
+                        help='Scenarios: best_case, perfect_ct, full_pipeline, weighted_ct, perfect_ct_e_gt_10mev, perfect_ct_e_gt_5mev, simple_average, weighted_average, simple_average_ct')
     parser.add_argument('--nwalkers', type=int, default=64, help='Number of walkers')
     parser.add_argument('--nsteps', type=int, default=2000, help='Number of steps')
     parser.add_argument('--discard', type=int, default=400, help='Burn-in steps')

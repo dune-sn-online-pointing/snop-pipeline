@@ -89,9 +89,10 @@ while IFS= read -r cat; do
         --ct-model "$CT_MODEL" \
         --pdf-file "$PDF_FILE" \
         --scenarios perfect_ct_e_gt_5mev \
-        --nwalkers 64 \
-        --nsteps 2000 \
-        --discard 400
+        --nwalkers 10 \
+        --nsteps 10000 \
+        --discard 1000 \
+        --use-eos-structure
     
     if [[ $? -eq 0 ]]; then
         echo "✓ Successfully processed $cat"

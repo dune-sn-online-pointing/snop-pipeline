@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Aggregate analysis of emcee results across all 6 scenarios.
+Aggregate analysis of emcee results across all 8 scenarios.
 """
 
 import numpy as np
@@ -14,20 +14,24 @@ SCENARIOS = [
     'perfect_ct_e_gt_5mev',
     'perfect_ct_e_gt_10mev',
     'full_pipeline',
-    'weighted_ct'
+    'weighted_ct',
+    'simple_average',
+    'weighted_average'
 ]
 
 SCENARIO_LABELS = {
     'best_case': '1. True Electron Dir',
-    'perfect_ct': '2. Perfect CT',
-    'perfect_ct_e_gt_5mev': '3. Perfect CT > 5 MeV',
-    'perfect_ct_e_gt_10mev': '4. Perfect CT > 10 MeV',
-    'full_pipeline': '5. Applied CT',
-    'weighted_ct': '6. Weighted CT'
+    'perfect_ct': '2. Perfect CT (MCMC)',
+    'perfect_ct_e_gt_5mev': '3. Perfect CT > 5 MeV (MCMC)',
+    'perfect_ct_e_gt_10mev': '4. Perfect CT > 10 MeV (MCMC)',
+    'full_pipeline': '5. Applied CT (MCMC)',
+    'weighted_ct': '6. Weighted CT (MCMC)',
+    'simple_average': '7. Simple Average (no MCMC)',
+    'weighted_average': '8. Weighted Average (no MCMC)'
 }
 
 def load_results(base_path='/eos/project-e/ep-nu/evilla/sn-pointing', min_es_files=9):
-    """Load all emcee results for the 6 scenarios.
+    """Load all emcee results for the 8 scenarios.
     
     Args:
         base_path: Base path to search for results
@@ -1040,6 +1044,25 @@ def plot_aggregate_analysis(results, cat_names, cos_theta_results, cluster_track
         else:
             stats[scenario] = None
     
+    # Compute track_stats for title
+    track_stats = {}
+    for scenario in SCENARIOS:
+        t = cluster_tracking[scenario]
+        if len(t['n_used']) > 0:
+            mean_total = np.mean(t['n_total'])
+            mean_used = np.mean(t['n_used'])
+            retention = (mean_used / mean_total * 100) if mean_total > 0 else 0
+            track_stats[scenario] = {
+                'n_cats': len(t['n_used']),
+                'total_mean': mean_total,
+                'es_main_mean': np.mean(t['n_es_main']),
+                'used_mean': mean_used,
+                'retention_pct': retention,
+                'is_mcmc_count': retention > 200
+            }
+        else:
+            track_stats[scenario] = None
+    
     # Create figure with subplots
     fig = plt.figure(figsize=(18, 12))
     
@@ -1178,13 +1201,27 @@ def plot_aggregate_analysis(results, cat_names, cos_theta_results, cluster_track
     ax6.set_title('Distribution Shapes', fontsize=13, fontweight='bold')
     ax6.grid(True, alpha=0.3, axis='y')
     
-    plt.suptitle('Emcee 6-Scenario Aggregate Analysis', 
+    # Build title with ES cluster counts
+    title_parts = ['Emcee 8-Scenario Aggregate Analysis']
+    if track_stats:
+        es_counts = []
+        for s in SCENARIOS:
+            if track_stats.get(s):
+                mean_used = track_stats[s]['used_mean']
+                label = SCENARIO_LABELS.get(s, s).split('.')[0] + '.'
+                es_counts.append(f"{label}: {mean_used:.0f} ES")
+        if es_counts:
+            title_parts.append('Avg ES clusters: ' + ' | '.join(es_counts[:4]))
+            if len(es_counts) > 4:
+                title_parts.append(' | '.join(es_counts[4:]))
+    
+    plt.suptitle('\n'.join(title_parts), 
                 fontsize=16, fontweight='bold', y=0.995)
     plt.tight_layout()
     
     # Save first page to PDF
     output_png = 'emcee_6scenarios_aggregate_analysis.png'
-    output_pdf = 'emcee_6scenarios_aggregate_analysis.pdf'
+    output_pdf = 'emcee_8scenarios_aggregate_analysis.pdf'
     plt.savefig(output_png, dpi=300, bbox_inches='tight')
     
     from matplotlib.backends.backend_pdf import PdfPages
@@ -1225,7 +1262,9 @@ def plot_aggregate_analysis(results, cat_names, cos_theta_results, cluster_track
             ax.set_title(f'{SCENARIO_LABELS[scenario]}\n(N_cats={n_cats}, N_ES≈{es_mean:.0f})',
                          fontsize=11, fontweight='bold')
             ax.legend(fontsize=8, loc='upper left')
-            ax.grid(True, alpha=0.3)    plt.suptitle('Cosine Distribution: cos(θ_true - θ_reco) - Full Range',
+            ax.grid(True, alpha=0.3)
+    
+    plt.suptitle('Cosine Distribution: cos(θ_true - θ_reco) - Full Range',
                 fontsize=16, fontweight='bold', y=0.995)
     plt.tight_layout()
     
@@ -1268,7 +1307,9 @@ def plot_aggregate_analysis(results, cat_names, cos_theta_results, cluster_track
             ax.set_title(f'{SCENARIO_LABELS[scenario]}\n(N_cats={n_cats}, N_ES≈{es_mean:.0f})',
                          fontsize=11, fontweight='bold')
             ax.legend(fontsize=8, loc='upper left')
-            ax.grid(True, alpha=0.3)    plt.suptitle('Cosine Distribution: cos(θ_true - θ_reco) - Zoomed (0.9-1.0)',
+            ax.grid(True, alpha=0.3)
+    
+    plt.suptitle('Cosine Distribution: cos(θ_true - θ_reco) - Zoomed (0.9-1.0)',
                 fontsize=16, fontweight='bold', y=0.995)
     plt.tight_layout()
     
@@ -1304,7 +1345,7 @@ def plot_aggregate_analysis(results, cat_names, cos_theta_results, cluster_track
     
     # Print detailed statistics
     print("\n" + "="*90)
-    print("DETAILED STATISTICS - 6 SCENARIOS")
+    print("DETAILED STATISTICS - 8 SCENARIOS")
     print("="*90)
     
     for scenario in SCENARIOS:
@@ -1354,7 +1395,7 @@ def plot_aggregate_analysis(results, cat_names, cos_theta_results, cluster_track
     print("="*90)
 
 def main():
-    print("Loading emcee results for 6 scenarios...")
+    print("Loading emcee results for 8 scenarios...")
     results, cat_names, cos_theta_results, cluster_tracking, cat_file_stats, true_directions = load_results()
     
     # Summary

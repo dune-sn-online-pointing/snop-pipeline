@@ -1,0 +1,8 @@
+executable = run_best_case_job24.sh
+output = logs/best_case_job24.out
+error = logs/best_case_job24.err
+log = logs/best_case_job24.log
+request_cpus = 1
+request_memory = 4GB
++MaxRuntime = 14400
+queue

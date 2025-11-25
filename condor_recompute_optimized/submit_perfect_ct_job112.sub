@@ -1,0 +1,8 @@
+executable = run_perfect_ct_job112.sh
+output = logs/perfect_ct_job112.out
+error = logs/perfect_ct_job112.err
+log = logs/perfect_ct_job112.log
+request_cpus = 1
+request_memory = 4GB
++MaxRuntime = 14400
+queue

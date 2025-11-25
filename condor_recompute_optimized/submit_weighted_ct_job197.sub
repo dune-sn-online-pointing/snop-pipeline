@@ -1,0 +1,8 @@
+executable = run_weighted_ct_job197.sh
+output = logs/weighted_ct_job197.out
+error = logs/weighted_ct_job197.err
+log = logs/weighted_ct_job197.log
+request_cpus = 1
+request_memory = 4GB
++MaxRuntime = 14400
+queue

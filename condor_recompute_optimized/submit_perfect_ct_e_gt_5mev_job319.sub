@@ -1,0 +1,8 @@
+executable = run_perfect_ct_e_gt_5mev_job319.sh
+output = logs/perfect_ct_e_gt_5mev_job319.out
+error = logs/perfect_ct_e_gt_5mev_job319.err
+log = logs/perfect_ct_e_gt_5mev_job319.log
+request_cpus = 1
+request_memory = 4GB
++MaxRuntime = 14400
+queue

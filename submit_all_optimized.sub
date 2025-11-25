@@ -1,0 +1,10 @@
+executable = run_batch_$(batch).sh
+output = condor_logs/batch$(batch).out
+error = condor_logs/batch$(batch).err
+log = condor_logs/batch$(batch).log
+
+request_cpus = 1
+request_memory = 4GB
++MaxRuntime = 14400
+
+queue batch from batch_list.txt

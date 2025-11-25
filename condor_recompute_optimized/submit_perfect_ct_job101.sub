@@ -1,0 +1,8 @@
+executable = run_perfect_ct_job101.sh
+output = logs/perfect_ct_job101.out
+error = logs/perfect_ct_job101.err
+log = logs/perfect_ct_job101.log
+request_cpus = 1
+request_memory = 4GB
++MaxRuntime = 14400
+queue

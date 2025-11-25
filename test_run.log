@@ -1,0 +1,96 @@
+2025-11-24 18:58:33.019625: I external/local_xla/xla/tsl/cuda/cudart_stub.cc:31] Could not find cuda drivers on your machine, GPU will not be used.
+2025-11-24 18:58:33.339461: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-11-24 18:58:54.796773: I tensorflow/core/platform/cpu_feature_guard.cc:210] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 AVX512F AVX512_VNNI AVX512_BF16 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2025-11-24 18:59:32.810432: I tensorflow/core/util/port.cc:153] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2025-11-24 18:59:32.833757: I external/local_xla/xla/tsl/cuda/cudart_stub.cc:31] Could not find cuda drivers on your machine, GPU will not be used.
+Traceback (most recent call last):
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_cat_analysis_emcee_corrected.py", line 543, in main
+    results[scenario] = run_scenario_emcee(
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_cat_analysis_emcee_corrected.py", line 273, in run_scenario_emcee
+    raise ValueError("No matched clusters found")
+ValueError: No matched clusters found
+Traceback (most recent call last):
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_cat_analysis_emcee_corrected.py", line 543, in main
+    results[scenario] = run_scenario_emcee(
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_cat_analysis_emcee_corrected.py", line 273, in run_scenario_emcee
+    raise ValueError("No matched clusters found")
+ValueError: No matched clusters found
+Traceback (most recent call last):
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_cat_analysis_emcee_corrected.py", line 543, in main
+    results[scenario] = run_scenario_emcee(
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_cat_analysis_emcee_corrected.py", line 273, in run_scenario_emcee
+    raise ValueError("No matched clusters found")
+ValueError: No matched clusters found
+Traceback (most recent call last):
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_cat_analysis_emcee_corrected.py", line 543, in main
+    results[scenario] = run_scenario_emcee(
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_cat_analysis_emcee_corrected.py", line 273, in run_scenario_emcee
+    raise ValueError("No matched clusters found")
+ValueError: No matched clusters found
+Traceback (most recent call last):
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_cat_analysis_emcee_corrected.py", line 543, in main
+    results[scenario] = run_scenario_emcee(
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_cat_analysis_emcee_corrected.py", line 273, in run_scenario_emcee
+    raise ValueError("No matched clusters found")
+ValueError: No matched clusters found
+Traceback (most recent call last):
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_cat_analysis_emcee_corrected.py", line 543, in main
+    results[scenario] = run_scenario_emcee(
+  File "/afs/cern.ch/work/e/evilla/private/dune/data-selection-pipeline/scripts/run_cat_analysis_emcee_corrected.py", line 273, in run_scenario_emcee
+    raise ValueError("No matched clusters found")
+ValueError: No matched clusters found
+======================================================================
+EMCEE RECONSTRUCTION FOR cat000350
+======================================================================
+
+Loading PDF from: /eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/cosine_energy_pdf.npz
+PDF loaded
+
+======================================================================
+SCENARIO (EMCEE): BEST_CASE
+======================================================================
+
+Loaded 0 matched main-track clusters across U, V, X planes
+
+✗ best_case failed: No matched clusters found
+
+======================================================================
+SCENARIO (EMCEE): PERFECT_CT
+======================================================================
+
+Loaded 0 matched main-track clusters across U, V, X planes
+
+✗ perfect_ct failed: No matched clusters found
+
+======================================================================
+SCENARIO (EMCEE): FULL_PIPELINE
+======================================================================
+
+Loaded 0 matched main-track clusters across U, V, X planes
+
+✗ full_pipeline failed: No matched clusters found
+
+======================================================================
+SCENARIO (EMCEE): WEIGHTED_CT
+======================================================================
+
+Loaded 0 matched main-track clusters across U, V, X planes
+
+✗ weighted_ct failed: No matched clusters found
+
+======================================================================
+SCENARIO (EMCEE): PERFECT_CT_E_GT_10MEV
+======================================================================
+
+Loaded 0 matched main-track clusters across U, V, X planes
+
+✗ perfect_ct_e_gt_10mev failed: No matched clusters found
+
+======================================================================
+SCENARIO (EMCEE): PERFECT_CT_E_GT_5MEV
+======================================================================
+
+Loaded 0 matched main-track clusters across U, V, X planes
+
+✗ perfect_ct_e_gt_5mev failed: No matched clusters found
