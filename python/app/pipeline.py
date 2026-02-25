@@ -1,185 +1,315 @@
-import numpy as np
-import json
-import os
+#!/usr/bin/env python3
+"""
+SN Burst Pipeline
+
+Pipeline for processing supernova burst samples through the complete
+analysis chain: sample selection -> volume creation
+-> channel tagging -> (electron direction later)
+
+Processes both CC and ES samples, tracks metrics, and generates a PDF report.
+Cluster selection is performed directly from sampled inputs in the current flow.
+"""
+
 import sys
+import json
+import numpy as np
 import argparse
+from pathlib import Path
+from datetime import datetime
 import time
 
-sys.path.append("../python/")
+# Add python modules to path
+python_root = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(python_root))
+sys.path.insert(0, str(python_root / 'lib'))
 
-import run_clustering # Read data, run clustering, save results
-import run_ctds # Read clusters and create dataset
-import run_mt_id # Read dataset and identify Main Tracks
-import run_volume # Read Main Tracks and calculate volume
-import run_vtds # Read volume clusters and create image dataset
-import run_int_class # Read Main Tracks and classify interactions
-import run_pointing # Read dataset and predict pointing
-import run_match_clusters # Read clusters and match them
-import run_pointing_tests # Read dataset and predictions and run tests
-import run_loglikelihood_reconstruction # Read dataset and predictions and run tests
-import general_libs # Create report
-sys.path.append("../submodules/online-pointing-utils/python/")
-from image_creator import *
-from utils import *
-from cluster import *
-from dataset_creator import *
-
-parser = argparse.ArgumentParser(description='Run the pipeline')
-parser.add_argument('--input_json', type=str, help='Input json file')
-parser.add_argument('--output_folder', type=str, help='Output folder')
-args = parser.parse_args()
-
-input_json = args.input_json
-output_folder = args.output_folder
-
-# Read input json
-with open(input_json) as f:
-    input_data = json.load(f)
-
-if not os.path.exists(output_folder):
-    os.makedirs(output_folder)
-
-overall_start = time.time()
-
-# Run clustering
-print("Running clustering")
-start = time.time()
-run_clustering.run(input_data, output_folder)
-end = time.time()
-print("Clustering done in", end - start, "seconds")
-
-# Run match clusters
-print("Running match clusters")
-start = time.time()
-run_match_clusters.run(input_data, output_folder)
-end = time.time()
-print("Cluster matching done in", end - start, "seconds")
+from sample_loader import load_and_select_samples
+from volume_creator import create_volumes, create_volumes_simple
+from channel_tagger import tag_channels
+from metrics_tracker import MetricsTracker
+from report_generator import generate_report
 
 
-# Run clusters to dataset
-print("Running clusters to dataset")
-ctds_dataset_img = None
-start = time.time()
-ctds_dataset_img = run_ctds.run(input_data, output_folder)
-end = time.time()
-print("Clusters to dataset done in", end - start, "seconds")
-true_dir_exists = os.path.exists(output_folder + input_data["ctds"]["output_folder"] + "/dataset/dataset_label_true_dir.npy")
-if true_dir_exists:
-    true_dir = np.load(output_folder + input_data["ctds"]["output_folder"] + "/dataset/dataset_label_true_dir.npy")
-else:
-    true_dir = None
+def load_config(config_path):
+    """Load and validate JSON configuration."""
+    with open(config_path, 'r') as f:
+        config = json.load(f)
     
-if ctds_dataset_img is None:
-    print("No dataset_img created, exiting...")
-    sys.exit(0)
-
-# Run Main Tracks identification
-print("Running Main Tracks identification")
-start = time.time()
-predictions = run_mt_id.run(input_data, 
-                dataset_img=ctds_dataset_img[:, :, :, 2],
-                output_folder=output_folder)
-end = time.time()
-
-index = np.where(predictions > input_data["mt_id"]["threshold"])[0]
-ctds_dataset_img = ctds_dataset_img[index]
-if true_dir_exists:
-    true_dir = true_dir[index]
-
-print("Main Tracks identification done in", end - start, "seconds")
+    # Validate required fields
+    required_fields = ['input_data', 'sample_selection', 'neural_networks', 'output', 'volume_creation']
+    for field in required_fields:
+        if field not in config:
+            raise ValueError(f"Missing required field in config: {field}")
+    
+    return config
 
 
-
-# Run volume group creation
-print("Running volume group creation")
-start = time.time()
-run_volume.run(input_data, output_folder)
-end = time.time()
-print("Volume group creation done in", end - start, "seconds")
-
-# Run volume cluster to dataset
-print("Running volume cluster to dataset")
-start = time.time()
-vtds_dataset_img = run_vtds.run(input_data, output_folder)
-end = time.time()
-
-# Run interaction classification
-print("Running interaction classification")
-start = time.time()
-predictions_class = run_int_class.run(input_data, 
-                                    dataset_img=vtds_dataset_img,
-                                    output_folder=output_folder)
-end = time.time()
-
-print(ctds_dataset_img.shape)
-
-index = np.where(predictions_class > input_data["int_class"]["threshold"])[0]
-ctds_dataset_img = ctds_dataset_img[index]
-if true_dir_exists:
-    true_dir = true_dir[index]
-
-print("Interaction classification done in", end - start, "seconds")
-
-# Run pointing
-print("Running pointing")
-start = time.time()
-predictions = run_pointing.run(input_data, ctds_dataset_img, output_folder)
-print("Predictions shape: ", predictions.shape)
-if input_data["loglikelihood"]["energy_weight"]:
-    # E is the sum of the pixel values in the X plane image
-    E = np.sum(ctds_dataset_img[:,:,:,2], axis=(1,2))
-    E = np.sqrt(E)
-    E = E / np.max(E)
-    plt.figure()
-    plt.hist(E)
-    plt.savefig("E_hist.png")
-    plt.close()
-else:
-    E = None
+def setup_output_folder(base_folder):
+    """Create output directory structure."""
+    base_path = Path(base_folder)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    output_dir = base_path / f"pipeline_run_{timestamp}"
+    
+    # Create subdirectories
+    (output_dir / "selected_clusters").mkdir(parents=True, exist_ok=True)
+    (output_dir / "volume_images").mkdir(parents=True, exist_ok=True)
+    (output_dir / "predictions").mkdir(parents=True, exist_ok=True)
+    (output_dir / "plots").mkdir(parents=True, exist_ok=True)
+    
+    return output_dir
 
 
-end = time.time()
-print("Pointing done in", end - start, "seconds")
+def main():
+    parser = argparse.ArgumentParser(
+        description='Run SN Burst Analysis Pipeline',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+    python pipeline.py -j config.json
+    python pipeline.py -j config.json --output /path/to/output
+    python pipeline.py -j config.json --verbose
+        """
+    )
+    parser.add_argument('-j', '--json', '--config', dest='config',
+                       required=True, help='JSON configuration file')
+    parser.add_argument('-o', '--output', help='Output directory (overrides config)')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                       help='Enable verbose output')
+    
+    args = parser.parse_args()
+    
+    # Load configuration
+    print("="*80)
+    print("SN BURST ANALYSIS PIPELINE")
+    print("="*80)
+    print(f"\nLoading configuration: {args.config}")
+    config = load_config(args.config)
+    
+    # Setup output folder
+    output_folder = args.output if args.output else config['output']['base_folder']
+    output_dir = setup_output_folder(output_folder)
+    print(f"Output directory: {output_dir}")
+    
+    # Save config copy
+    with open(output_dir / "config_used.json", 'w') as f:
+        json.dump(config, f, indent=2)
+    
+    # Initialize metrics tracker
+    metrics = MetricsTracker(output_dir / "metrics.json")
+    
+    # Start timer
+    pipeline_start = time.time()
+    
+    # =========================================================================
+    # STEP 1: Load and Select Samples
+    # =========================================================================
+    print("\n" + "="*80)
+    print("STEP 1: SAMPLE SELECTION")
+    print("="*80)
+    
+    step_start = time.time()
+    
+    cc_folder = config['input_data'].get('cc_sample_folder') or config['input_data'].get('cc_folder')
+    es_folder = config['input_data'].get('es_sample_folder') or config['input_data'].get('es_folder')
+    if not cc_folder or not es_folder:
+        raise ValueError("input_data must define cc_folder/es_folder (or cc_sample_folder/es_sample_folder)")
 
-final_theta, final_phi, final_theta_std, final_phi_std, omega_resolution = None, None, None, None, None
-if true_dir_exists:
-    true_x = true_dir[:, 0]
-    if len(np.unique(true_x)) > 1:
-        print("More than one true direction, loglikelihood reconstruction not possible")
+    selected_data = load_and_select_samples(
+        cc_folder=cc_folder,
+        es_folder=es_folder,
+        n_cc_events=config['sample_selection']['n_cc_events'],
+        n_es_events=config['sample_selection']['n_es_events'],
+        file_pattern=config['input_data'].get('file_pattern', '*_planeX.npz'),
+        shuffle=config.get('processing', {}).get('shuffle_clusters', config.get('processing', {}).get('shuffle', True)),
+        random_seed=config.get('processing', {}).get('random_seed', 42),
+        output_dir=output_dir / "selected_clusters",
+        verbose=args.verbose
+    )
+    
+    metrics.add_sample_selection_metrics(selected_data)
+    
+    print(f"\n✓ Sample selection complete ({time.time() - step_start:.1f}s)")
+    print(f"  Selected: {selected_data['n_cc_events']} CC events ({selected_data['n_cc_clusters']} clusters)")
+    print(f"           {selected_data['n_es_events']} ES events ({selected_data['n_es_clusters']} clusters)")
+    print(f"  Total: {selected_data['total_clusters']} clusters")
+    
+    # =========================================================================
+    # STEP 2: Cluster Selection
+    # =========================================================================
+    print("\n" + "="*80)
+    print("STEP 2: TRACK SELECTION")
+    print("="*80)
+    
+    step_start = time.time()
+
+    print("Model-based pre-selection step is disabled in the current pipeline flow.")
+    print("Passing selected clusters directly to volume creation.")
+    selected_clusters = {
+        'images': selected_data['images'],
+        'metadata': selected_data['metadata']
+    }
+    metrics.add_cluster_selection_metrics(selected_data)
+
+    print(f"\n✓ Track selection complete ({time.time() - step_start:.1f}s)")
+    print(f"  Clusters forwarded: {selected_data['total_clusters']}")
+    
+    # =========================================================================
+    # STEP 3: Volume Creation
+    # =========================================================================
+    print("\n" + "="*80)
+    print("STEP 3: VOLUME IMAGE CREATION")
+    print("="*80)
+    
+    step_start = time.time()
+    
+    use_simple_mode = config['volume_creation'].get('use_simple_mode', False)
+    if use_simple_mode:
+        volume_results = create_volumes_simple(
+            images=selected_clusters['images'],
+            metadata=selected_clusters['metadata'],
+            output_dir=output_dir / "volume_images",
+            verbose=args.verbose
+        )
     else:
-        print("Running Loglikelihood reconstruction")
-        start = time.time()
-        final_theta, final_phi, final_theta_std, final_phi_std, omega_resolution = run_loglikelihood_reconstruction.run(input_data, predictions, E, output_folder)
-        end = time.time()
-        print("Loglikelihood reconstruction done in", end - start, "seconds")
-else:
-    print("Running Loglikelihood reconstruction")
-    start = time.time()
-    final_theta, final_phi, final_theta_std, final_phi_std, omega_resolution = run_loglikelihood_reconstruction.run(input_data, predictions, E, output_folder)
-    end = time.time()
-    print("Loglikelihood reconstruction done in", end - start, "seconds")
+        pointing_utils_dir = config['volume_creation'].get('pointing_utils_dir') or config['volume_creation'].get('online_pointing_utils_path')
+        if not pointing_utils_dir:
+            raise ValueError("volume_creation must define pointing_utils_dir (or online_pointing_utils_path) when use_simple_mode=false")
 
-# Run pointing tests
-print("Running pointing tests")
-start = time.time()
-run_pointing_tests.run(input_data, predictions, output_folder, final_theta=final_theta, final_phi=final_phi, final_theta_std=final_theta_std, final_phi_std=final_phi_std, true_dir=true_dir)
-end = time.time()
-print("Pointing done in", end - start, "seconds")
+        volume_results = create_volumes(
+            images=selected_clusters['images'],
+            metadata=selected_clusters['metadata'],
+            pointing_utils_dir=pointing_utils_dir,
+            output_dir=output_dir / "volume_images",
+            verbose=args.verbose
+        )
+    
+    metrics.add_volume_creation_metrics(volume_results)
+    
+    print(f"\n✓ Volume creation complete ({time.time() - step_start:.1f}s)")
+    print(f"  Volumes created: {volume_results['n_volumes']}")
+    
+    # =========================================================================
+    # STEP 4: Channel Tagging
+    # =========================================================================
+    print("\n" + "="*80)
+    print("STEP 4: CHANNEL TAGGING")
+    print("="*80)
+    
+    step_start = time.time()
+    
+    # Channel tagging can be optional via config flag
+    if not config['neural_networks'].get('channel_tagger', {}).get('enabled', True):
+        print("Channel tagger disabled in config. Skipping channel tagging step.")
+        ct_results = {
+            'y_true': np.array([], dtype=int),
+            'y_pred': np.array([], dtype=int),
+            'y_pred_proba': np.array([], dtype=float),
+            'total_volumes': len(volume_results.get('images', [])),
+            'n_predicted_es': 0,
+            'n_predicted_cc': 0,
+            'n_true_es': 0,
+            'n_true_cc': 0,
+            'true_positives': 0,
+            'false_positives': 0,
+            'true_negatives': 0,
+            'false_negatives': 0,
+            'accuracy': 0.0,
+            'precision': 0.0,
+            'recall': 0.0,
+            'f1_score': 0.0,
+            'metrics': {
+                'confusion_matrix': np.array([[0, 0], [0, 0]]),
+                'true_positives': 0,
+                'true_negatives': 0,
+                'false_positives': 0,
+                'false_negatives': 0,
+                'accuracy': 0.0,
+                'precision': 0.0,
+                'recall': 0.0,
+                'specificity': 0.0,
+                'f1_score': 0.0,
+                'auc': 0.0,
+                'fpr': np.array([0.0, 1.0]),
+                'tpr': np.array([0.0, 1.0]),
+                'roc_thresholds': np.array([1.0, 0.0])
+            }
+        }
+    else:
+        ct_results = tag_channels(
+            images=volume_results['images'],
+            metadata=volume_results['metadata'],
+            model_path=config['neural_networks']['channel_tagger']['model_path'],
+            threshold=config['neural_networks']['channel_tagger']['threshold'],
+            output_dir=output_dir / "predictions",
+            verbose=args.verbose
+        )
 
-print("Pipeline done in", time.time() - overall_start, "seconds")
+        y_true = ct_results['y_true']
+        ct_results['n_true_es'] = int(np.sum(y_true == 1))
+        ct_results['n_true_cc'] = int(np.sum(y_true == 0))
+        ct_results['true_positives'] = ct_results['metrics']['true_positives']
+        ct_results['false_positives'] = ct_results['metrics']['false_positives']
+        ct_results['true_negatives'] = ct_results['metrics']['true_negatives']
+        ct_results['false_negatives'] = ct_results['metrics']['false_negatives']
+        ct_results['accuracy'] = ct_results['metrics']['accuracy']
+        ct_results['precision'] = ct_results['metrics']['precision']
+        ct_results['recall'] = ct_results['metrics']['recall']
+        ct_results['f1_score'] = ct_results['metrics']['f1_score']
+    
+    if config['neural_networks'].get('channel_tagger', {}).get('enabled', True):
+        metrics.add_channel_tagging_metrics(ct_results)
+    
+    print(f"\n✓ Channel tagging complete ({time.time() - step_start:.1f}s)")
+    print(f"  Predicted ES: {ct_results['n_predicted_es']}")
+    print(f"  Predicted CC: {ct_results['n_predicted_cc']}")
+    print(f"  Accuracy: {ct_results['accuracy']:.3f}")
+    
+    # =========================================================================
+    # STEP 5: Generate Report
+    # =========================================================================
+    print("\n" + "="*80)
+    print("STEP 5: GENERATING REPORT")
+    print("="*80)
+    
+    step_start = time.time()
+    
+    total_time = time.time() - pipeline_start
+    metrics.metrics['pipeline_info']['total_time_seconds'] = total_time
+    metrics.save()
+    
+    report_filename = config['output'].get('report_pdf', config['output'].get('report_file', 'pipeline_report.pdf'))
+
+    report_path = generate_report(
+        metrics_tracker=metrics,
+        channel_results=ct_results,
+        output_path=output_dir / report_filename,
+        verbose=args.verbose
+    )
+    
+    print(f"\n✓ Report generation complete ({time.time() - step_start:.1f}s)")
+    print(f"  Report saved: {report_path}")
+    
+    # =========================================================================
+    # SUMMARY
+    # =========================================================================
+    print("\n" + "="*80)
+    print("PIPELINE COMPLETE")
+    print("="*80)
+    print(f"\nTotal execution time: {total_time:.1f}s ({total_time/60:.1f} min)")
+    print(f"Output directory: {output_dir}")
+    print(f"Metrics JSON: {output_dir / 'metrics.json'}")
+    print(f"Report PDF: {report_path}")
+    print("\n" + "="*80)
 
 
-# Create report
-print("Creating report")
-start = time.time()
-general_libs.create_report(input_data, output_folder)
-end = time.time()
-print("Report done in", end - start, "seconds")
-
-print("Overall done in", time.time() - overall_start, "seconds")
-
-
-
-
-
-
+if __name__ == '__main__':
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\nPipeline interrupted by user.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"\n\nERROR: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)

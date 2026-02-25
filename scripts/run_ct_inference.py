@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Run CT (Cluster Type) inference on cat000001 volume images.
-Uses MT-identified main track cluster IDs to select relevant volumes.
+Run CT (Cluster Type) inference on volume images.
+Uses selected cluster IDs to choose relevant volumes.
 """
 
 import numpy as np
@@ -19,15 +19,15 @@ def load_model(model_path):
     print(f"Model loaded successfully")
     return model
 
-def load_mt_cluster_mapping(mapping_file):
+def load_selected_cluster_mapping(mapping_file):
     """
-    Load MT-identified cluster IDs.
+    Load selected cluster IDs.
     
     Args:
         mapping_file: JSON file with event -> cluster_id mapping
     
     Returns:
-        Dictionary mapping event -> list of cluster IDs
+        Dictionary mapping event -> list of selected cluster IDs
     """
     with open(mapping_file, 'r') as f:
         mapping = json.load(f)
@@ -37,7 +37,7 @@ def load_mt_cluster_mapping(mapping_file):
     
     print(f"Loaded cluster mapping for {len(mapping)} events")
     total_clusters = sum(len(v) for v in mapping.values())
-    print(f"Total main track clusters: {total_clusters}")
+    print(f"Total selected clusters: {total_clusters}")
     
     return mapping
 
@@ -71,18 +71,18 @@ def _resolve_volume_dir(data_dir):
 def load_volume_images(data_dir, cluster_mapping, plane='X', skip_ct=False):
     """
     Load volume images from a cat dataset.
-    Only loads volumes containing MT-identified cluster IDs.
+    Only loads volumes containing selected cluster IDs.
     
     Args:
         data_dir: Base directory or volume folder containing images
         cluster_mapping: Dictionary mapping event -> cluster IDs
         plane: Which plane to load (U, V, or X)
-        skip_ct: If True, assume perfect CT tagging (all clusters are main tracks)
+        skip_ct: If True, assume perfect CT tagging (all selected clusters accepted)
     
     Returns:
         images: List of volume images (variable size)
         metadata: List of metadata dictionaries
-        selected_indices: Indices of volumes that contain main tracks
+        selected_indices: Indices of volumes that contain selected clusters
     """
     plane = plane.upper()
     volume_dir = _resolve_volume_dir(data_dir)
@@ -108,7 +108,7 @@ def load_volume_images(data_dir, cluster_mapping, plane='X', skip_ct=False):
             event = meta['event']
             main_cluster_id = meta['main_cluster_id']
             
-            # Check if this volume contains an MT-identified cluster
+            # Check if this volume contains a selected cluster
             if event in cluster_mapping:
                 if main_cluster_id in cluster_mapping[event]:
                     images.append(volume_images[i])
@@ -120,12 +120,12 @@ def load_volume_images(data_dir, cluster_mapping, plane='X', skip_ct=False):
                 skipped_no_match += 1
     
     print(f"\nSelected {len(images)} volumes")
-    print(f"Skipped {skipped_no_match} volumes (event not in MT mapping)")
-    print(f"Skipped {skipped_wrong_cluster} volumes (cluster ID not in MT mapping)")
+    print(f"Skipped {skipped_no_match} volumes (event not in selection mapping)")
+    print(f"Skipped {skipped_wrong_cluster} volumes (cluster ID not in selection mapping)")
     
     if skip_ct:
         print("\n*** SKIP_CT MODE: Assuming perfect CT tagging ***")
-        print("All selected volumes are treated as correctly identified main tracks")
+        print("All selected volumes are treated as accepted by selection")
     
     return images, metadata_list, selected_indices
 
@@ -161,11 +161,11 @@ def run_inference(model, images, batch_size=32, skip_ct=False):
         skip_ct: If True, skip actual inference and return dummy predictions
     
     Returns:
-        predictions: Probability of each cluster being main track (per volume)
+        predictions: Probability of each cluster being ES (per volume)
     """
     if skip_ct:
         print("Skipping CT inference (assuming perfect tagging)")
-        # Return dummy predictions (all 1.0 for main track)
+        # Return dummy predictions (all 1.0 for accepted cluster)
         return [np.ones(1) for _ in images]
     
     print(f"Running CT inference on {len(images)} volumes...")
@@ -229,7 +229,7 @@ def save_predictions(output_dir, predictions, metadata_list, selected_indices, s
                 result[f'cluster_{j}_prob'] = float(p)
         else:
             # Single prediction
-            result['main_track_prob'] = float(pred[0] if isinstance(pred, np.ndarray) else pred)
+            result['selected_cluster_prob'] = float(pred[0] if isinstance(pred, np.ndarray) else pred)
         
         results.append(result)
     
@@ -285,9 +285,9 @@ def main():
     parser.add_argument('--data-dir', type=str,
                         default='/eos/project-e/ep-nu/public/sn-pointing/cat000001',
                         help='Base directory containing cat000001 data')
-    parser.add_argument('--mt-mapping', type=str,
-                        default='results/mt_inference_cat000001/mt_cluster_id_mapping.json',
-                        help='Path to MT cluster ID mapping file')
+    parser.add_argument('--selected-mapping', dest='selected_mapping', type=str,
+                        default='results/selection_cat000001/selected_cluster_mapping.json',
+                        help='Path to selected cluster ID mapping file')
     parser.add_argument('--output-dir', type=str,
                         default='results/ct_inference_cat000001',
                         help='Directory to save results')
@@ -300,13 +300,13 @@ def main():
                         help='Skip CT inference, assume perfect tagging (for benchmarking)')
     parser.add_argument('--ed-volumes-npz', type=str, default=None,
                         help='If provided, save stacked volumes/metadata for ED inference to this NPZ path')
-    parser.add_argument('--ed-mt-results-npz', type=str, default=None,
-                        help='If provided, save MT-aligned mask and tentative directions for ED inference to this NPZ path')
+    parser.add_argument('--ed-selected-mask-npz', dest='ed_selected_mask_npz', type=str, default=None,
+                        help='If provided, save selection mask and tentative directions for ED inference to this NPZ path')
     
     args = parser.parse_args()
     
-    # Load MT cluster mapping
-    cluster_mapping = load_mt_cluster_mapping(args.mt_mapping)
+    # Load selected cluster mapping
+    cluster_mapping = load_selected_cluster_mapping(args.selected_mapping)
     
     # Load model (unless skipping CT)
     model = None
@@ -322,11 +322,11 @@ def main():
     )
     
     if len(images) == 0:
-        print("No volumes found matching MT-identified clusters!")
+        print("No volumes found matching selected clusters!")
         return
     
     # Optionally persist ED payloads before inference to avoid duplicating work
-    if args.ed_volumes_npz or args.ed_mt_results_npz:
+    if args.ed_volumes_npz or args.ed_selected_mask_npz:
         volumes_array = np.stack([np.asarray(img) for img in images])
         cluster_energy = np.array([
             meta.get('cluster_energy', np.nan) for meta in metadata_list
@@ -359,17 +359,17 @@ def main():
             np.savez_compressed(ed_vol_path, **save_dict)
             print(f"Saved ED volumes payload to: {ed_vol_path}")
 
-        if args.ed_mt_results_npz:
-            mt_npz_path = Path(args.ed_mt_results_npz)
-            mt_npz_path.parent.mkdir(parents=True, exist_ok=True)
-            mt_payload = {
-                'is_main_track': np.ones(len(images), dtype=bool),
+        if args.ed_selected_mask_npz:
+            selected_npz_path = Path(args.ed_selected_mask_npz)
+            selected_npz_path.parent.mkdir(parents=True, exist_ok=True)
+            selected_payload = {
+                'is_selected_cluster': np.ones(len(images), dtype=bool),
                 'tentative_dirs': tentative_dirs,
                 'event': events,
                 'main_cluster_id': cluster_ids,
             }
-            np.savez_compressed(mt_npz_path, **mt_payload)
-            print(f"Saved ED mask payload to: {mt_npz_path}")
+            np.savez_compressed(selected_npz_path, **selected_payload)
+            print(f"Saved ED selection payload to: {selected_npz_path}")
 
     # Run inference
     predictions = run_inference(

@@ -7,35 +7,28 @@ __pycache__/
 dist/
 build/
 
-# Analysis outputs
-analysis_outputs/reports/*.pdf
-analysis_outputs/reports/*.png
-analysis_outputs/cat_examples/*.png
-analysis_outputs/aggregated_data/
-figures/*.pdf
-figures/*.png
-
-# Results (on EOS)
+# Generated/runtime artifacts
+analysis_outputs/
+figures/
+data/
 results/
+logs/
+condor_logs/
 outputs/
+mcmc_visualization/
+condor_recompute_optimized/
+tests/
+
+# Keep output folder tracked but ignore generated contents
+output/*
+!output/.gitkeep
 
 # Logs
-logs/*.log
-condor_logs/*.log
 *.out
 *.err
 nohup.out
-
-# HTCondor
-condor/*.log
-condor/*.out
-condor/*.err
-
-# Backups
-*.backup
-*.bak
-*.tmp
-*~
+condor/*
+!condor/.gitkeep
 
 # IDE
 .vscode/
@@ -43,14 +36,11 @@ condor/*.err
 
 # Credentials
 *.cc
-evilla.cc
 
 # Large files
 *.npz
 *.root
 
-# Archives
-archive/
-
-# External
-external_libs/
+# Keep only the canonical example JSON config tracked
+json/*.json
+!json/example_config.json

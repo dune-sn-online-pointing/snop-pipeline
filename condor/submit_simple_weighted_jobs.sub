@@ -1,9 +1,0 @@
-universe = vanilla
-executable = $(script)
-output = condor_logs/simple_weighted_job_$(ProcId).out
-error = condor_logs/simple_weighted_job_$(ProcId).err
-log = condor_logs/simple_weighted_jobs.log
-
-+JobFlavour = "longlunch"
-
-queue script matching files run_simple_weighted_batch_*.sh

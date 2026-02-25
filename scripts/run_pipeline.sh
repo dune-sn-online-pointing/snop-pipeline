@@ -12,8 +12,8 @@ REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/init.sh"
 
 echo ""
-echo "Running Data Selection Pipeline v2.0..."
+echo "Running Data Selection Pipeline..."
 echo ""
 
 # Run the pipeline with all arguments passed through
-python3 "$REPO_DIR/python/app/pipeline_v2.py" "$@"
+python3 "$REPO_DIR/python/app/pipeline.py" "$@"

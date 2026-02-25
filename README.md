@@ -1,141 +1,118 @@
-# Data-selection-pipeline
+# snop-pipeline
 
-Pipeline for DUNE supernova burst event selection and neural network inference, including main-track identification, channel tagging, and electron direction reconstruction.
+SN online-pointing pipeline for three practical workflows:
 
-## Quick Links
+- run the **whole pipeline** (selection + volumes + CT + report),
+- run **CT only** on prepared volumes,
+- run **ED only** (single file or batch glob), with optional MCMC refinement.
 
-- **Setup Guide**: [`ENVIRONMENT_SETUP.md`](ENVIRONMENT_SETUP.md)
-- **Pipeline v2 Documentation**: [`PIPELINE_V2_README.md`](PIPELINE_V2_README.md)
-- **Quick Start**: [`QUICKSTART.md`](QUICKSTART.md)
-- **Channel Tagger & ED+MCMC Guide**: [`docs/CT_ED_MCMC_GUIDE.md`](docs/CT_ED_MCMC_GUIDE.md)
+## What this code does
 
-## Installation
+- **Whole pipeline (`python/app/pipeline.py`)**
+  - Selects CC/ES samples,
+  - builds volume payloads,
+  - runs channel tagging (optional),
+  - writes metrics and a PDF report.
+- **CT standalone (`scripts/run_ct_inference.py`)**
+  - Runs channel tagging on selected volumes.
+  - Can export ED-ready NPZ artifacts.
+- **ED standalone (`python/app/ed_inference.py`, `python/app/ed_mcmc.py`)**
+  - Runs ED model on selected clusters.
+  - Optional MCMC direction refinement.
+- **ED batch (`scripts/run_ed_batch.py`)**
+  - Runs ED directly on a folder/glob of NPZ files in one command.
+
+## 1) Run the whole pipeline
+
+Use the canonical example config:
 
 ```bash
-git clone https://github.com/dune-sn-online-pointing/data-selection-pipeline.git
-cd data-selection-pipeline
+./scripts/run_pipeline.sh -j json/example_config.json
 ```
 
-Update submodules (first time only):
+The JSON config under `json/example_config.json` is the only tracked config template.
+
+Key toggles inside the config:
+
+- `neural_networks.channel_tagger.enabled`: enable/disable CT step.
+- `volume_creation.use_simple_mode`: simple internal volume mode vs external utility mode.
+- `sample_selection.n_cc_events`, `sample_selection.n_es_events`: run size.
+
+## 2) Run CT only
+
+Run with model:
+
 ```bash
-./scripts/manage_submodules.sh --up
+python3 scripts/run_ct_inference.py \
+  --data-dir /path/to/volume_images_or_cat_dir \
+  --selected-mapping /path/to/selected_cluster_mapping.json \
+  --output-dir output/ct_step \
+  --plane X \
+  --model-path /path/to/ct_model.keras
 ```
 
-## Features
+BYPASS model (I/O validation):
 
-### Core Pipeline (Pipeline v2)
-- **Sample Selection**: Automatic ES/CC event sampling from cluster images
-- **Main-Track Identification**: CNN-based main track cluster identification
-- **Volume Creation**: 3D volume generation around selected clusters
-- **Channel Tagging** *(optional)*: CC/ES classification of volumes
-- **Electron Direction** *(optional)*: Direction reconstruction with MCMC refinement
-- **Automated Reporting**: PDF reports with metrics, plots, and analysis
-
-### Optional Components
-- **Channel Tagger (CT)**: Toggle via `channel_tagger.enabled` in config
-- **Electron Direction + MCMC**: Refine directions using ED-produced PDFs and Metropolis-Hastings sampling
-- **Standalone Analysis**: Tools for CT/ED/MCMC can run independently of pipeline
-
-## Usage
-
-### Run Complete Pipeline
 ```bash
-python3 python/app/pipeline_v2.py json/pipeline_config.json
+python3 scripts/run_ct_inference.py \
+  --data-dir /path/to/volume_images_or_cat_dir \
+  --selected-mapping /path/to/selected_cluster_mapping.json \
+  --output-dir output/ct_step \
+  --plane X \
+  --skip-ct
 ```
 
-### Run Standalone CT Analysis
+Export ED artifacts directly from CT run:
+
 ```bash
-# CT inference
-python3 python/channel_tagger_runner.py /path/to/ct_model.keras volumes.npz --out ct_pred.npz
-
-# Analyze results
-python3 tests/analyze_ct_results.py ct_pred.npz results/ct_analysis
+python3 scripts/run_ct_inference.py \
+  --data-dir /path/to/volume_images_or_cat_dir \
+  --selected-mapping /path/to/selected_cluster_mapping.json \
+  --output-dir output/ct_step \
+  --plane X \
+  --model-path /path/to/ct_model.keras \
+  --ed-volumes-npz output/ct_step/volumes_for_ed.npz \
+  --ed-selected-mask-npz output/ct_step/selected_mask.npz
 ```
 
-### Run ED + MCMC Workflow
+## 3) Run ED only
+
+Single ED run:
+
 ```bash
-./tests/run_ed_mcmc.sh  # Edit paths in script first
+python3 python/app/ed_inference.py /path/to/ed_model.keras volumes_for_ed.npz selected_mask.npz --out output/ed_inference.npz
+python3 python/app/ed_mcmc.py output/ed_inference.npz --out output/ed_mcmc_results.npz
 ```
 
-See [`tests/README.md`](tests/README.md) for complete standalone examples.
+## 4) Run ED on many NPZ files (one command)
 
-## Configuration
-
-Edit `json/pipeline_config_template.json`:
-
-```json
-{
-  "neural_networks": {
-    "main_track_identifier": {
-      "model_path": "/path/to/mt_model.keras",
-      "threshold": 0.5
-    },
-    "channel_tagger": {
-      "enabled": true,
-      "model_path": "/path/to/ct_model.keras",
-      "threshold": 0.5
-    },
-    "electron_direction": {
-      "enabled": true,
-      "mcmc_enabled": true,
-      "model_path": "/path/to/ed_model.keras"
-    }
-  }
-}
+```bash
+python3 scripts/run_ed_batch.py /path/to/ed_model.keras \
+  --input-glob 'output/my_samples/*.npz' \
+  --output-dir output/ed_batch
 ```
 
-## Documentation
+With MCMC enabled:
 
-| Document | Description |
-|----------|-------------|
-| [`PIPELINE_V2_README.md`](PIPELINE_V2_README.md) | Complete pipeline architecture and usage |
-| [`docs/CT_ED_MCMC_GUIDE.md`](docs/CT_ED_MCMC_GUIDE.md) | Channel Tagger and ED+MCMC detailed guide |
-| [`docs/MT_IDENTIFICATION_ANALYSIS.md`](docs/MT_IDENTIFICATION_ANALYSIS.md) | Main-track ID analysis and results |
-| [`docs/DATA_CORRECTION_SUMMARY.md`](docs/DATA_CORRECTION_SUMMARY.md) | Data generation bug fixes and corrections |
-| [`tests/README.md`](tests/README.md) | Analysis scripts and workflow examples |
-
-## Project Structure
-
-```
-data-selection-pipeline/
-├── python/
-│   ├── app/
-│   │   ├── pipeline_v2.py              # Main pipeline orchestrator
-│   │   └── create_volumes.py           # Volume creation from clusters
-│   ├── channel_tagger_runner.py        # CT standalone inference
-│   ├── ed_inference_from_mt.py         # ED inference on MT clusters
-│   └── ed_mcmc.py                      # MCMC direction refinement
-├── tests/
-│   ├── analyze_ct_results.py           # CT metrics and plots
-│   ├── full_ct_ed_workflow.sh          # Complete workflow example
-│   ├── run_ct_on_samples.sh            # CT quick runner
-│   └── run_ed_mcmc.sh                  # ED+MCMC quick runner
-├── json/
-│   ├── pipeline_config_template.json   # Pipeline configuration template
-│   └── volume_creation.json            # Volume creation parameters
-├── docs/                               # Detailed documentation
-├── results/                            # Pipeline outputs
-└── submodules/
-    └── online-pointing-utils/          # Volume creation utilities
+```bash
+python3 scripts/run_ed_batch.py /path/to/ed_model.keras \
+  --input-glob 'output/my_samples/*.npz' \
+  --output-dir output/ed_batch \
+  --run-mcmc --mcmc-steps 2000 --mcmc-proposal-scale 0.08
 ```
 
-## Requirements
+## 5) Run built-in scenario test (whole pipeline)
 
-- Python 3.9+
-- TensorFlow 2.x (for neural network inference)
-- NumPy, SciPy, Matplotlib, Seaborn, scikit-learn
-- CERN CVMFS access (for lxplus environment)
+```bash
+./test/run_small_sample_pipeline.sh
+```
 
-See [`ENVIRONMENT_SETUP.md`](ENVIRONMENT_SETUP.md) for complete setup instructions.
+This test executes multiple pipeline scenarios and checks report generation for each scenario.
 
-## Contributing
+## Code organization
 
-When adding new features:
-1. Update relevant documentation in `docs/`
-2. Add examples to `tests/`
-3. Update this README with new capabilities
-4. Test on small sample before full dataset
+- `python/app`: executable pipeline/application entrypoints
+- `python/lib`: reusable pipeline libraries
+- `python/ana`: analysis and visualization utilities
 
-## License
-
-This project is part of the DUNE experiment's supernova neutrino program.
+Detailed technical behavior is documented in [docs/code-description.md](docs/code-description.md).
