@@ -56,10 +56,17 @@ def tag_channels(images, metadata, model_path, threshold=0.5,
         print(f"  Running predictions...")
     
     y_pred_proba = model.predict(images, batch_size=32, verbose=0)
-    
-    # Handle both (N,) and (N,1) output shapes
-    if len(y_pred_proba.shape) > 1:
-        y_pred_proba = y_pred_proba.squeeze()
+
+    # Normalize to a 1D ES-probability vector
+    y_pred_proba = np.asarray(y_pred_proba)
+    if y_pred_proba.ndim == 1:
+        pass
+    elif y_pred_proba.ndim == 2 and y_pred_proba.shape[1] == 1:
+        y_pred_proba = y_pred_proba[:, 0]
+    elif y_pred_proba.ndim == 2 and y_pred_proba.shape[1] >= 2:
+        y_pred_proba = y_pred_proba[:, 1]
+    else:
+        y_pred_proba = y_pred_proba.reshape(y_pred_proba.shape[0], -1)[:, 0]
     
     y_pred = (y_pred_proba >= threshold).astype(int)
     

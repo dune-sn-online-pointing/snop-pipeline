@@ -2,6 +2,10 @@
 
 ## Pipeline logic
 
+Reference model versions and canonical EOS model paths are maintained in:
+
+- `submodules/ml-pointing-tools/docs/BestModels.dat`
+
 The main orchestrator is `python/app/pipeline.py` and executes a fixed sequence:
 
 1. **Sample selection** (`python/lib/sample_loader.py`)

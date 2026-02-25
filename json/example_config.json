@@ -1,20 +1,22 @@
 {
   "input_data": {
-    "cc_folder": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples/cat000001/cc_clusters_X",
-    "es_folder": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples/cat000001/es_clusters_X",
-    "file_pattern": "*_planeX.npz"
+    "cc_folder": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples/cat000001/cat000001_cluster_images_tick3_ch2_min2_tot3_e3p0/X",
+    "es_folder": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples/cat000001/cat000001_cluster_images_tick3_ch2_min2_tot3_e3p0/X",
+    "file_pattern": "*_planeX.npz",
+    "cc_file_pattern": "cc_*_planeX.npz",
+    "es_file_pattern": "es_*_planeX.npz"
   },
   
   "sample_selection": {
-    "n_cc_events": 200,
-    "n_es_events": 40,
+    "n_cc_events": 20,
+    "n_es_events": 5,
     "description": "Example small run for validation"
   },
   
   "neural_networks": {
     "channel_tagger": {
       "enabled": true,
-      "model_path": "/eos/project-e/ep-nu/evilla/sn-online-pointing/neural-networks/channel_tagging/ct_volume_v78_dario_10k_20251123_153908/best_model.keras",
+      "model_path": "/eos/project-e/ep-nu/evilla/sn-online-pointing/neural-networks/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras",
       "threshold": 0.5,
       "description": "Channel tagging CNN for ES vs CC classification"
     }

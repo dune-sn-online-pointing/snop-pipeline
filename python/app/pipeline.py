@@ -120,6 +120,8 @@ Examples:
         n_cc_events=config['sample_selection']['n_cc_events'],
         n_es_events=config['sample_selection']['n_es_events'],
         file_pattern=config['input_data'].get('file_pattern', '*_planeX.npz'),
+        cc_file_pattern=config['input_data'].get('cc_file_pattern'),
+        es_file_pattern=config['input_data'].get('es_file_pattern'),
         shuffle=config.get('processing', {}).get('shuffle_clusters', config.get('processing', {}).get('shuffle', True)),
         random_seed=config.get('processing', {}).get('random_seed', 42),
         output_dir=output_dir / "selected_clusters",

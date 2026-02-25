@@ -12,7 +12,7 @@ SAMPLES_BASE="${SAMPLES_BASE:-/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-
 NETWORKS_BASE="${NETWORKS_BASE:-/eos/project-e/ep-nu/evilla/sn-online-pointing/neural-networks}"
 CAT="${CAT:-cat000001}"
 
-CT_MODEL_DEFAULT="${NETWORKS_BASE}/channel_tagging/ct_volume_v78_dario_10k_20251123_153908/best_model.keras"
+CT_MODEL_DEFAULT="${NETWORKS_BASE}/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras"
 
 if [[ ! -f "${BASE_CONFIG}" ]]; then
   echo "ERROR: base config not found: ${BASE_CONFIG}" >&2
@@ -34,14 +34,25 @@ run_scenario() {
   python3 - <<'PY' "${BASE_CONFIG}" "${scenario_config}" "${SAMPLES_BASE}" "${CAT}" "${CT_MODEL_DEFAULT}" "${scenario_dir}" "${n_cc}" "${n_es}" "${ct_enabled}"
 import json
 import sys
+from pathlib import Path
 
 base_config, out_config, samples_base, cat, ct_model, scenario_dir, n_cc, n_es, ct_enabled = sys.argv[1:]
 
 with open(base_config, "r") as f:
     cfg = json.load(f)
 
-cfg["input_data"]["cc_folder"] = f"{samples_base}/{cat}/cc_clusters_X"
-cfg["input_data"]["es_folder"] = f"{samples_base}/{cat}/es_clusters_X"
+cat_dir = Path(samples_base) / cat
+cluster_candidates = sorted(cat_dir.glob(f"{cat}_cluster_images*/X"))
+if not cluster_candidates:
+  raise RuntimeError(f"Could not find cluster image X-folder under {cat_dir}")
+
+cluster_x_dir = str(cluster_candidates[0])
+
+cfg["input_data"]["cc_folder"] = cluster_x_dir
+cfg["input_data"]["es_folder"] = cluster_x_dir
+cfg["input_data"]["file_pattern"] = "*_planeX.npz"
+cfg["input_data"]["cc_file_pattern"] = "cc_*_planeX.npz"
+cfg["input_data"]["es_file_pattern"] = "es_*_planeX.npz"
 cfg["sample_selection"]["n_cc_events"] = int(n_cc)
 cfg["sample_selection"]["n_es_events"] = int(n_es)
 cfg.setdefault("volume_creation", {})["use_simple_mode"] = True
@@ -82,9 +93,9 @@ PY
   echo "✓ Scenario ${scenario_name} report: ${report_file}"
 }
 
-run_scenario "scenario_a_baseline" "40" "8" "1"
-run_scenario "scenario_b_ct_disabled" "40" "8" "0"
-run_scenario "scenario_c_higher_stats" "80" "16" "1"
+run_scenario "scenario_a_baseline" "8" "3" "1"
+run_scenario "scenario_b_ct_disabled" "8" "3" "0"
+run_scenario "scenario_c_higher_stats" "16" "6" "1"
 
 echo
 echo "All scenarios completed successfully."

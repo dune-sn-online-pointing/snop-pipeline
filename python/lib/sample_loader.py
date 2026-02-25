@@ -12,7 +12,8 @@ import glob
 
 
 def load_and_select_samples(cc_folder, es_folder, n_cc_events, n_es_events,
-                            file_pattern='*_planeX.npz', shuffle=True,
+                            file_pattern='*_planeX.npz', cc_file_pattern=None,
+                            es_file_pattern=None, shuffle=True,
                             random_seed=42, output_dir=None, verbose=False):
     """
     Load and select samples from CC and ES folders.
@@ -25,7 +26,9 @@ def load_and_select_samples(cc_folder, es_folder, n_cc_events, n_es_events,
         es_folder: Path to ES cluster images folder
         n_cc_events: Number of CC events to select
         n_es_events: Number of ES events to select
-        file_pattern: File pattern to match (default: *_planeX.npz for X plane only)
+        file_pattern: Default file pattern to match for both sources
+        cc_file_pattern: Optional CC-specific file pattern
+        es_file_pattern: Optional ES-specific file pattern
         shuffle: Whether to shuffle clusters after selection
         random_seed: Random seed for reproducibility
         output_dir: Optional directory to save selected data
@@ -41,15 +44,18 @@ def load_and_select_samples(cc_folder, es_folder, n_cc_events, n_es_events,
         print(f"  ES folder: {es_folder}")
         print(f"  Target: {n_cc_events} CC events, {n_es_events} ES events")
     
+    cc_pattern = cc_file_pattern or file_pattern
+    es_pattern = es_file_pattern or file_pattern
+
     # Load CC samples
     cc_data = _load_samples_from_folder(
-        cc_folder, n_cc_events, file_pattern, 
+        cc_folder, n_cc_events, cc_pattern,
         sample_type='CC', verbose=verbose
     )
     
     # Load ES samples
     es_data = _load_samples_from_folder(
-        es_folder, n_es_events, file_pattern,
+        es_folder, n_es_events, es_pattern,
         sample_type='ES', verbose=verbose
     )
     
