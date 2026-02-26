@@ -29,6 +29,10 @@ output/*
 nohup.out
 condor/*
 !condor/.gitkeep
+!condor/README.md
+!condor/*.py
+!condor/*.sh
+!condor/*.sub
 
 # IDE
 .vscode/
