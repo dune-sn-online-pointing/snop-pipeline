@@ -14,6 +14,7 @@ import sys
 import json
 import numpy as np
 import argparse
+import os
 from pathlib import Path
 from datetime import datetime
 import time
@@ -27,7 +28,7 @@ from sample_loader import load_and_select_samples
 from volume_creator import create_volumes, create_volumes_simple
 from channel_tagger import tag_channels
 from metrics_tracker import MetricsTracker
-from report_generator import generate_report
+from ana.report_generator import generate_report
 
 
 def load_config(config_path):
@@ -36,7 +37,7 @@ def load_config(config_path):
         config = json.load(f)
     
     # Validate required fields
-    required_fields = ['input_data', 'sample_selection', 'neural_networks', 'output', 'volume_creation']
+    required_fields = ['input_data', 'sample_selection', 'neural_networks', 'volume_creation']
     for field in required_fields:
         if field not in config:
             raise ValueError(f"Missing required field in config: {field}")
@@ -86,7 +87,9 @@ Examples:
     config = load_config(args.config)
     
     # Setup output folder
-    output_folder = args.output if args.output else config['output']['base_folder']
+    env_output_base = os.environ.get('SNOP_OUTPUT_BASE', 'output')
+    config_output_base = config.get('output', {}).get('base_folder')
+    output_folder = args.output if args.output else (config_output_base if config_output_base else env_output_base)
     output_dir = setup_output_folder(output_folder)
     print(f"Output directory: {output_dir}")
     
@@ -279,7 +282,8 @@ Examples:
     metrics.metrics['pipeline_info']['total_time_seconds'] = total_time
     metrics.save()
     
-    report_filename = config['output'].get('report_pdf', config['output'].get('report_file', 'pipeline_report.pdf'))
+    output_cfg = config.get('output', {})
+    report_filename = output_cfg.get('report_pdf', output_cfg.get('report_file', 'pipeline_report.pdf'))
 
     report_path = generate_report(
         metrics_tracker=metrics,

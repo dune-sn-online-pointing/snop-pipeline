@@ -1,10 +1,6 @@
 # snop-pipeline
 
-SN online-pointing pipeline with three practical workflows:
-
-- run the **whole pipeline** (selection + volumes + CT + report),
-- run **CT only** on prepared volumes,
-- run **ED only** (single file or batch glob), with optional MCMC refinement.
+SN online-pointing pipeline with JSON-config-driven workflows.
 
 ## Model reference (authoritative)
 
@@ -13,12 +9,11 @@ Reference models are listed in:
 - `submodules/ml-pointing-tools/docs/BestModels.dat`
 
 Use this file as the source of truth for recommended CT/ED model versions and EOS paths.
-If an entry points to a legacy SavedModel directory, set `--model-path` to a compatible `.keras` checkpoint for Keras 3 environments.
 
-## 1) Run the whole pipeline
+## 1) Run the whole pipeline (single run)
 
 ```bash
-./scripts/run_pipeline.sh -j json/example_config.json
+./scripts/run_pipeline.sh -j json/full_pipeline_example_config.json
 ```
 
 Core config toggles:
@@ -28,72 +23,77 @@ Core config toggles:
 - `sample_selection.n_cc_events`, `sample_selection.n_es_events`
 - `input_data.cc_file_pattern`, `input_data.es_file_pattern`
 
-## 2) Run CT only
+## 2) Run CT only (JSON + wrapper script)
 
 ```bash
-python3 scripts/run_ct_inference.py \
-	--data-dir /path/to/volume_images_or_cat_dir \
-	--selected-mapping /path/to/selected_cluster_mapping.json \
-	--output-dir output/ct_step \
-	--plane X \
-	--model-path /path/to/ct_model
+./scripts/run_ct.sh -j json/ct_only_example_config.json
 ```
 
-I/O validation mode (no model call):
+`json/ct_only_example_config.json` contains model path, data directory, selected mapping,
+output directory, optional ED export paths, and `skip_ct` mode.
+
+## 2b) Run ED only (JSON + wrapper script)
 
 ```bash
-python3 scripts/run_ct_inference.py \
-	--data-dir /path/to/volume_images_or_cat_dir \
-	--selected-mapping /path/to/selected_cluster_mapping.json \
-	--output-dir output/ct_step \
-	--plane X \
-	--skip-ct
+./scripts/run_ed.sh -j json/ed_only_example_config.json
 ```
 
-Export ED-ready artifacts from CT run:
+## 3) Run full pipeline over 100 CATs (3300 CC, 330 ES total)
 
 ```bash
-python3 scripts/run_ct_inference.py \
-	--data-dir /path/to/volume_images_or_cat_dir \
-	--selected-mapping /path/to/selected_cluster_mapping.json \
-	--output-dir output/ct_step \
-	--plane X \
-	--model-path /path/to/ct_model \
-	--ed-volumes-npz output/ct_step/volumes_for_ed.npz \
-	--ed-selected-mask-npz output/ct_step/selected_mask.npz
+./scripts/run_pipeline_batch.sh -j json/pipeline_100cats_config.json
 ```
 
-## 3) Run ED only
+This batch config distributes totals across the first 100 CAT folders and writes:
+
+- per-CAT generated configs in `output/pipeline_100cats/generated_configs/`
+- per-CAT runs in `output/pipeline_100cats/runs/`
+- aggregate summary JSON + plot in `output/pipeline_100cats/`
+
+## 4) Aggregate on the legacy neutrino-energy plot
+
+```bash
+./scripts/run_energy_plot.sh -j json/neutrino_energy_100cats_config.json
+```
+
+This uses `python/ana/plot_neutrino_energy.py` and produces the combined 100-CAT energy plot.
+
+## 5) Run ED only
 
 ```bash
 python3 python/app/ed_inference.py /path/to/ed_model volumes_for_ed.npz selected_mask.npz --out output/ed_inference.npz
 python3 python/app/ed_mcmc.py output/ed_inference.npz --out output/ed_mcmc_results.npz
 ```
 
-## 4) Run ED on many NPZ files (one command)
-
-```bash
-python3 scripts/run_ed_batch.py /path/to/ed_model \
-	--input-glob 'output/my_samples/*.npz' \
-	--output-dir output/ed_batch
-```
-
-With MCMC:
-
-```bash
-python3 scripts/run_ed_batch.py /path/to/ed_model \
-	--input-glob 'output/my_samples/*.npz' \
-	--output-dir output/ed_batch \
-	--run-mcmc --mcmc-steps 2000 --mcmc-proposal-scale 0.08
-```
-
-## 5) Run built-in scenario test (whole pipeline)
+## 6) Run built-in scenario test (whole pipeline)
 
 ```bash
 ./test/run_small_sample_pipeline.sh
 ```
 
-This runs multiple whole-pipeline scenarios and verifies report generation.
+Run the aggregate test entrypoint (full + CT-only + ED-only):
+
+```bash
+./test/run_all_pipeline_tests.sh
+```
+
+Default outputs are written under `output/` via `SNOP_OUTPUT_BASE`.
+JSON `output` fields still take precedence when explicitly set.
+
+This now also runs six legacy-style scenarios (best-case, perfect-CT, full-pipeline, weighted-CT, and energy-threshold variants) and generates:
+
+- `output/test_pipeline_scenarios/scenario_cos_theta_report.pdf`
+
+The report compares scenarios using `cos(theta)` distributions and annotates the
+68% quantile containment for each scenario.
+
+Standalone report generation is also available:
+
+```bash
+./scripts/run_scenario_report.sh \
+	--scenarios-root output/test_pipeline_scenarios \
+	--output-pdf output/test_pipeline_scenarios/scenario_cos_theta_report.pdf
+```
 
 ## More technical details
 

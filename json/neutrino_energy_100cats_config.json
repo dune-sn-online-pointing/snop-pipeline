@@ -1,0 +1,14 @@
+{
+  "neutrino_energy_plot": {
+    "root_base": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples",
+    "n_cats": 100,
+    "plane": "X",
+    "bins": 60,
+    "dataset_type": "clusters",
+    "input_format": "npz",
+    "output": "output/pipeline_100cats/neutrino_energy_100cats.png",
+    "dump": "output/pipeline_100cats/neutrino_energy_100cats.npy",
+    "min_energy": 0.0,
+    "include_discarded": false
+  }
+}

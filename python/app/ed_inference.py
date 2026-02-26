@@ -16,6 +16,7 @@ and `ed_output_*` raw arrays produced by the model. The exact keys depend on the
 import argparse
 from pathlib import Path
 import numpy as np
+import os
 
 try:
     import tensorflow as tf
@@ -28,7 +29,7 @@ def main():
     p.add_argument('ed_model', help='Path to ED Keras model')
     p.add_argument('volumes_npz', help='.npz file containing `volumes` and optional `cluster_energy`')
     p.add_argument('selection_npz', help='.npz file containing `is_selected_cluster` boolean mask and optionally `tentative_dirs`')
-    p.add_argument('--out', default='results/ed_inference.npz')
+    p.add_argument('--out', default=None)
     p.add_argument('--batch-size', type=int, default=32)
     args = p.parse_args()
 
@@ -43,7 +44,7 @@ def main():
 
     selection_data = np.load(args.selection_npz, allow_pickle=True)
     if 'is_selected_cluster' in selection_data:
-        selected_mask = selection_data['is_selected_cluster']
+        selected_mask = np.asarray(selection_data['is_selected_cluster'], dtype=bool)
     else:
         raise KeyError('selection_npz must contain boolean mask `is_selected_cluster`')
 
@@ -56,10 +57,48 @@ def main():
     print(f'Found {len(selected_idx)} selected clusters')
 
     # load model
-    model = tf.keras.models.load_model(args.ed_model)
+    model = tf.keras.models.load_model(args.ed_model, compile=False)
 
     selected_volumes = volumes[selected_idx]
-    preds = model.predict(selected_volumes, batch_size=args.batch_size)
+    if selected_volumes.dtype == object:
+        selected_volumes = np.stack(
+            [np.asarray(volume, dtype=np.float32) for volume in selected_volumes],
+            axis=0,
+        )
+    else:
+        selected_volumes = np.asarray(selected_volumes, dtype=np.float32)
+
+    n_model_inputs = len(model.inputs) if hasattr(model, 'inputs') else 1
+    if selected_volumes.ndim == 3:
+        selected_volumes = selected_volumes[..., np.newaxis]
+
+    expected_input = model.inputs[0].shape if hasattr(model, 'inputs') and model.inputs else None
+    if expected_input is not None and len(expected_input) >= 4:
+        exp_h = expected_input[1]
+        exp_w = expected_input[2]
+        exp_c = expected_input[3] if len(expected_input) > 3 else 1
+
+        if exp_h is not None and exp_w is not None:
+            if selected_volumes.shape[1] != int(exp_h) or selected_volumes.shape[2] != int(exp_w):
+                selected_volumes = tf.image.resize(
+                    selected_volumes,
+                    (int(exp_h), int(exp_w)),
+                    method='bilinear',
+                ).numpy()
+
+        if exp_c is not None and int(exp_c) != selected_volumes.shape[-1]:
+            if int(exp_c) == 1:
+                selected_volumes = selected_volumes[..., :1]
+            else:
+                selected_volumes = np.repeat(selected_volumes[..., :1], int(exp_c), axis=-1)
+
+    if n_model_inputs == 3:
+        preds = model.predict(
+            [selected_volumes, selected_volumes, selected_volumes],
+            batch_size=args.batch_size,
+        )
+    else:
+        preds = model.predict(selected_volumes, batch_size=args.batch_size)
 
     # Normalize preds to numpy array
     preds = np.asarray(preds)
@@ -86,7 +125,8 @@ def main():
         else:
             out['true_direction'] = true_dir
 
-    out_path = Path(args.out)
+    out_default = Path(os.environ.get('SNOP_OUTPUT_BASE', 'output')) / 'ed_inference.npz'
+    out_path = Path(args.out) if args.out else out_default
     out_path.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(out_path, **out)
     print(f'Saved ED inference for selected clusters to {out_path}')

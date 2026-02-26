@@ -44,3 +44,9 @@ condor/*
 # Keep only the canonical example JSON config tracked
 json/*.json
 !json/example_config.json
+!json/ct_example_config.json
+!json/pipeline_100cats_config.json
+!json/neutrino_energy_100cats_config.json
+!json/full_pipeline_example_config.json
+!json/ct_only_example_config.json
+!json/ed_only_example_config.json

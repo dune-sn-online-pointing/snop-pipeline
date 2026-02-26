@@ -160,14 +160,12 @@ def _load_samples_from_folder(folder, n_events_target, file_pattern,
                 event_num = int(meta[i, 0])  # Column 0 is event number
                 
                 if event_num not in events_seen:
-                    events_seen.add(event_num)
-                    
-                    if len(events_seen) > n_events_target:
-                        # We've exceeded the target, don't include this cluster
+                    if len(events_seen) >= n_events_target:
                         break
+                    events_seen.add(event_num)
                 
                 # Include all clusters from selected events
-                if event_num in events_seen and len(events_seen) <= n_events_target:
+                if event_num in events_seen:
                     images_list.append(imgs[i])
                     metadata_list.append(meta[i])
             

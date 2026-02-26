@@ -7,10 +7,51 @@ Uses selected cluster IDs to choose relevant volumes.
 import numpy as np
 import tensorflow as tf
 import json
+import os
 from pathlib import Path
 import argparse
 from tqdm import tqdm
 import pandas as pd
+
+
+def _load_json_config(config_path):
+    """Load JSON config from path."""
+    with open(config_path, 'r') as f:
+        return json.load(f)
+
+
+def _resolve_args_from_config(args):
+    """Resolve effective CT options from JSON config and CLI overrides."""
+    config = {}
+    if args.config:
+        config = _load_json_config(args.config)
+
+    ct_cfg = config.get('ct_inference', config)
+
+    defaults = {
+        'model_path': '/eos/user/e/evilla/dune/sn-tps/neural_networks/channel_tagging/v40_corrected_10k/20251114_225600/best_model.keras',
+        'data_dir': '/eos/project-e/ep-nu/public/sn-pointing/cat000001',
+        'selected_mapping': None,
+        'output_dir': str(Path(os.environ.get('SNOP_OUTPUT_BASE', 'output')) / 'ct_inference'),
+        'plane': 'X',
+        'batch_size': 32,
+        'max_volumes': None,
+        'skip_ct': False,
+        'ed_volumes_npz': None,
+        'ed_selected_mask_npz': None,
+    }
+
+    resolved = {}
+    for key, default_val in defaults.items():
+        cli_val = getattr(args, key)
+        cfg_val = ct_cfg.get(key)
+        resolved[key] = cli_val if cli_val is not None else (cfg_val if cfg_val is not None else default_val)
+
+    resolved['plane'] = str(resolved['plane']).upper()
+    if resolved['plane'] not in {'U', 'V', 'X'}:
+        raise ValueError(f"Invalid plane '{resolved['plane']}'. Allowed: U, V, X")
+
+    return argparse.Namespace(**resolved)
 
 def load_model(model_path):
     """Load trained CT model."""
@@ -68,7 +109,7 @@ def _resolve_volume_dir(data_dir):
     return volume_dirs[0]
 
 
-def load_volume_images(data_dir, cluster_mapping, plane='X', skip_ct=False):
+def load_volume_images(data_dir, cluster_mapping=None, plane='X', skip_ct=False, max_volumes=None):
     """
     Load volume images from a cat dataset.
     Only loads volumes containing selected cluster IDs.
@@ -86,6 +127,10 @@ def load_volume_images(data_dir, cluster_mapping, plane='X', skip_ct=False):
     """
     plane = plane.upper()
     volume_dir = _resolve_volume_dir(data_dir)
+
+    plane_subdir = volume_dir / plane
+    if plane_subdir.is_dir():
+        volume_dir = plane_subdir
     
     # Get all volume files for the selected plane
     volume_files = sorted(volume_dir.glob(f"*plane{plane}.npz"))
@@ -108,24 +153,40 @@ def load_volume_images(data_dir, cluster_mapping, plane='X', skip_ct=False):
             event = meta['event']
             main_cluster_id = meta['main_cluster_id']
             
-            # Check if this volume contains a selected cluster
-            if event in cluster_mapping:
-                if main_cluster_id in cluster_mapping[event]:
-                    images.append(volume_images[i])
-                    metadata_list.append(meta)
-                    selected_indices.append((volume_file.stem, i))
-                else:
-                    skipped_wrong_cluster += 1
+            if cluster_mapping is None:
+                images.append(volume_images[i])
+                metadata_list.append(meta)
+                selected_indices.append((volume_file.stem, i))
             else:
-                skipped_no_match += 1
+                # Check if this volume contains a selected cluster
+                if event in cluster_mapping:
+                    if main_cluster_id in cluster_mapping[event]:
+                        images.append(volume_images[i])
+                        metadata_list.append(meta)
+                        selected_indices.append((volume_file.stem, i))
+                    else:
+                        skipped_wrong_cluster += 1
+                else:
+                    skipped_no_match += 1
+            if max_volumes is not None and len(images) >= max_volumes:
+                break
+
+        if max_volumes is not None and len(images) >= max_volumes:
+            break
     
     print(f"\nSelected {len(images)} volumes")
-    print(f"Skipped {skipped_no_match} volumes (event not in selection mapping)")
-    print(f"Skipped {skipped_wrong_cluster} volumes (cluster ID not in selection mapping)")
+    if cluster_mapping is None:
+        print("No selected mapping provided: using all volumes for the chosen plane")
+    else:
+        print(f"Skipped {skipped_no_match} volumes (event not in selection mapping)")
+        print(f"Skipped {skipped_wrong_cluster} volumes (cluster ID not in selection mapping)")
     
     if skip_ct:
         print("\n*** SKIP_CT MODE: Assuming perfect CT tagging ***")
         print("All selected volumes are treated as accepted by selection")
+
+    if max_volumes is not None:
+        print(f"Applied max_volumes cap: {max_volumes}")
     
     return images, metadata_list, selected_indices
 
@@ -279,24 +340,29 @@ def compute_metrics(results_df, skip_ct=False):
 
 def main():
     parser = argparse.ArgumentParser(description='Run CT inference on cat000001 data')
+    parser.add_argument('-j', '--json', '--config', dest='config', type=str,
+                        default=None,
+                        help='JSON config file (supports top-level keys or ct_inference.*)')
     parser.add_argument('--model-path', type=str,
-                        default='/eos/user/e/evilla/dune/sn-tps/neural_networks/channel_tagging/v40_corrected_10k/20251114_225600/best_model.keras',
+                        default=None,
                         help='Path to trained CT model (ignored if --skip-ct)')
     parser.add_argument('--data-dir', type=str,
-                        default='/eos/project-e/ep-nu/public/sn-pointing/cat000001',
+                        default=None,
                         help='Base directory containing cat000001 data')
     parser.add_argument('--selected-mapping', dest='selected_mapping', type=str,
-                        default='results/selection_cat000001/selected_cluster_mapping.json',
+                        default=None,
                         help='Path to selected cluster ID mapping file')
     parser.add_argument('--output-dir', type=str,
-                        default='results/ct_inference_cat000001',
+                        default=None,
                         help='Directory to save results')
-    parser.add_argument('--plane', type=str, default='X',
+    parser.add_argument('--plane', type=str, default=None,
                         choices=['U', 'V', 'X'],
                         help='Which plane to process')
-    parser.add_argument('--batch-size', type=int, default=32,
+    parser.add_argument('--batch-size', type=int, default=None,
                         help='Batch size for inference')
-    parser.add_argument('--skip-ct', action='store_true',
+    parser.add_argument('--max-volumes', dest='max_volumes', type=int, default=None,
+                        help='Optional cap on number of selected volumes to process')
+    parser.add_argument('--skip-ct', action='store_true', default=None,
                         help='Skip CT inference, assume perfect tagging (for benchmarking)')
     parser.add_argument('--ed-volumes-npz', type=str, default=None,
                         help='If provided, save stacked volumes/metadata for ED inference to this NPZ path')
@@ -304,9 +370,12 @@ def main():
                         help='If provided, save selection mask and tentative directions for ED inference to this NPZ path')
     
     args = parser.parse_args()
+    args = _resolve_args_from_config(args)
     
-    # Load selected cluster mapping
-    cluster_mapping = load_selected_cluster_mapping(args.selected_mapping)
+    # Load selected cluster mapping (optional)
+    cluster_mapping = None
+    if args.selected_mapping:
+        cluster_mapping = load_selected_cluster_mapping(args.selected_mapping)
     
     # Load model (unless skipping CT)
     model = None
@@ -318,7 +387,8 @@ def main():
         args.data_dir,
         cluster_mapping,
         plane=args.plane,
-        skip_ct=args.skip_ct
+        skip_ct=args.skip_ct,
+        max_volumes=args.max_volumes,
     )
     
     if len(images) == 0:

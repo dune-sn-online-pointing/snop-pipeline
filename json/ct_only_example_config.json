@@ -1,0 +1,14 @@
+{
+  "ct_inference": {
+    "model_path": "/eos/project-e/ep-nu/evilla/sn-online-pointing/neural-networks/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras",
+    "data_dir": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples/cat000001",
+    "selected_mapping": null,
+    "output_dir": "output/ct_only_example",
+    "plane": "X",
+    "batch_size": 32,
+    "max_volumes": 8,
+    "skip_ct": false,
+    "ed_volumes_npz": "output/ct_only_example/volumes_for_ed.npz",
+    "ed_selected_mask_npz": "output/ct_only_example/selected_mask.npz"
+  }
+}

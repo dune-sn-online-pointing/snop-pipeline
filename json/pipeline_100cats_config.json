@@ -1,0 +1,45 @@
+{
+  "pipeline_batch": {
+    "base_pipeline_config": "json/example_config.json",
+    "samples": {
+      "base_dir": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples",
+      "cat_glob": "cat[0-9][0-9][0-9][0-9][0-9][0-9]",
+      "n_bursts": 100,
+      "plane": "X"
+    },
+    "selection": {
+      "total_cc_events": 3300,
+      "total_es_events": 330
+    },
+    "channel_tagger": {
+      "enabled": true,
+      "model_path": "/eos/project-e/ep-nu/evilla/sn-online-pointing/neural-networks/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras"
+    },
+    "volume_creation": {
+      "use_simple_mode": true
+    },
+    "output": {
+      "base_dir": "output/pipeline_100cats",
+      "aggregate_json": "output/pipeline_100cats/aggregate_summary.json",
+      "aggregate_plot": "output/pipeline_100cats/aggregate_summary.png"
+    },
+    "burst_direction_report": {
+      "enabled": true,
+      "use_emcee": true,
+      "selection_mode": "predicted-es",
+      "direction_mode": "reco",
+      "min_energy_mev": 0.0,
+      "output_pdf": "output/pipeline_100cats/burst_direction_report.pdf",
+      "output_json": "output/pipeline_100cats/burst_direction_report.json",
+      "emcee_nwalkers": 64,
+      "emcee_nsteps": 2000,
+      "emcee_discard": 400,
+      "emcee_prior_kappa": 25.0,
+      "emcee_likelihood_kappa": 25.0,
+      "random_seed": 42
+    },
+    "execution": {
+      "continue_on_error": false
+    }
+  }
+}

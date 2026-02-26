@@ -20,6 +20,7 @@ import argparse
 from pathlib import Path
 import numpy as np
 from scipy.interpolate import interp1d
+import os
 
 
 def unit_vector_from_angles(theta, phi):
@@ -89,7 +90,7 @@ def summarize_chain(chain, likes):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument('ed_inference_npz', help='.npz created by ed_inference.py')
-    p.add_argument('--out', default='results/ed_mcmc_results.npz')
+    p.add_argument('--out', default=None)
     p.add_argument('--nsteps', type=int, default=2000)
     p.add_argument('--proposal-scale', type=float, default=0.08, help='Gaussian std dev for 3D proposal')
     args = p.parse_args()
@@ -126,7 +127,8 @@ def main():
     all_mean = np.asarray(all_mean)
     all_best = np.asarray(all_best)
 
-    out_path = Path(args.out)
+    out_default = Path(os.environ.get('SNOP_OUTPUT_BASE', 'output')) / 'ed_mcmc_results.npz'
+    out_path = Path(args.out) if args.out else out_default
     out_path.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(out_path, mean_direction=all_mean, best_direction=all_best, chain_likes=all_chain_likes)
     print(f'Saved MCMC results to {out_path}')

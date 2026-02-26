@@ -15,6 +15,9 @@ export PYTHON_DIR="$REPO_DIR/python"
 # JSON configurations directory
 export JSON_DIR="$REPO_DIR/json"
 
+# Default output base directory (can be overridden by environment)
+export SNOP_OUTPUT_BASE="${SNOP_OUTPUT_BASE:-$REPO_DIR/output}"
+
 # Submodules directory
 export SUBMODULES_DIR="$REPO_DIR/submodules"
 
@@ -90,6 +93,7 @@ print_info "Data Selection Pipeline Environment"
 print_info "Repository: $REPO_DIR"
 print_info "Python modules: $PYTHON_DIR"
 print_info "JSON configs: $JSON_DIR"
+print_info "Output base (SNOP_OUTPUT_BASE): $SNOP_OUTPUT_BASE"
 
 # Check Python version
 PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
