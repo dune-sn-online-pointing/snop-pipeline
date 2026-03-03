@@ -8,15 +8,30 @@ This folder provides a tidy HTCondor flow to run the 6-scenario pipeline test fo
 ./condor/submit_all_cats.sh
 ```
 
+The script now auto-generates a submission file at runtime:
+
+- `condor/submit_all_cats.generated.sub`
+- with absolute repo/log/cat-list paths resolved from the current checkout
+- with automatic user tagging in `batch_name`
+
+This avoids hard-coded user directories in tracked `.sub` files and keeps the flow reproducible for any collaborator.
+
 Useful overrides:
 
 ```bash
+PIPELINE_BATCH_JSON=json/pipeline_100cats_config.json \
 SAMPLES_BASE=/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples \
 OUTPUT_BASE=output/condor_scenarios \
 TEST_N_CC=1000 \
 TEST_N_ES=100 \
 ./condor/submit_all_cats.sh
 ```
+
+JSON defaults (used only when matching env var is not set):
+
+- `pipeline_batch.samples.base_dir` → `SAMPLES_BASE`
+- `pipeline_batch.samples.cat_glob` → `CAT_GLOB`
+- `pipeline_batch.condor.output_base` → `OUTPUT_BASE` (optional key)
 
 Dry-run (prepare queue without submitting):
 

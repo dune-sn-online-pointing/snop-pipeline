@@ -33,6 +33,8 @@ condor/*
 !condor/*.py
 !condor/*.sh
 !condor/*.sub
+condor/submit_all_cats.generated.sub
+condor/submit_all_cats.dryrun
 
 # IDE
 .vscode/

@@ -1,18 +1,18 @@
 universe              = vanilla
 executable            = /usr/bin/env
-arguments             = bash condor/run_cat_scenarios.sh $(cat)
-initialdir            = /afs/cern.ch/work/e/evilla/private/dune/refactor-snop-pipeline
+arguments             = bash $(RUN_SCRIPT) $(cat)
+initialdir            = $(REPO_DIR)
 should_transfer_files = NO
 
-output                = condor/logs/$(cat).out
-error                 = condor/logs/$(cat).err
-log                   = condor/logs/$(cat).log
+output                = $(LOG_DIR)/$(cat).out
+error                 = $(LOG_DIR)/$(cat).err
+log                   = $(LOG_DIR)/$(cat).log
 
 request_cpus          = $(REQUEST_CPUS)
 request_memory        = $(REQUEST_MEMORY)
 request_disk          = $(REQUEST_DISK)
 +JobFlavour           = "$(JOB_FLAVOUR)"
 
-environment = "TEST_N_CC=$(TEST_N_CC);TEST_N_ES=$(TEST_N_ES);OUTPUT_BASE=$(OUTPUT_BASE)"
+environment           = "TEST_N_CC=$(TEST_N_CC) TEST_N_ES=$(TEST_N_ES) OUTPUT_BASE=$(OUTPUT_BASE)"
 
-queue cat from condor/cat_list.txt
+queue cat from $(CAT_LIST)
