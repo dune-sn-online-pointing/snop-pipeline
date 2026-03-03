@@ -23,6 +23,9 @@
       "aggregate_json": "output/pipeline_100cats/aggregate_summary.json",
       "aggregate_plot": "output/pipeline_100cats/aggregate_summary.png"
     },
+    "condor": {
+      "output_base": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples"
+    },
     "burst_direction_report": {
       "enabled": true,
       "use_emcee": true,

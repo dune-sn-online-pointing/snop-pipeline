@@ -2,6 +2,36 @@
 
 set -euo pipefail
 
+usage() {
+  cat <<'USAGE'
+Usage: ./condor/submit_all_cats.sh [-f|--force] [-h|--help]
+
+Options:
+  -f, --force   Submit all CATs even if success marker already exists.
+                Existing cat folders/files are not deleted.
+  -h, --help    Show this help and exit.
+USAGE
+}
+
+FORCE_OVERWRITE=0
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -f|--force)
+      FORCE_OVERWRITE=1
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "ERROR: Unknown argument: $1" >&2
+      usage
+      exit 1
+      ;;
+  esac
+done
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
@@ -136,7 +166,7 @@ if [[ ! -s "${CAT_LIST_ABS}" ]]; then
   exit 1
 fi
 
-python3 - <<'PY' "${CAT_LIST_ABS}" "${PENDING_CAT_LIST_ABS}" "${OUTPUT_BASE_ABS}" "${SUCCESS_MARKER_REL}"
+python3 - <<'PY' "${CAT_LIST_ABS}" "${PENDING_CAT_LIST_ABS}" "${OUTPUT_BASE_ABS}" "${SUCCESS_MARKER_REL}" "${FORCE_OVERWRITE}"
 from pathlib import Path
 import sys
 
@@ -144,23 +174,31 @@ all_cats_path = Path(sys.argv[1])
 pending_path = Path(sys.argv[2])
 output_base = Path(sys.argv[3])
 success_marker_rel = sys.argv[4]
+force_overwrite = bool(int(sys.argv[5]))
 
 all_cats = [line.strip() for line in all_cats_path.read_text().splitlines() if line.strip()]
 pending = []
 completed = []
 
-for cat in all_cats:
+if force_overwrite:
+  pending = list(all_cats)
+else:
+  for cat in all_cats:
     marker = output_base / cat / success_marker_rel
     if marker.is_file() and marker.stat().st_size > 0:
-        completed.append(cat)
+      completed.append(cat)
     else:
-        pending.append(cat)
+      pending.append(cat)
 
 pending_path.parent.mkdir(parents=True, exist_ok=True)
 pending_path.write_text("\n".join(pending) + ("\n" if pending else ""))
 
-print(f"Already successful (skipped): {len(completed)}")
-print(f"Pending CATs to submit:      {len(pending)}")
+if force_overwrite:
+  print("Force mode enabled: ignoring success markers")
+  print(f"CATs to submit:             {len(pending)}")
+else:
+  print(f"Already successful (skipped): {len(completed)}")
+  print(f"Pending CATs to submit:      {len(pending)}")
 PY
 
 if [[ ! -s "${PENDING_CAT_LIST_ABS}" ]]; then

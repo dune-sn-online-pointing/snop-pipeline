@@ -45,6 +45,12 @@ Submit fewer/more CATs per Condor job:
 CATS_PER_JOB=5 ./condor/submit_all_cats.sh
 ```
 
+Force full resubmission (ignore existing success markers, keep folders/files in place):
+
+```bash
+./condor/submit_all_cats.sh -f
+```
+
 JSON defaults (used only when matching env var is not set):
 
 - `pipeline_batch.samples.base_dir` → `SAMPLES_BASE`
