@@ -65,13 +65,19 @@ REQUEST_CPUS="${REQUEST_CPUS:-1}"
 REQUEST_MEMORY="${REQUEST_MEMORY:-8 GB}"
 REQUEST_DISK="${REQUEST_DISK:-4 GB}"
 JOB_FLAVOUR="${JOB_FLAVOUR:-workday}"
+CATS_PER_JOB="${CATS_PER_JOB:-5}"
 MAX_MATERIALIZE="${MAX_MATERIALIZE:-5}"
 MAX_IDLE="${MAX_IDLE:-5}"
 DRY_RUN="${DRY_RUN:-0}"
 USER_NAME="${USER_NAME:-$(id -un)}"
-LOG_DIR_REL="${LOG_DIR_REL:-condor/logs}"
+SUBMIT_TAG="${SUBMIT_TAG:-$(date +%Y%m%d_%H%M%S)}"
+LOG_DIR_REL="${LOG_DIR_REL:-condor/logs/${SUBMIT_TAG}}"
 CAT_LIST_REL="${CAT_LIST_REL:-condor/cat_list.txt}"
+PENDING_CAT_LIST_REL="${PENDING_CAT_LIST_REL:-condor/cat_list_pending.txt}"
+CAT_GROUP_LIST_REL="${CAT_GROUP_LIST_REL:-condor/cat_group_list.txt}"
+SUCCESS_MARKER_REL="${SUCCESS_MARKER_REL:-scenario_cos_theta_report.json}"
 GENERATED_SUB_REL="${GENERATED_SUB_REL:-condor/submit_all_cats.generated.sub}"
+PROC_CAT_MAP_REL="${PROC_CAT_MAP_REL:-condor/proc_cat_map.txt}"
 
 if [[ "${OUTPUT_BASE}" != /* ]]; then
   OUTPUT_BASE_ABS="${REPO_DIR}/${OUTPUT_BASE}"
@@ -97,6 +103,24 @@ else
   GENERATED_SUB_ABS="${GENERATED_SUB_REL}"
 fi
 
+if [[ "${PENDING_CAT_LIST_REL}" != /* ]]; then
+  PENDING_CAT_LIST_ABS="${REPO_DIR}/${PENDING_CAT_LIST_REL}"
+else
+  PENDING_CAT_LIST_ABS="${PENDING_CAT_LIST_REL}"
+fi
+
+if [[ "${CAT_GROUP_LIST_REL}" != /* ]]; then
+  CAT_GROUP_LIST_ABS="${REPO_DIR}/${CAT_GROUP_LIST_REL}"
+else
+  CAT_GROUP_LIST_ABS="${CAT_GROUP_LIST_REL}"
+fi
+
+if [[ "${PROC_CAT_MAP_REL}" != /* ]]; then
+  PROC_CAT_MAP_ABS="${REPO_DIR}/${PROC_CAT_MAP_REL}"
+else
+  PROC_CAT_MAP_ABS="${PROC_CAT_MAP_REL}"
+fi
+
 cd "${REPO_DIR}"
 mkdir -p "${LOG_DIR_ABS}"
 mkdir -p "${OUTPUT_BASE_ABS}"
@@ -112,19 +136,91 @@ if [[ ! -s "${CAT_LIST_ABS}" ]]; then
   exit 1
 fi
 
+python3 - <<'PY' "${CAT_LIST_ABS}" "${PENDING_CAT_LIST_ABS}" "${OUTPUT_BASE_ABS}" "${SUCCESS_MARKER_REL}"
+from pathlib import Path
+import sys
+
+all_cats_path = Path(sys.argv[1])
+pending_path = Path(sys.argv[2])
+output_base = Path(sys.argv[3])
+success_marker_rel = sys.argv[4]
+
+all_cats = [line.strip() for line in all_cats_path.read_text().splitlines() if line.strip()]
+pending = []
+completed = []
+
+for cat in all_cats:
+    marker = output_base / cat / success_marker_rel
+    if marker.is_file() and marker.stat().st_size > 0:
+        completed.append(cat)
+    else:
+        pending.append(cat)
+
+pending_path.parent.mkdir(parents=True, exist_ok=True)
+pending_path.write_text("\n".join(pending) + ("\n" if pending else ""))
+
+print(f"Already successful (skipped): {len(completed)}")
+print(f"Pending CATs to submit:      {len(pending)}")
+PY
+
+if [[ ! -s "${PENDING_CAT_LIST_ABS}" ]]; then
+  echo "All CATs already completed successfully; nothing to submit."
+  exit 0
+fi
+
+python3 - <<'PY' "${PENDING_CAT_LIST_ABS}" "${CAT_GROUP_LIST_ABS}" "${CATS_PER_JOB}"
+from pathlib import Path
+import sys
+
+pending_path = Path(sys.argv[1])
+groups_path = Path(sys.argv[2])
+group_size = max(1, int(sys.argv[3]))
+
+cats = [line.strip() for line in pending_path.read_text().splitlines() if line.strip()]
+groups = [cats[i:i + group_size] for i in range(0, len(cats), group_size)]
+
+groups_path.parent.mkdir(parents=True, exist_ok=True)
+groups_path.write_text("\n".join(",".join(group) for group in groups) + ("\n" if groups else ""))
+
+print(f"Grouped pending CATs into {len(groups)} job(s), {group_size} CATs/job")
+PY
+
+if [[ ! -s "${CAT_GROUP_LIST_ABS}" ]]; then
+  echo "ERROR: ${CAT_GROUP_LIST_ABS} is empty" >&2
+  exit 1
+fi
+
+python3 - <<'PY' "${CAT_GROUP_LIST_ABS}" "${PROC_CAT_MAP_ABS}"
+from pathlib import Path
+import sys
+
+groups_path = Path(sys.argv[1])
+mapping_path = Path(sys.argv[2])
+
+groups = [line.strip() for line in groups_path.read_text().splitlines() if line.strip()]
+mapping_path.parent.mkdir(parents=True, exist_ok=True)
+
+with mapping_path.open("w", encoding="utf-8") as handle:
+    handle.write("proc_id\tcat_group\n")
+    for proc_id, group in enumerate(groups):
+        handle.write(f"{proc_id}\t{group}\n")
+
+print(f"Wrote proc→CAT-group map: {mapping_path}")
+PY
+
 chmod +x condor/run_cat_scenarios.sh
 chmod +x condor/aggregate_all_cats.sh
 
 cat > "${GENERATED_SUB_ABS}" <<EOF
 universe              = vanilla
 executable            = /usr/bin/env
-arguments             = bash ${REPO_DIR}/condor/run_cat_scenarios.sh \$(cat)
+arguments             = bash ${REPO_DIR}/condor/run_cat_scenarios.sh \$(cat_group)
 initialdir            = ${REPO_DIR}
 should_transfer_files = NO
 
-output                = ${LOG_DIR_ABS}/\$(cat).out
-error                 = ${LOG_DIR_ABS}/\$(cat).err
-log                   = ${LOG_DIR_ABS}/\$(cat).log
+output                = ${LOG_DIR_ABS}/job_\$(ClusterId)_\$(ProcId).out
+error                 = ${LOG_DIR_ABS}/job_\$(ClusterId)_\$(ProcId).err
+log                   = ${LOG_DIR_ABS}/job_\$(ClusterId)_\$(ProcId).log
 
 request_cpus          = \$(REQUEST_CPUS)
 request_memory        = \$(REQUEST_MEMORY)
@@ -136,7 +232,7 @@ max_idle              = \$(MAX_IDLE)
 batch_name            = "snop-all-cats-${USER_NAME}"
 environment           = "TEST_N_CC=\$(TEST_N_CC) TEST_N_ES=\$(TEST_N_ES) OUTPUT_BASE=\$(OUTPUT_BASE)"
 
-queue cat from ${CAT_LIST_ABS}
+queue cat_group from ${CAT_GROUP_LIST_ABS}
 EOF
 
 submit_cmd=(
@@ -158,7 +254,18 @@ if [[ "${DRY_RUN}" == "1" ]]; then
   "${submit_cmd[@]}" -dry-run "${REPO_DIR}/condor/submit_all_cats.dryrun"
   echo "Dry-run file: ${REPO_DIR}/condor/submit_all_cats.dryrun"
 else
-  "${submit_cmd[@]}"
+  submit_output="$("${submit_cmd[@]}")"
+  echo "${submit_output}"
+
+  cluster_id="$(printf '%s\n' "${submit_output}" | grep -oE 'cluster[[:space:]]+[0-9]+' | awk '{print $2}' | tail -n1 || true)"
+  if [[ -n "${cluster_id}" ]]; then
+    echo "Cluster ID: ${cluster_id}"
+    echo "Proc→CAT map: ${PROC_CAT_MAP_ABS}"
+    echo "Log directory: ${LOG_DIR_ABS}"
+    echo "Note: With late materialization, condor_q shows only materialized ProcIds."
+    echo "Check factory summary: condor_q -factory ${cluster_id}"
+    echo "Check visible jobs:    condor_q ${cluster_id} -nobatch"
+  fi
 fi
 
 echo "Submitted CAT scenario jobs."

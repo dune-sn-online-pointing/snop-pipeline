@@ -16,6 +16,17 @@ The script now auto-generates a submission file at runtime:
 
 This avoids hard-coded user directories in tracked `.sub` files and keeps the flow reproducible for any collaborator.
 
+Each submission also writes a ProcId mapping file:
+
+- `condor/proc_cat_map.txt` with `proc_id -> cat_group`
+
+This is the authoritative mapping between Condor ProcIds and CAT groups for grouped jobs.
+
+By default each Condor job now runs a group of CATs (`CATS_PER_JOB=5`) instead of one CAT per job.
+The submit helper also auto-skips CATs that already have a successful marker file:
+
+- `<OUTPUT_BASE>/<cat>/scenario_cos_theta_report.json`
+
 Useful overrides:
 
 ```bash
@@ -25,6 +36,12 @@ OUTPUT_BASE=output/condor_scenarios \
 TEST_N_CC=1000 \
 TEST_N_ES=100 \
 ./condor/submit_all_cats.sh
+```
+
+Submit fewer/more CATs per Condor job:
+
+```bash
+CATS_PER_JOB=5 ./condor/submit_all_cats.sh
 ```
 
 JSON defaults (used only when matching env var is not set):
@@ -52,6 +69,14 @@ MAX_MATERIALIZE=5 MAX_IDLE=5 ./condor/submit_all_cats.sh
 ```
 
 This limits how many jobs are materialized/idle at once, reducing concurrent load on AFS-backed working directories and log writes.
+
+When throttling is enabled, `condor_q <cluster>` may show only a subset of ProcIds (materialized jobs).
+Use:
+
+```bash
+condor_q -factory <cluster_id>
+condor_q <cluster_id> -nobatch
+```
 
 By default each job runs:
 
