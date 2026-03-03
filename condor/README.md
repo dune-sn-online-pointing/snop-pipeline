@@ -45,6 +45,14 @@ Resource/flavour overrides:
 REQUEST_CPUS=1 REQUEST_MEMORY="10 GB" REQUEST_DISK="6 GB" JOB_FLAVOUR="tomorrow" ./condor/submit_all_cats.sh
 ```
 
+AFS-load throttling (recommended for large campaigns):
+
+```bash
+MAX_MATERIALIZE=5 MAX_IDLE=5 ./condor/submit_all_cats.sh
+```
+
+This limits how many jobs are materialized/idle at once, reducing concurrent load on AFS-backed working directories and log writes.
+
 By default each job runs:
 
 - `test/run_small_sample_pipeline.sh`

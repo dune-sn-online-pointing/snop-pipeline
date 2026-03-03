@@ -65,6 +65,8 @@ REQUEST_CPUS="${REQUEST_CPUS:-1}"
 REQUEST_MEMORY="${REQUEST_MEMORY:-8 GB}"
 REQUEST_DISK="${REQUEST_DISK:-4 GB}"
 JOB_FLAVOUR="${JOB_FLAVOUR:-workday}"
+MAX_MATERIALIZE="${MAX_MATERIALIZE:-5}"
+MAX_IDLE="${MAX_IDLE:-5}"
 DRY_RUN="${DRY_RUN:-0}"
 USER_NAME="${USER_NAME:-$(id -un)}"
 LOG_DIR_REL="${LOG_DIR_REL:-condor/logs}"
@@ -128,6 +130,8 @@ request_cpus          = \$(REQUEST_CPUS)
 request_memory        = \$(REQUEST_MEMORY)
 request_disk          = \$(REQUEST_DISK)
 +JobFlavour           = "\$(JOB_FLAVOUR)"
+max_materialize       = \$(MAX_MATERIALIZE)
+max_idle              = \$(MAX_IDLE)
 
 batch_name            = "snop-all-cats-${USER_NAME}"
 environment           = "TEST_N_CC=\$(TEST_N_CC) TEST_N_ES=\$(TEST_N_ES) OUTPUT_BASE=\$(OUTPUT_BASE)"
@@ -144,6 +148,8 @@ submit_cmd=(
   REQUEST_MEMORY="${REQUEST_MEMORY}"
   REQUEST_DISK="${REQUEST_DISK}"
   JOB_FLAVOUR="${JOB_FLAVOUR}"
+  MAX_MATERIALIZE="${MAX_MATERIALIZE}"
+  MAX_IDLE="${MAX_IDLE}"
   "${GENERATED_SUB_ABS}"
 )
 

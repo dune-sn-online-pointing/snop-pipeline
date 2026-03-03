@@ -12,6 +12,8 @@ request_cpus          = $(REQUEST_CPUS)
 request_memory        = $(REQUEST_MEMORY)
 request_disk          = $(REQUEST_DISK)
 +JobFlavour           = "$(JOB_FLAVOUR)"
+max_materialize       = $(MAX_MATERIALIZE)
+max_idle              = $(MAX_IDLE)
 
 environment           = "TEST_N_CC=$(TEST_N_CC) TEST_N_ES=$(TEST_N_ES) OUTPUT_BASE=$(OUTPUT_BASE)"
 
