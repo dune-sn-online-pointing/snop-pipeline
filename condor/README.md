@@ -19,6 +19,7 @@ This avoids hard-coded user directories in tracked `.sub` files and keeps the fl
 Each submission also writes a ProcId mapping file:
 
 - `condor/proc_cat_map.txt` with `proc_id -> cat_group`
+- archived per cluster under `condor/submissions/<cluster_id>/proc_cat_map.txt`
 
 This is the authoritative mapping between Condor ProcIds and CAT groups for grouped jobs.
 

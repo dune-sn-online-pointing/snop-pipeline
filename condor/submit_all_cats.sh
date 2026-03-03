@@ -259,9 +259,16 @@ else
 
   cluster_id="$(printf '%s\n' "${submit_output}" | grep -oE 'cluster[[:space:]]+[0-9]+' | awk '{print $2}' | tail -n1 || true)"
   if [[ -n "${cluster_id}" ]]; then
+    cluster_artifacts_dir="${REPO_DIR}/condor/submissions/${cluster_id}"
+    mkdir -p "${cluster_artifacts_dir}"
+    cp "${PROC_CAT_MAP_ABS}" "${cluster_artifacts_dir}/proc_cat_map.txt"
+    cp "${CAT_GROUP_LIST_ABS}" "${cluster_artifacts_dir}/cat_group_list.txt"
+    cp "${GENERATED_SUB_ABS}" "${cluster_artifacts_dir}/submit_all_cats.generated.sub"
+
     echo "Cluster ID: ${cluster_id}"
-    echo "Proc→CAT map: ${PROC_CAT_MAP_ABS}"
+    echo "Proc→CAT map: ${cluster_artifacts_dir}/proc_cat_map.txt"
     echo "Log directory: ${LOG_DIR_ABS}"
+    echo "Submit artifacts: ${cluster_artifacts_dir}"
     echo "Note: With late materialization, condor_q shows only materialized ProcIds."
     echo "Check factory summary: condor_q -factory ${cluster_id}"
     echo "Check visible jobs:    condor_q ${cluster_id} -nobatch"
