@@ -52,14 +52,8 @@ def angular_error_deg(direction_a, direction_b):
 
 
 def _resolve_direction_inputs(metadata, direction_mode):
-    # metadata column convention in current pipeline outputs:
-    # 4:7  -> true electron momentum vector
-    # 7:10 -> reconstructed main-track momentum vector
-    # 15:18 -> true burst direction vector
-    true_electron_vec = metadata[:, 4:7]
-    reco_electron_vec = metadata[:, 7:10]
+    true_electron_vec = metadata[:, 7:10]
     true_electron_valid = np.linalg.norm(true_electron_vec, axis=1) > 0
-    reco_electron_valid = np.linalg.norm(reco_electron_vec, axis=1) > 0
 
     true_burst_vec = metadata[:, 15:18]
     true_burst_valid = np.linalg.norm(true_burst_vec, axis=1) > 0
@@ -73,17 +67,15 @@ def _resolve_direction_inputs(metadata, direction_mode):
     direction_mode_used = direction_mode
     if direction_mode == "true":
         electron_dirs = normalize_rows(true_electron_vec)
-        valid_mask = true_electron_valid
     elif direction_mode == "reco":
-        electron_dirs = normalize_rows(reco_electron_vec)
-        valid_mask = reco_electron_valid
+        # Reconstructed ED directions are not persisted in current refactor run outputs yet.
+        # Keep deterministic fallback and expose it in reports.
+        electron_dirs = normalize_rows(true_electron_vec)
+        direction_mode_used = "true (fallback: reco unavailable)"
     else:
         raise ValueError(f"Unsupported direction_mode: {direction_mode}")
 
-    if not np.any(valid_mask):
-        raise ValueError(f"No valid {direction_mode} electron direction vectors")
-
-    return electron_dirs, valid_mask, true_burst_dir, direction_mode_used
+    return electron_dirs, true_electron_valid, true_burst_dir, direction_mode_used
 
 
 def select_electrons_from_run(run_dir: Path, selection_mode: str, direction_mode: str, min_energy_mev: float):
