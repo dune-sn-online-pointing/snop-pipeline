@@ -1,5 +1,63 @@
-*/__pycache__/
-output/
-json/
-external_libs/
-condor/
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Generated/runtime artifacts
+analysis_outputs/
+figures/
+data/
+results/
+logs/
+condor_logs/
+outputs/
+mcmc_visualization/
+condor_recompute_optimized/
+tests/
+
+# Keep output folder tracked but ignore generated contents
+output/*
+!output/.gitkeep
+
+# Keep test output folder tracked but ignore generated contents
+test/output/*
+!test/output/.gitkeep
+
+# Logs
+*.out
+*.err
+nohup.out
+condor/*
+!condor/.gitkeep
+!condor/README.md
+!condor/*.py
+!condor/*.sh
+!condor/*.sub
+condor/submit_all_cats.generated.sub
+condor/submit_all_cats.dryrun
+
+# IDE
+.vscode/
+.idea/
+
+# Credentials
+*.cc
+
+# Large files
+*.npz
+*.root
+
+# Keep only the canonical example JSON config tracked
+json/*.json
+!json/example_config.json
+!json/ct_example_config.json
+!json/pipeline_100cats_config.json
+!json/neutrino_energy_100cats_config.json
+!json/full_pipeline_example_config.json
+!json/ct_only_example_config.json
+!json/ed_only_example_config.json
+!json/ed_only_folder_example_config.json

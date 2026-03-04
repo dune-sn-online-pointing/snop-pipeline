@@ -1,0 +1,16 @@
+{
+  "ed_only": {
+    "ed_model": "/eos/project-e/ep-nu/evilla/sn-online-pointing/neural-networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras",
+    "volumes_npz": null,
+    "selection_npz": null,
+    "input_folder": "output/ed_multi_cat_test",
+    "input_glob": "*.npz",
+    "output_dir": "output/ed_folder_example",
+    "batch_size": 32,
+    "run_mcmc": true,
+    "mcmc_steps": 1000,
+    "mcmc_proposal_scale": 0.08,
+    "generate_report": true,
+    "report_pdf": null
+  }
+}

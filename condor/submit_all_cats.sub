@@ -1,0 +1,20 @@
+universe              = vanilla
+executable            = /usr/bin/env
+arguments             = bash $(RUN_SCRIPT) $(cat_group)
+initialdir            = $(REPO_DIR)
+should_transfer_files = NO
+
+output                = $(LOG_DIR)/job_$(ClusterId)_$(ProcId).out
+error                 = $(LOG_DIR)/job_$(ClusterId)_$(ProcId).err
+log                   = $(LOG_DIR)/job_$(ClusterId)_$(ProcId).log
+
+request_cpus          = $(REQUEST_CPUS)
+request_memory        = $(REQUEST_MEMORY)
+request_disk          = $(REQUEST_DISK)
++JobFlavour           = "$(JOB_FLAVOUR)"
+max_materialize       = $(MAX_MATERIALIZE)
+max_idle              = $(MAX_IDLE)
+
+environment           = "TEST_N_CC=$(TEST_N_CC) TEST_N_ES=$(TEST_N_ES) OUTPUT_BASE=$(OUTPUT_BASE)"
+
+queue cat_group from $(CAT_GROUP_LIST)
