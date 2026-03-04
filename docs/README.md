@@ -38,6 +38,16 @@ output directory, optional ED export paths, and `skip_ct` mode.
 ./scripts/run_ed.sh -j json/ed_only_example_config.json
 ```
 
+- single file: set `ed_only.volumes_npz` (this takes priority if also set)
+- folder mode: set `ed_only.input_folder` + `ed_only.input_glob`
+- `selection_npz` is optional (auto-generated all-true mask if omitted)
+
+Folder example:
+
+```bash
+./scripts/run_ed.sh -j json/ed_only_folder_example_config.json
+```
+
 ## 3) Run full pipeline over 100 CATs (3300 CC, 330 ES total)
 
 ```bash
