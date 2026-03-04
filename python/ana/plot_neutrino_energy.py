@@ -4,12 +4,18 @@
 import argparse
 import sys
 import json
+import os
 from pathlib import Path
 from typing import Iterable, List, Set, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import uproot
+
+
+def _require_init_done():
+    if os.environ.get("INIT_DONE", "").lower() != "true":
+        raise RuntimeError("Environment not initialized. Run: source scripts/init.sh")
 
 
 def discover_categories(base_path: Path, limit: int) -> List[Path]:
@@ -257,6 +263,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    _require_init_done()
     args = parse_args()
 
     root_base = Path(args.root_base)

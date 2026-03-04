@@ -70,4 +70,4 @@ Configs can be either top-level keys or nested under workflow sections (for exam
 
 ### Legacy neutrino-energy aggregation (`neutrino_energy_100cats_config.json`)
 
-- Input/output paths and plot controls used by `run_energy_plot.sh`
+- Input/output paths and plot controls used by `python/ana/plot_neutrino_energy.py`

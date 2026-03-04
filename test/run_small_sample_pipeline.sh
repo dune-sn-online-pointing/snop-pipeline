@@ -4,6 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+source "${REPO_DIR}/scripts/init.sh"
 
 BASE_CONFIG="${BASE_CONFIG:-${REPO_DIR}/json/example_config.json}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-${REPO_DIR}/output/test_pipeline_scenarios}"

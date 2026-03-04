@@ -14,6 +14,11 @@ from tqdm import tqdm
 import pandas as pd
 
 
+def _require_init_done():
+    if os.environ.get('INIT_DONE', '').lower() != 'true':
+        raise RuntimeError('Environment not initialized. Run: source scripts/init.sh')
+
+
 def _load_json_config(config_path):
     """Load JSON config from path."""
     with open(config_path, 'r') as f:
@@ -339,6 +344,8 @@ def compute_metrics(results_df, skip_ct=False):
     return metrics
 
 def main():
+    _require_init_done()
+
     parser = argparse.ArgumentParser(description='Run CT inference on cat000001 data')
     parser.add_argument('-j', '--json', '--config', dest='config', type=str,
                         default=None,

@@ -4,6 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+source "${REPO_DIR}/scripts/init.sh"
 
 echo "Running full pipeline test..."
 "${REPO_DIR}/test/run_full_pipeline_test.sh"

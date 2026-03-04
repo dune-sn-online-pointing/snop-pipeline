@@ -31,6 +31,11 @@ from metrics_tracker import MetricsTracker
 from ana.report_generator import generate_report
 
 
+def _require_init_done():
+    if os.environ.get('INIT_DONE', '').lower() != 'true':
+        raise RuntimeError('Environment not initialized. Run: source scripts/init.sh')
+
+
 def load_config(config_path):
     """Load and validate JSON configuration."""
     with open(config_path, 'r') as f:
@@ -61,6 +66,8 @@ def setup_output_folder(base_folder):
 
 
 def main():
+    _require_init_done()
+
     parser = argparse.ArgumentParser(
         description='Run SN Burst Analysis Pipeline',
         formatter_class=argparse.RawDescriptionHelpFormatter,

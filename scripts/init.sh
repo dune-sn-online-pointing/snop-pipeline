@@ -5,6 +5,10 @@
 
 set -e
 
+if [[ "${INIT_DONE:-}" == "true" ]]; then
+    return 0 2>/dev/null || exit 0
+fi
+
 # Get absolute path to the repository root
 export SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export REPO_DIR="$(cd "$SCRIPTS_DIR/.." && pwd)"
@@ -26,7 +30,14 @@ LCG_RELEASE="LCG_106_cuda/x86_64-el9-gcc11-opt"
 LCG_VIEW="/cvmfs/sft.cern.ch/lcg/views/$LCG_RELEASE"
 
 if [ -f "$LCG_VIEW/setup.sh" ]; then
+    _snop_had_u=0
+    case $- in
+        *u*) _snop_had_u=1; set +u ;;
+    esac
     source "$LCG_VIEW/setup.sh"
+    if [ "$_snop_had_u" -eq 1 ]; then
+        set -u
+    fi
     echo "✓ Sourced LCG environment: $LCG_RELEASE"
 else
     echo "⚠ Warning: LCG environment not found at $LCG_VIEW"
@@ -114,3 +125,5 @@ if python3 -c "import sklearn" 2>/dev/null; then
 else
     print_warning "scikit-learn is not available"
 fi
+
+export INIT_DONE=true

@@ -3,6 +3,7 @@
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -15,6 +16,11 @@ python_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(python_root))
 
 from ana.burst_direction_batch_report import build_batch_report
+
+
+def _require_init_done():
+    if os.environ.get("INIT_DONE", "").lower() != "true":
+        raise RuntimeError("Environment not initialized. Run: source scripts/init.sh")
 
 
 def load_json(path):
@@ -87,6 +93,8 @@ def build_summary_plot(out_png: Path, cat_labels, cc_selected, es_selected, cc_r
 
 
 def main():
+    _require_init_done()
+
     parser = argparse.ArgumentParser(description="Run batch full-pipeline over many CAT folders")
     parser.add_argument("-j", "--json", "--config", dest="config", required=True,
                         help="JSON batch config")

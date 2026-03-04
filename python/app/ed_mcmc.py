@@ -23,6 +23,11 @@ from scipy.interpolate import interp1d
 import os
 
 
+def _require_init_done():
+    if os.environ.get('INIT_DONE', '').lower() != 'true':
+        raise RuntimeError('Environment not initialized. Run: source scripts/init.sh')
+
+
 def unit_vector_from_angles(theta, phi):
     x = np.sin(theta) * np.cos(phi)
     y = np.sin(theta) * np.sin(phi)
@@ -88,6 +93,8 @@ def summarize_chain(chain, likes):
 
 
 def main():
+    _require_init_done()
+
     p = argparse.ArgumentParser()
     p.add_argument('ed_inference_npz', help='.npz created by ed_inference.py')
     p.add_argument('--out', default=None)

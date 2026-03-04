@@ -2,6 +2,8 @@
 
 This folder contains a lightweight runner that executes the full pipeline for multiple scenarios and checks that each run produces a report.
 
+All tests expect the runtime environment to be initialized via `scripts/init.sh` (the test scripts source it automatically).
+
 ## Script
 
 - `run_small_sample_pipeline.sh`
@@ -76,12 +78,13 @@ The runner also generates a combined scenario report:
 - `output/test_pipeline_scenarios/scenario_cos_theta_report.json`
 
 This report shows `cos(theta)` distributions and the 68% quantile for each scenario.
-By default, burst-direction aggregation now uses `emcee`; disable with `--no-emcee` when running `run_scenario_report.sh`.
+By default, burst-direction aggregation now uses `emcee`; disable with `--no-emcee` when running `python/ana/scenario_cos_theta_report.py`.
 
 You can regenerate the report without rerunning scenarios:
 
 ```bash
-./scripts/run_scenario_report.sh \
+source scripts/init.sh
+python3 python/ana/scenario_cos_theta_report.py \
 	--scenarios-root output/test_pipeline_scenarios \
 	--output-pdf output/test_pipeline_scenarios/scenario_cos_theta_report.pdf
 ```

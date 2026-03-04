@@ -4,25 +4,24 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+source "${REPO_DIR}/scripts/init.sh"
 
-scripts=(
-  "${REPO_DIR}/scripts/run_pipeline.sh"
-  "${REPO_DIR}/scripts/run_ct.sh"
-  "${REPO_DIR}/scripts/run_ed.sh"
-  "${REPO_DIR}/scripts/run_energy_plot.sh"
-  "${REPO_DIR}/scripts/run_scenario_report.sh"
+python_entrypoints=(
+  "${REPO_DIR}/scripts/run_ct_inference.py"
+  "${REPO_DIR}/scripts/run_ed_only.py"
+  "${REPO_DIR}/python/app/pipeline.py"
+  "${REPO_DIR}/python/app/pipeline_batch.py"
+  "${REPO_DIR}/python/ana/plot_neutrino_energy.py"
+  "${REPO_DIR}/python/ana/scenario_cos_theta_report.py"
 )
 
-for script in "${scripts[@]}"; do
-  if [[ ! -x "${script}" ]]; then
-    echo "ERROR: script is not executable: ${script}" >&2
+for script in "${python_entrypoints[@]}"; do
+  if [[ ! -f "${script}" ]]; then
+    echo "ERROR: missing entrypoint: ${script}" >&2
     exit 1
   fi
-  "${script}" -h >/dev/null
+  python3 "${script}" -h >/dev/null
   echo "✓ help smoke test: ${script}"
 done
-
-python3 "${REPO_DIR}/python/app/pipeline_batch.py" -h >/dev/null
-echo "✓ help smoke test: ${REPO_DIR}/python/app/pipeline_batch.py"
 
 echo "Script smoke tests completed successfully."

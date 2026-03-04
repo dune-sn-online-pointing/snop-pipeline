@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -17,6 +18,11 @@ from ana.burst_direction import (
     reconstruct_burst_direction,
     select_electrons_from_run,
 )
+
+
+def _require_init_done():
+    if os.environ.get("INIT_DONE", "").lower() != "true":
+        raise RuntimeError("Environment not initialized. Run: source scripts/init.sh")
 
 
 def _latest_pipeline_run(scenario_dir: Path):
@@ -326,6 +332,8 @@ def build_report(scenarios_root: Path, output_pdf: Path, default_selection_mode:
 
 
 def main():
+    _require_init_done()
+
     parser = argparse.ArgumentParser(description="Build scenario PDF report with burst-level pointing aggregation")
     parser.add_argument("--scenarios-root", default="output/test_pipeline_scenarios", help="Root folder containing scenario_* directories")
     parser.add_argument("--output-pdf", default="output/test_pipeline_scenarios/scenario_cos_theta_report.pdf", help="Output PDF path")

@@ -14,6 +14,11 @@ from typing import Optional
 import numpy as np
 
 
+def _require_init_done():
+    if os.environ.get("INIT_DONE", "").lower() != "true":
+        raise RuntimeError("Environment not initialized. Run: source scripts/init.sh")
+
+
 def _load_json_config(path):
     with open(path, "r") as f:
         return json.load(f)
@@ -154,6 +159,8 @@ def _build_selection_npz(npz_path: Path, explicit_selection_npz: Optional[Path])
 
 
 def main():
+    _require_init_done()
+
     parser = argparse.ArgumentParser(description="Run ED-only workflow from JSON config")
     parser.add_argument("-j", "--json", "--config", dest="config", default=None,
                         help="JSON config file (supports top-level keys or ed_only.*)")

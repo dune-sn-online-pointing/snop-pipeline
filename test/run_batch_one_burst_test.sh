@@ -4,6 +4,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+source "${REPO_DIR}/scripts/init.sh"
 
 CONFIG="${REPO_DIR}/json/pipeline_batch_one_burst_test_config.json"
 

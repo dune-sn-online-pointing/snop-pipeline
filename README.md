@@ -10,13 +10,17 @@ This repository contains the SN online-pointing workflow for:
 
 ## How to run
 
-Run workflows through `scripts/` wrappers. They initialize the environment and call the underlying Python entrypoints.
+Initialize environment once per shell:
 
-- Full pipeline: `./scripts/run_pipeline.sh -j json/full_pipeline_example_config.json`
-- CT only: `./scripts/run_ct.sh -j json/ct_only_example_config.json`
-- ED only: `./scripts/run_ed.sh -j json/ed_only_example_config.json`
-- Legacy neutrino-energy aggregation: `./scripts/run_energy_plot.sh -j json/neutrino_energy_100cats_config.json`
-- Scenario report from existing runs: `./scripts/run_scenario_report.sh --scenarios-root output/test_pipeline_scenarios --output-pdf output/test_pipeline_scenarios/scenario_cos_theta_report.pdf`
+- `source scripts/init.sh`
+
+Then run workflows directly via Python entrypoints.
+
+- Full pipeline: `python3 python/app/pipeline.py -j json/full_pipeline_example_config.json`
+- CT only: `python3 scripts/run_ct_inference.py -j json/ct_only_example_config.json`
+- ED only: `python3 scripts/run_ed_only.py -j json/ed_only_example_config.json`
+- Legacy neutrino-energy aggregation: `python3 python/ana/plot_neutrino_energy.py -j json/neutrino_energy_100cats_config.json`
+- Scenario report from existing runs: `python3 python/ana/scenario_cos_theta_report.py --scenarios-root output/test_pipeline_scenarios --output-pdf output/test_pipeline_scenarios/scenario_cos_theta_report.pdf`
 
 Batch over many CAT folders is run from Python:
 

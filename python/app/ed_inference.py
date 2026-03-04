@@ -24,7 +24,14 @@ except Exception:
     tf = None
 
 
+def _require_init_done():
+    if os.environ.get('INIT_DONE', '').lower() != 'true':
+        raise RuntimeError('Environment not initialized. Run: source scripts/init.sh')
+
+
 def main():
+    _require_init_done()
+
     p = argparse.ArgumentParser()
     p.add_argument('ed_model', help='Path to ED Keras model')
     p.add_argument('volumes_npz', help='.npz file containing `volumes` and optional `cluster_energy`')
