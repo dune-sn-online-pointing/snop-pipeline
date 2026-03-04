@@ -7,9 +7,9 @@ REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 source "${REPO_DIR}/scripts/init.sh"
 
 python_entrypoints=(
+  "${REPO_DIR}/scripts/run_pipeline.py"
   "${REPO_DIR}/scripts/run_ct_inference.py"
   "${REPO_DIR}/scripts/run_ed_only.py"
-  "${REPO_DIR}/python/app/pipeline.py"
   "${REPO_DIR}/python/app/pipeline_batch.py"
   "${REPO_DIR}/python/ana/plot_neutrino_energy.py"
   "${REPO_DIR}/python/ana/scenario_cos_theta_report.py"

@@ -24,12 +24,12 @@ source scripts/init.sh
 
 After initialization, run these Python entrypoints:
 
+- Full single-run pipeline:
+	- `python3 scripts/run_pipeline.py -j json/full_pipeline_example_config.json`
 - CT-only:
 	- `python3 scripts/run_ct_inference.py -j json/ct_only_example_config.json`
 - ED-only:
 	- `python3 scripts/run_ed_only.py -j json/ed_only_example_config.json`
-- Full single-run pipeline:
-	- `python3 python/app/pipeline.py -j json/full_pipeline_example_config.json`
 - Batch over many CAT folders:
 	- `python3 python/app/pipeline_batch.py -j json/pipeline_100cats_config.json`
 - Legacy neutrino-energy aggregation:

@@ -23,6 +23,10 @@ tests/
 output/*
 !output/.gitkeep
 
+# Keep test output folder tracked but ignore generated contents
+test/output/*
+!test/output/.gitkeep
+
 # Logs
 *.out
 *.err

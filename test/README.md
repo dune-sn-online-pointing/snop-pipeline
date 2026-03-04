@@ -4,6 +4,11 @@ This folder contains a lightweight runner that executes the full pipeline for mu
 
 All tests expect the runtime environment to be initialized via `scripts/init.sh` (the test scripts source it automatically).
 
+Folder conventions:
+
+- `test/output/`: runtime-generated artifacts (gitignored except `.gitkeep`)
+- `test/inputs/`: static test inputs/configs that must be versioned
+
 ## Script
 
 - `run_small_sample_pipeline.sh`
