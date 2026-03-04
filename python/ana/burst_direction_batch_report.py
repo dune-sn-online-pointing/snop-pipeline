@@ -122,7 +122,12 @@ def build_batch_report(
     q68_err = float(np.quantile(valid_errors, 0.68)) if valid_errors else float("nan")
 
     with matplotlib.backends.backend_pdf.PdfPages(output_pdf) as pdf:
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(11, 8.5), height_ratios=[1.0, 1.1])
+        fig, (ax1, ax2) = plt.subplots(
+            2,
+            1,
+            figsize=(11, 8.5),
+            gridspec_kw={"height_ratios": [1.0, 1.1]},
+        )
 
         cat_names = [r["cat"] for r in rows]
         errors = [r["angular_error_deg"] for r in rows]

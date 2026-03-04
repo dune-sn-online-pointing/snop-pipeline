@@ -9,6 +9,7 @@ This folder contains a lightweight runner that executes the full pipeline for mu
 - `run_ed_only_test.sh`
 - `run_batch_one_burst_test.sh`
 - `run_scripts_smoke_test.sh`
+- `run_all_tests.sh`
 - `run_all_pipeline_tests.sh`
 
 ## Default Paths
@@ -36,7 +37,13 @@ ED-only test:
 ./test/run_ed_only_test.sh
 ```
 
-Run all test entrypoints (full + CT-only + ED-only):
+Run all tests (recommended):
+
+```bash
+./test/run_all_tests.sh
+```
+
+Legacy alias (kept for compatibility):
 
 ```bash
 ./test/run_all_pipeline_tests.sh
