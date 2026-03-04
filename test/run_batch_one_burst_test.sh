@@ -7,7 +7,7 @@ REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 CONFIG="${REPO_DIR}/json/pipeline_batch_one_burst_test_config.json"
 
-"${REPO_DIR}/scripts/run_pipeline_batch.sh" -j "${CONFIG}"
+python3 "${REPO_DIR}/python/app/pipeline_batch.py" -j "${CONFIG}"
 
 for f in \
   "${REPO_DIR}/output/pipeline_one_burst_test/aggregate_summary.json" \

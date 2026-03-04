@@ -9,5 +9,6 @@ REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 "${REPO_DIR}/test/run_ct_only_test.sh"
 "${REPO_DIR}/test/run_ed_only_test.sh"
 bash "${REPO_DIR}/test/run_batch_one_burst_test.sh"
+"${REPO_DIR}/test/run_scripts_smoke_test.sh"
 
 echo "All pipeline tests completed successfully."

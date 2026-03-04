@@ -51,7 +51,7 @@ Folder example:
 ## 3) Run full pipeline over 100 CATs (3300 CC, 330 ES total)
 
 ```bash
-./scripts/run_pipeline_batch.sh -j json/pipeline_100cats_config.json
+python3 python/app/pipeline_batch.py -j json/pipeline_100cats_config.json
 ```
 
 This batch config distributes totals across the first 100 CAT folders and writes:

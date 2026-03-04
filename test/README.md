@@ -8,6 +8,7 @@ This folder contains a lightweight runner that executes the full pipeline for mu
 - `run_ct_only_test.sh`
 - `run_ed_only_test.sh`
 - `run_batch_one_burst_test.sh`
+- `run_scripts_smoke_test.sh`
 - `run_all_pipeline_tests.sh`
 
 ## Default Paths
@@ -45,6 +46,12 @@ Run one-burst batch pipeline test (includes default emcee burst-direction report
 
 ```bash
 ./test/run_batch_one_burst_test.sh
+```
+
+Run script entrypoint smoke tests (help/CLI coverage for all non-batch wrappers and batch python entrypoint):
+
+```bash
+./test/run_scripts_smoke_test.sh
 ```
 
 Scenarios are generated from `json/example_config.json` and now include six legacy-style comparisons:

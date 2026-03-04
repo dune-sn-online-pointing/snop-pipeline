@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Add python modules to path
-python_root = Path(__file__).resolve().parents[1] / "python"
+python_root = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(python_root))
 
 from ana.burst_direction_batch_report import build_batch_report
@@ -95,7 +95,7 @@ def main():
     cfg = load_json(args.config)
     batch_cfg = cfg.get("pipeline_batch", cfg)
 
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[2]
     pipeline_py = repo_root / "python" / "app" / "pipeline.py"
 
     base_pipeline_cfg_path = Path(batch_cfg["base_pipeline_config"])
