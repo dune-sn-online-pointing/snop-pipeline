@@ -39,6 +39,17 @@ TEST_N_ES=100 \
 ./condor/submit_all_cats.sh
 ```
 
+Condor event logs (`job_*.log`) default to:
+
+- `/tmp/<user>/snop_condor_logs/<submit_tag>/`
+
+To avoid AFS quota holds from huge stdout/stderr, submission now defaults to:
+
+- `CONDOR_STDOUT=/dev/null`
+- `CONDOR_STDERR=/dev/null`
+
+You can override these if needed for debugging.
+
 Submit fewer/more CATs per Condor job:
 
 ```bash
@@ -69,19 +80,9 @@ Resource/flavour overrides:
 REQUEST_CPUS=1 REQUEST_MEMORY="10 GB" REQUEST_DISK="6 GB" JOB_FLAVOUR="tomorrow" ./condor/submit_all_cats.sh
 ```
 
-AFS-load throttling (recommended for large campaigns):
+Queue visibility:
 
 ```bash
-MAX_MATERIALIZE=5 MAX_IDLE=5 ./condor/submit_all_cats.sh
-```
-
-This limits how many jobs are materialized/idle at once, reducing concurrent load on AFS-backed working directories and log writes.
-
-When throttling is enabled, `condor_q <cluster>` may show only a subset of ProcIds (materialized jobs).
-Use:
-
-```bash
-condor_q -factory <cluster_id>
 condor_q <cluster_id> -nobatch
 ```
 
@@ -95,6 +96,15 @@ This produces per-CAT artifacts including:
 
 - `<OUTPUT_BASE>/<cat>/scenario_cos_theta_report.pdf`
 - `<OUTPUT_BASE>/<cat>/scenario_cos_theta_report.json`
+
+To reduce storage usage, scenario subfolders (`scenario_*`) are now pruned after
+the CAT-level report is generated. The per-CAT summary files above are kept.
+
+Disable pruning for debugging by setting:
+
+```bash
+PRUNE_SCENARIO_OUTPUTS=0 ./condor/submit_all_cats.sh
+```
 
 ## 2) Aggregate all finished CAT reports
 

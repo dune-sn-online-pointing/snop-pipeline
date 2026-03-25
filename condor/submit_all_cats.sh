@@ -79,7 +79,7 @@ PY
 
 DEFAULT_SAMPLES_BASE="/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples"
 DEFAULT_CAT_GLOB="cat[0-9][0-9][0-9][0-9][0-9][0-9]"
-DEFAULT_OUTPUT_BASE="output/condor_scenarios"
+DEFAULT_OUTPUT_BASE="output/condor_scenarios_corrected"
 
 JSON_SAMPLES_BASE="$(json_get_or_default "${PIPELINE_BATCH_JSON}" "pipeline_batch.samples.base_dir" "${DEFAULT_SAMPLES_BASE}")"
 JSON_CAT_GLOB="$(json_get_or_default "${PIPELINE_BATCH_JSON}" "pipeline_batch.samples.cat_glob" "${DEFAULT_CAT_GLOB}")"
@@ -88,8 +88,8 @@ JSON_OUTPUT_BASE="$(json_get_or_default "${PIPELINE_BATCH_JSON}" "pipeline_batch
 SAMPLES_BASE="${SAMPLES_BASE:-${JSON_SAMPLES_BASE}}"
 CAT_GLOB="${CAT_GLOB:-${JSON_CAT_GLOB}}"
 CAT_LIMIT="${CAT_LIMIT:-0}"
-TEST_N_CC="${TEST_N_CC:-1000}"
-TEST_N_ES="${TEST_N_ES:-100}"
+TEST_N_CC="${TEST_N_CC:-35}"
+TEST_N_ES="${TEST_N_ES:-35}"
 OUTPUT_BASE="${OUTPUT_BASE:-${JSON_OUTPUT_BASE}}"
 BASE_CONFIG="${BASE_CONFIG:-${REPO_DIR}/json/example_config.json}"
 REQUEST_CPUS="${REQUEST_CPUS:-1}"
