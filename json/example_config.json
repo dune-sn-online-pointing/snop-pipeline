@@ -1,16 +1,18 @@
 {
   "input_data": {
-    "cc_folder": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples/cat000001/cat000001_cluster_images_tick3_ch2_min2_tot3_e3p0/X",
-    "es_folder": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples/cat000001/cat000001_cluster_images_tick3_ch2_min2_tot3_e3p0/X",
+    "cc_folder": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples/cat000001/cat000001_cluster_images_tick3_ch2_min2_tot3_e3p0",
+    "es_folder": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples/cat000001/cat000001_cluster_images_tick3_ch2_min2_tot3_e3p0",
     "file_pattern": "*_planeX.npz",
     "cc_file_pattern": "cc_*_planeX.npz",
-    "es_file_pattern": "es_*_planeX.npz"
+    "es_file_pattern": "es_*_planeX.npz",
+    "load_all_planes": true,
+    "_note": "3-plane mode: matches clusters across X/U/V using match_id (metadata column 13)"
   },
   
   "sample_selection": {
     "n_cc_events": 3300,
-    "n_es_events": 330,
-    "description": "Example small run for validation"
+    "n_es_events": 350,
+    "description": "Full burst sample: 350 ES + 3300 CC events"
   },
   
   "neural_networks": {
@@ -19,6 +21,16 @@
       "model_path": "/eos/project-e/ep-nu/evilla/sn-online-pointing/neural-networks/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras",
       "threshold": 0.5,
       "description": "Channel tagging CNN for ES vs CC classification"
+    },
+    "electron_direction": {
+      "enabled": true,
+      "model_path": "/eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras",
+      "pdf_file": "/eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/cosine_energy_pdf.npz",
+      "batch_size": 32,
+      "mcmc_steps": 800,
+      "mcmc_proposal_scale": 0.08,
+      "cleanup_intermediate": false,
+      "description": "Optional ED stage: writes predictions/reco_directions.npz aligned with volume_images/volumes.npz"
     }
   },
   
@@ -26,6 +38,21 @@
     "pointing_utils_dir": "/afs/cern.ch/work/e/evilla/private/dune/refactor-snop-pipeline/submodules/online-pointing-utils",
     "use_simple_mode": true,
     "description": "Use simple mode unless online-pointing-utils is set and available"
+  },
+  
+  "analysis": {
+    "min_energy_mev": 3.0,
+    "selection_mode": "predicted-es",
+    "direction_mode": "reco",
+    "emcee": {
+      "nwalkers": 64,
+      "nsteps": 2000,
+      "discard": 400,
+      "prior_kappa": 25.0,
+      "likelihood_kappa": 25.0,
+      "random_seed": 42
+    },
+    "description": "Analysis parameters for burst direction reconstruction"
   },
   
   "output": {
