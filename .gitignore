@@ -51,6 +51,9 @@ condor/submit_all_cats.dryrun
 *.npz
 *.root
 
+# Local dependency installs (emcee etc installed via pip --target)
+local_packages/
+
 # Keep only the canonical example JSON config tracked
 json/*.json
 !json/example_config.json
@@ -61,3 +64,6 @@ json/*.json
 !json/ct_only_example_config.json
 !json/ed_only_example_config.json
 !json/ed_only_folder_example_config.json
+!json/scenario_analysis_config.json
+!json/burst_direction_analysis_config.json
+!json/six_scenarios.json
