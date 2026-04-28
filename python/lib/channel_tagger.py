@@ -8,32 +8,54 @@ ES vs CC interactions.
 
 import numpy as np
 from pathlib import Path
-import tensorflow as tf
-from sklearn.metrics import confusion_matrix, classification_report, roc_curve, auc
+
+# Conditionally import TensorFlow only when needed
+try:
+    import tensorflow as tf
+    _TENSORFLOW_AVAILABLE = True
+except ImportError as e:
+    _TENSORFLOW_AVAILABLE = False
+    _TF_IMPORT_ERROR = str(e)
+    
+try:
+    from sklearn.metrics import confusion_matrix, classification_report, roc_curve, auc
+    _SKLEARN_AVAILABLE = True
+except ImportError:
+    _SKLEARN_AVAILABLE = False
 
 
 def tag_channels(images, metadata, model_path, threshold=0.5,
                 output_dir=None, verbose=False):
     """
     Run Channel Tagging on volume images to classify ES vs CC.
-    
+
     Args:
-        images: Volume images array (N, H, W, D, C) or (N, H, W, C)
-        metadata: Metadata array (N, 13)
+        images: Volume images - either array (N, H, W, D, C) or (N, H, W, C),
+                or dict with 'X', 'U', 'V' keys (uses X-plane for CT)
+        metadata: Metadata array (N, 13+)
         model_path: Path to trained channel tagging model
         threshold: Classification threshold (default: 0.5)
         output_dir: Optional directory to save predictions
         verbose: Print detailed progress
-        
+
     Returns:
         dict with predictions, metrics, and statistics
     """
-    
+    # Handle 3-plane mode: extract X-plane for CT classification
+    if isinstance(images, dict) and 'X' in images:
+        if verbose:
+            print(f"  3-plane mode detected: using X-plane for channel tagging")
+        images = images['X']
+
     if verbose:
         print(f"\nChannel Tagging:")
         print(f"  Input volumes: {len(images)}")
         print(f"  Model: {model_path}")
         print(f"  Threshold: {threshold}")
+    
+    # Check TensorFlow availability
+    if not _TENSORFLOW_AVAILABLE:
+        raise RuntimeError(f"TensorFlow is not available for Channel Tagging: {_TF_IMPORT_ERROR}")
     
     # Load model
     try:

@@ -44,9 +44,24 @@ def main():
         raise RuntimeError('TensorFlow not available in this environment')
 
     vols_data = np.load(args.volumes_npz, allow_pickle=True)
-    if 'volumes' not in vols_data:
-        raise KeyError('volumes_npz must contain `volumes` array')
-    volumes = vols_data['volumes']
+
+    # Check for 3-plane mode
+    three_plane_mode = ('images_x' in vols_data and 'images_u' in vols_data and 'images_v' in vols_data)
+
+    if three_plane_mode:
+        volumes_x = vols_data['images_x']
+        volumes_u = vols_data['images_u']
+        volumes_v = vols_data['images_v']
+        n_total = len(volumes_x)
+        print(f"Loaded 3-plane volumes: X={volumes_x.shape}, U={volumes_u.shape}, V={volumes_v.shape}")
+    elif 'volumes' in vols_data:
+        volumes = vols_data['volumes']
+        n_total = len(volumes)
+    elif 'images' in vols_data:
+        volumes = vols_data['images']
+        n_total = len(volumes)
+    else:
+        raise KeyError('volumes_npz must contain `volumes`, `images`, or 3-plane arrays (images_x, images_u, images_v)')
     energies = vols_data.get('cluster_energy')
 
     selection_data = np.load(args.selection_npz, allow_pickle=True)
@@ -57,7 +72,7 @@ def main():
 
     tentative_dirs = selection_data.get('tentative_dirs')
 
-    if volumes.shape[0] != selected_mask.shape[0]:
+    if n_total != selected_mask.shape[0]:
         raise ValueError('volumes and selection mask must have the same length')
 
     selected_idx = np.where(selected_mask)[0]
@@ -65,46 +80,72 @@ def main():
 
     # load model
     model = tf.keras.models.load_model(args.ed_model, compile=False)
-
-    selected_volumes = volumes[selected_idx]
-    if selected_volumes.dtype == object:
-        selected_volumes = np.stack(
-            [np.asarray(volume, dtype=np.float32) for volume in selected_volumes],
-            axis=0,
-        )
-    else:
-        selected_volumes = np.asarray(selected_volumes, dtype=np.float32)
-
     n_model_inputs = len(model.inputs) if hasattr(model, 'inputs') else 1
-    if selected_volumes.ndim == 3:
-        selected_volumes = selected_volumes[..., np.newaxis]
 
+    # Get expected input shape
     expected_input = model.inputs[0].shape if hasattr(model, 'inputs') and model.inputs else None
+    exp_h, exp_w, exp_c = None, None, None
     if expected_input is not None and len(expected_input) >= 4:
         exp_h = expected_input[1]
         exp_w = expected_input[2]
         exp_c = expected_input[3] if len(expected_input) > 3 else 1
 
+    def preprocess_plane(plane_volumes, selected_idx):
+        """Preprocess a single plane's volumes."""
+        selected = plane_volumes[selected_idx]
+        if selected.dtype == object:
+            selected = np.stack(
+                [np.asarray(v, dtype=np.float32) for v in selected],
+                axis=0,
+            )
+        else:
+            selected = np.asarray(selected, dtype=np.float32)
+
+        # Add channel dim if needed
+        if selected.ndim == 3:
+            selected = selected[..., np.newaxis]
+
+        # Resize if needed
         if exp_h is not None and exp_w is not None:
-            if selected_volumes.shape[1] != int(exp_h) or selected_volumes.shape[2] != int(exp_w):
-                selected_volumes = tf.image.resize(
-                    selected_volumes,
+            if selected.shape[1] != int(exp_h) or selected.shape[2] != int(exp_w):
+                selected = tf.image.resize(
+                    selected,
                     (int(exp_h), int(exp_w)),
                     method='bilinear',
                 ).numpy()
 
-        if exp_c is not None and int(exp_c) != selected_volumes.shape[-1]:
+        # Adjust channels if needed
+        if exp_c is not None and int(exp_c) != selected.shape[-1]:
             if int(exp_c) == 1:
-                selected_volumes = selected_volumes[..., :1]
+                selected = selected[..., :1]
             else:
-                selected_volumes = np.repeat(selected_volumes[..., :1], int(exp_c), axis=-1)
+                selected = np.repeat(selected[..., :1], int(exp_c), axis=-1)
 
-    if n_model_inputs == 3:
+        return selected
+
+    if three_plane_mode and n_model_inputs == 3:
+        # Proper 3-plane processing: pass U, V, X as separate inputs
+        # IMPORTANT: Order must be [U, V, X] to match how the model was trained
+        selected_x = preprocess_plane(volumes_x, selected_idx)
+        selected_u = preprocess_plane(volumes_u, selected_idx)
+        selected_v = preprocess_plane(volumes_v, selected_idx)
+        print(f"3-plane inference: U={selected_u.shape}, V={selected_v.shape}, X={selected_x.shape}")
+
+        preds = model.predict(
+            [selected_u, selected_v, selected_x],  # Order: U, V, X (matches original training)
+            batch_size=args.batch_size,
+        )
+    elif n_model_inputs == 3:
+        # Single plane but model expects 3 inputs - pass same plane 3 times (legacy fallback, not ideal)
+        print("WARNING: Model expects 3 inputs but only single-plane data available. Using same plane for all inputs.")
+        selected_volumes = preprocess_plane(volumes, selected_idx)
         preds = model.predict(
             [selected_volumes, selected_volumes, selected_volumes],
             batch_size=args.batch_size,
         )
     else:
+        # Single plane, single input model
+        selected_volumes = preprocess_plane(volumes, selected_idx)
         preds = model.predict(selected_volumes, batch_size=args.batch_size)
 
     # Normalize preds to numpy array
