@@ -8,6 +8,23 @@ This folder provides a tidy HTCondor flow to run the 6-scenario pipeline test fo
 ./condor/submit_all_cats.sh
 ```
 
+One-command submit + wait + aggregate (recommended for long campaigns):
+
+```bash
+./condor/submit_wait_aggregate.sh \
+  --samples-base /eos/user/e/evilla/dune/sn-tps/sn-burst-samples \
+  --output-base output/condor_scenarios_corrected
+```
+
+Submit only (no waiting, no aggregation):
+
+```bash
+./condor/submit_wait_aggregate.sh \
+  --samples-base /eos/user/e/evilla/dune/sn-tps/sn-burst-samples \
+  --output-base output/condor_scenarios_corrected \
+  --no-wait
+```
+
 The script now auto-generates a submission file at runtime:
 
 - `condor/submit_all_cats.generated.sub`
@@ -37,6 +54,18 @@ OUTPUT_BASE=output/condor_scenarios \
 TEST_N_CC=1000 \
 TEST_N_ES=100 \
 ./condor/submit_all_cats.sh
+```
+
+Run only a subset of scenarios for all submitted CATs:
+
+```bash
+SCENARIO_NAMES=scenario_1_best_case,scenario_3_full_pipeline ./condor/submit_all_cats.sh
+```
+
+Use a custom scenario catalog:
+
+```bash
+SCENARIO_CATALOG=/path/to/custom_scenarios.json ./condor/submit_all_cats.sh
 ```
 
 Condor event logs (`job_*.log`) default to:

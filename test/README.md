@@ -68,7 +68,7 @@ Run script entrypoint smoke tests (help/CLI coverage for all non-batch wrappers 
 ./test/run_scripts_smoke_test.sh
 ```
 
-Scenarios are generated from `json/example_config.json` and now include six legacy-style comparisons:
+Scenarios are generated from `json/example_config.json` using canonical definitions in `json/six_scenarios.json` and include six legacy-style comparisons:
 
 - `scenario_1_best_case`: true ES selection + true electron direction (reference baseline)
 - `scenario_2_perfect_ct`: true ES selection + reconstructed direction
@@ -76,6 +76,12 @@ Scenarios are generated from `json/example_config.json` and now include six lega
 - `scenario_4_weighted_ct`: CT-enabled weighted selection by CT probability
 - `scenario_5_perfect_ct_e_gt_10mev`: true ES with energy threshold `E > 10 MeV`
 - `scenario_6_perfect_ct_e_gt_5mev`: true ES with energy threshold `E > 5 MeV`
+
+Run a subset by name (comma-separated list):
+
+```bash
+SCENARIO_NAMES=scenario_1_best_case,scenario_3_full_pipeline ./test/run_small_sample_pipeline.sh
+```
 
 The runner also generates a combined scenario report:
 

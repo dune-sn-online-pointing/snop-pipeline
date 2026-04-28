@@ -1,42 +1,83 @@
-# snop-pipeline
+# SNOP Pipeline - Supernova Online Pointing Analysis
 
-This repository contains the SN online-pointing workflow for:
+Refactored pipeline for supernova neutrino online pointing analysis using deep learning models for channel tagging and electron direction reconstruction.
 
-- selecting CC/ES samples,
-- building cluster volumes,
-- running channel tagging (CT),
-- running electron-direction (ED) inference and optional MCMC refinement,
-- generating per-run and scenario-level reports.
+## Quick Start
 
-## How to run
+### 1. Environment Setup
+```bash
+source scripts/init.sh
+```
 
-Initialize environment once per shell:
+### 2. Run Analysis with JSON Config
+```bash
+# Production six-scenario run (shared catalog)
+./scripts/run_six_scenarios.sh
 
-- `source scripts/init.sh`
+# Scenario analysis
+python3 python/ana/scenario_cos_theta_report.py json/scenario_analysis_config.json
 
-Then run workflows directly via Python entrypoints.
+# Burst direction analysis  
+python3 python/ana/burst_direction_batch_report.py json/burst_direction_analysis_config.json
 
-- Full pipeline: `python3 scripts/run_pipeline.py -j json/full_pipeline_example_config.json`
-- CT only: `python3 scripts/run_ct_inference.py -j json/ct_only_example_config.json`
-- ED only: `python3 scripts/run_ed_only.py -j json/ed_only_example_config.json`
-- Legacy neutrino-energy aggregation: `python3 python/ana/plot_neutrino_energy.py -j json/neutrino_energy_100cats_config.json`
-- Scenario report from existing runs: `python3 python/ana/scenario_cos_theta_report.py --scenarios-root output/test_pipeline_scenarios --output-pdf output/test_pipeline_scenarios/scenario_cos_theta_report.pdf`
+# Full pipeline
+python3 scripts/run_pipeline.py json/example_config.json
+```
 
-Batch over many CAT folders is run from Python:
+## Configuration
 
-- `python3 python/app/pipeline_batch.py -j json/pipeline_100cats_config.json`
+All analysis is controlled through JSON configuration files in the `json/` directory:
 
-## Repository structure
+### Key Configuration Files:
+- **`scenario_analysis_config.json`** - Multi-scenario analysis
+- **`burst_direction_analysis_config.json`** - Burst-level pointing analysis
+- **`example_config.json`** - Main pipeline configuration template
+- **`full_pipeline_example_config.json`** - Complete pipeline with all stages
+- **`six_scenarios.json`** - Canonical six-scenario definition catalog used by scenario runners
 
-- `scripts/`: user-facing commands (recommended entrypoints)
-- `json/`: example JSON configurations
-- `python/app/`: pipeline and inference executables
-- `python/ana/`: analysis/report generation modules
-- `test/`: test runners (`./test/run_all_tests.sh`)
-- `docs/`: symlinked pointers to detailed READMEs
+### Important Parameters:
+```json
+{
+  "analysis": {
+    "min_energy_mev": 3.0,           // Energy threshold for cluster selection
+    "selection_mode": "predicted-es", // ES selection method
+    "direction_mode": "reco",         // Use reconstructed directions
+    "emcee": {
+      "nwalkers": 64,
+      "nsteps": 2000,
+      "discard": 400,
+      "prior_kappa": 25.0,
+      "likelihood_kappa": 25.0
+    },
+    "pdf_path": "data/cosine_energy_pdf.npz"  // PDF likelihood file
+  }
+}
+```
+
+## Directory Structure
+```
+├── scripts/         # Entrypoints: run_pipeline.py, run_six_scenarios.sh, init.sh
+├── python/
+│   ├── app/         # Executable workflows: pipeline.py, pipeline_batch.py, ed_inference.py
+│   ├── lib/         # Core processing: sample_loader, volume_creator, channel_tagger, metrics_tracker
+│   └── ana/         # Analysis & reports: scenario_cos_theta_report, burst_direction, aggregate_scenario_reports
+├── condor/          # HTCondor submission: submit_all_cats.sh, submit_wait_aggregate.sh, run_cat_scenarios.sh
+├── json/            # JSON configuration files (six_scenarios.json is the scenario catalog)
+├── data/            # PDF likelihood data (cosine_energy_pdf.npz)
+├── test/            # Test runners and run_small_sample_pipeline.sh (also used by Condor jobs)
+├── docs/            # Detailed documentation
+└── output/          # Generated results (gitignored)
+```
+
+## Pipeline Components
+
+- **Channel Tagging (CT)**: ES vs CC classification using CNN
+- **Electron Direction (ED)**: Direction reconstruction with MCMC refinement
+- **PDF Likelihood**: Energy-cosine likelihood for improved MCMC sampling
+- **Scenario Analysis**: Multi-scenario performance evaluation
 
 ## Documentation
 
 - Scripts: [docs/scripts-description.md](docs/scripts-description.md)
-- JSON options: [docs/json-options.md](docs/json-options.md)
+- JSON options: [docs/json-options.md](docs/json-options.md)  
 - Code description: [docs/code-description.md](docs/code-description.md)

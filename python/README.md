@@ -16,7 +16,7 @@ This is the code path that connects model inference to SN burst pointing perform
 ## Code layout
 
 - `python/app/`: executable workflows
-	- `pipeline.py`: single-run full chain (selection → volumes → CT → report)
+	- `pipeline.py`: single-run full chain (selection → volumes → CT → optional ED reco export → report)
 	- `pipeline_batch.py`: multi-CAT orchestration + aggregate summaries + burst-direction report
 	- `ed_inference.py`: ED model inference on selected clusters
 	- `ed_mcmc.py`: per-cluster MCMC refinement based on ED outputs
@@ -100,9 +100,25 @@ This is where cluster-level direction information is aggregated into one burst d
 - optional energy threshold (`min_energy_mev`),
 - direction mode (`true` or `reco`).
 
-Important current implementation note:
+Current implementation note:
 
-- `direction_mode="reco"` currently falls back to true-electron vectors with explicit label `"true (fallback: reco unavailable)"` until persisted reco directions are available in run outputs.
+- `direction_mode="reco"` reads `predictions/reco_directions.npz` when available and aligned.
+- If missing or invalid, it falls back to true-electron vectors and labels this explicitly as `"true (fallback: reco unavailable)"`.
+
+### Reco-direction persistence contract (v1)
+
+When `neural_networks.electron_direction.enabled=true` in pipeline config, `pipeline.py` runs ED inference + MCMC and writes:
+
+- `predictions/reco_directions.npz`
+
+Contract keys:
+
+- `reco_dirs`: `(N,3)` normalized reconstructed vectors
+- `has_reco`: `(N,)` validity mask
+- `cluster_idx`: `(N,)` row index mapping aligned to `volume_images/volumes.npz`
+- `contract_version`: `v1`
+
+The intended alignment is one row per cluster/volume in the run output, so burst selection modes (`predicted-es`, `weighted-ct`, `true-es`, `all`) can all use the same reco vector table safely.
 
 ### Per-burst reconstruction methods
 

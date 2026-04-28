@@ -26,6 +26,10 @@ After initialization, run these Python entrypoints:
 
 - Full single-run pipeline:
 	- `python3 scripts/run_pipeline.py -j json/full_pipeline_example_config.json`
+- Production six-scenario run:
+	- `./scripts/run_six_scenarios.sh`
+	- uses `json/six_scenarios.json` as the canonical scenario catalog
+	- optional filter: `SCENARIO_NAMES=scenario_1_best_case,scenario_3_full_pipeline`
 - CT-only:
 	- `python3 scripts/run_ct_inference.py -j json/ct_only_example_config.json`
 - ED-only:
