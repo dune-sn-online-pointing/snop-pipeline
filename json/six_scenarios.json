@@ -1,0 +1,60 @@
+{
+  "catalog_name": "legacy_six_scenarios",
+  "version": 1,
+  "scenarios": [
+    {
+      "name": "scenario_1_best_case",
+      "channel_tagger_enabled": false,
+      "channel_tagger_threshold": 0.5,
+      "report_selection_mode": "true-es",
+      "report_direction_mode": "true",
+      "report_min_energy_mev": 3.0,
+      "report_label": "Best case (true ES, true dir)"
+    },
+    {
+      "name": "scenario_2_perfect_ct",
+      "channel_tagger_enabled": false,
+      "channel_tagger_threshold": 0.5,
+      "report_selection_mode": "true-es",
+      "report_direction_mode": "reco",
+      "report_min_energy_mev": 3.0,
+      "report_label": "Perfect CT (true ES, reco dir)"
+    },
+    {
+      "name": "scenario_3_full_pipeline",
+      "channel_tagger_enabled": true,
+      "channel_tagger_threshold": 0.8,
+      "report_selection_mode": "predicted-es",
+      "report_direction_mode": "reco",
+      "report_min_energy_mev": 3.0,
+      "report_label": "Full pipeline (predicted ES)"
+    },
+    {
+      "name": "scenario_4_weighted_ct",
+      "channel_tagger_enabled": true,
+      "channel_tagger_threshold": 0.8,
+      "report_selection_mode": "weighted-ct",
+      "report_direction_mode": "reco",
+      "report_min_energy_mev": 3.0,
+      "report_label": "Weighted CT (predicted ES weights)"
+    },
+    {
+      "name": "scenario_5_perfect_ct_e_gt_10mev",
+      "channel_tagger_enabled": false,
+      "channel_tagger_threshold": 0.5,
+      "report_selection_mode": "true-es",
+      "report_direction_mode": "reco",
+      "report_min_energy_mev": 10.0,
+      "report_label": "Perfect CT (E > 10 MeV)"
+    },
+    {
+      "name": "scenario_6_perfect_ct_e_gt_5mev",
+      "channel_tagger_enabled": false,
+      "channel_tagger_threshold": 0.5,
+      "report_selection_mode": "true-es",
+      "report_direction_mode": "reco",
+      "report_min_energy_mev": 5.0,
+      "report_label": "Perfect CT (E > 5 MeV)"
+    }
+  ]
+}

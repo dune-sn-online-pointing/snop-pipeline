@@ -8,9 +8,9 @@
     "min_energy_mev": 3.0,
     "emcee": {
       "enabled": true,
-      "nwalkers": 64,
-      "nsteps": 2000,
-      "discard": 400,
+      "nwalkers": 128,
+      "nsteps": 500,
+      "discard": 100,
       "prior_kappa": 25.0,
       "likelihood_kappa": 25.0,
       "random_seed": 42

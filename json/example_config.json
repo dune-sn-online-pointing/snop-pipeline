@@ -45,13 +45,16 @@
     "selection_mode": "predicted-es",
     "direction_mode": "reco",
     "emcee": {
-      "nwalkers": 64,
-      "nsteps": 2000,
-      "discard": 400,
-      "prior_kappa": 25.0,
+      "enabled": true,
+      "nwalkers": 128,
+      "nsteps": 500,
+      "discard": 100,
+      "prior_type": "gaussian_around_mean",
+      "prior_sigma_deg": 10.0,
       "likelihood_kappa": 25.0,
       "random_seed": 42
     },
+    "pdf_path": "/afs/cern.ch/work/e/evilla/private/dune/refactor-snop-pipeline/data/cosine_energy_pdf.npz",
     "description": "Analysis parameters for burst direction reconstruction"
   },
   
