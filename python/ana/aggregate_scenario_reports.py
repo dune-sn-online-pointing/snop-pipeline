@@ -39,13 +39,22 @@ def _build_summary(cat_payloads):
             n_selected = int(row.get("n_selected", 0))
             selection_mode = row.get("selection_mode", "")
 
-            # Filter out cats with insufficient ES events (indicating insufficient raw data)
-            # Good cats should have 30+ ES events after 3-plane matching
-            # Broken cats typically have <10 ES events
-            if ("es" in selection_mode.lower() or "ES" in label) and n_selected < 30:
+            # Filter out cats with insufficient ES events (should have ~350 ES events in good cats)
+            # Also filter based on energy requirements
+            min_energy_mev = row.get("min_energy_mev", 0.0)
+
+            # Require 200+ ES events for ES scenarios (realistic threshold based on data)
+            if ("es" in selection_mode.lower() or "ES" in label) and n_selected < 200:
                 filtered_cats += 1
-                print(f"Filtering {cat_name} ({label}): only {n_selected} ES events (< 30 threshold)")
+                print(f"Filtering {cat_name} ({label}): only {n_selected} ES events (< 200 threshold)")
                 continue
+
+            # Skip energy cut filter to allow scenarios with lower thresholds
+            # (many scenarios legitimately use lower energy cuts)
+            # if min_energy_mev < 3.0:
+            #     filtered_cats += 1
+            #     print(f"Filtering {cat_name} ({label}): energy cut {min_energy_mev} MeV (< 3.0 MeV required)")
+            #     continue
 
             entry = scenario_metrics.setdefault(label, {
                 "q68": [],
@@ -64,7 +73,7 @@ def _build_summary(cat_payloads):
             entry["cat_names"].append(cat_name)
 
     if filtered_cats > 0:
-        print(f"Filtered out {filtered_cats} cat-scenario combinations with insufficient ES events")
+        print(f"Filtered out {filtered_cats} cat-scenario combinations (insufficient ES events)")
 
     summary = {}
     for label, vals in scenario_metrics.items():
