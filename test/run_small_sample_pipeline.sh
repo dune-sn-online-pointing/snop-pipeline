@@ -16,7 +16,7 @@ SAMPLES_BASE="${SAMPLES_BASE:-/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-
 NETWORKS_BASE="${NETWORKS_BASE:-/eos/project-e/ep-nu/evilla/sn-online-pointing/neural-networks}"
 CAT="${CAT:-cat000001}"
 TEST_N_CC="${TEST_N_CC:-3300}"
-TEST_N_ES="${TEST_N_ES:-290}"
+TEST_N_ES="${TEST_N_ES:-330}"
 
 CT_MODEL_DEFAULT="${NETWORKS_BASE}/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras"
 

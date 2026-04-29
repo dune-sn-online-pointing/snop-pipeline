@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 export TEST_N_CC="${TEST_N_CC:-3300}"
-export TEST_N_ES="${TEST_N_ES:-290}"
+export TEST_N_ES="${TEST_N_ES:-330}"
 export OUTPUT_BASE="${OUTPUT_BASE:-output/condor_scenarios}"
 export SCENARIO_CATALOG="${SCENARIO_CATALOG:-${REPO_DIR}/json/six_scenarios.json}"
 export SCENARIO_NAMES="${SCENARIO_NAMES:-}"
