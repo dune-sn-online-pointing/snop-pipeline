@@ -1,24 +1,25 @@
 {
-  "analysis": {
-    "scenarios_root": "output/test_pipeline_scenarios",
-    "output_pdf": "output/scenario_analysis_report.pdf",
-    "selection_mode": "predicted-es",
-    "min_energy_mev": 3.0,
-    "emcee": {
-      "enabled": true,
-      "nwalkers": 128,
-      "nsteps": 500,
-      "discard": 100,
-      "prior_kappa": 25.0,
-      "likelihood_kappa": 25.0,
-      "random_seed": 42
+    "analysis": {
+        "scenarios_root": "output/test_pipeline_scenarios",
+        "output_pdf": "output/scenario_analysis_report.pdf",
+        "selection_mode": "predicted-es",
+        "min_energy_mev": 3.0,
+        "emcee": {
+            "enabled": true,
+            "nwalkers": 128,
+            "nsteps": 500,
+            "discard": 100,
+            "prior_kappa": 25.0,
+            "likelihood_kappa": 25.0,
+            "random_seed": 42,
+            "stretch_a": 2.0
+        },
+        "pdf_path": "data/cosine_energy_pdf.npz",
+        "description": "Scenario analysis with energy filtering for optimal performance"
     },
-    "pdf_path": "data/cosine_energy_pdf.npz",
-    "description": "Scenario analysis with energy filtering for optimal performance"
-  },
-  "metadata": {
-    "created_by": "SNOP Pipeline Configuration",
-    "purpose": "Multi-scenario analysis with energy filtering",
-    "note": "min_energy_mev=3.0 recommended for optimal performance"
-  }
+    "metadata": {
+        "created_by": "SNOP Pipeline Configuration",
+        "purpose": "Multi-scenario analysis with energy filtering",
+        "note": "min_energy_mev=3.0 recommended for optimal performance"
+    }
 }

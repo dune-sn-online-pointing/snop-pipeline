@@ -23,20 +23,20 @@
     {
       "name": "scenario_3_full_pipeline",
       "channel_tagger_enabled": true,
-      "channel_tagger_threshold": 0.8,
+      "channel_tagger_threshold": 0.9,
       "report_selection_mode": "predicted-es",
       "report_direction_mode": "reco",
-      "report_min_energy_mev": 3.0,
-      "report_label": "Full pipeline (predicted ES)"
+      "report_min_energy_mev": 5.0,
+      "report_label": "Full pipeline (CT=0.9, E>5MeV)"
     },
     {
       "name": "scenario_4_weighted_ct",
       "channel_tagger_enabled": true,
-      "channel_tagger_threshold": 0.8,
+      "channel_tagger_threshold": 0.9,
       "report_selection_mode": "weighted-ct",
       "report_direction_mode": "reco",
-      "report_min_energy_mev": 3.0,
-      "report_label": "Weighted CT (predicted ES weights)"
+      "report_min_energy_mev": 5.0,
+      "report_label": "Weighted CT (CT=0.9, E>5MeV)"
     },
     {
       "name": "scenario_5_perfect_ct_e_gt_10mev",

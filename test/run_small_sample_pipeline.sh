@@ -85,6 +85,7 @@ cfg["reporting"] = {
   "selection_mode": report_selection_mode,
   "direction_mode": report_direction_mode,
   "min_energy_mev": float(report_min_energy_mev),
+  "ct_threshold": float(ct_threshold),
   "label": report_label,
 }
 

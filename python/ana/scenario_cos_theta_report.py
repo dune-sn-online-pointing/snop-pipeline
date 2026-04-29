@@ -80,14 +80,18 @@ def build_report(scenarios_root: Path, output_pdf: Path, default_selection_mode:
 
         selection_mode = scenario_settings.get("selection_mode", default_selection_mode)
         direction_mode = scenario_settings.get("direction_mode", "reco")
-        scenario_min_energy = float(scenario_settings.get("min_energy_mev", min_energy_mev))  # Use override if provided
+        scenario_min_energy = float(scenario_settings.get("min_energy_mev", min_energy_mev))
         scenario_label = scenario_settings.get("label", scenario_dir.name)
+        # ct_threshold: re-threshold from stored probabilities if the scenario config specifies one
+        ct_threshold = scenario_settings.get("ct_threshold")
+        ct_threshold = float(ct_threshold) if ct_threshold is not None else None
 
         selected = select_electrons_from_run(
             latest_run,
             selection_mode=selection_mode,
             direction_mode=direction_mode,
             min_energy_mev=scenario_min_energy,
+            ct_threshold=ct_threshold,
         )
 
         reco = reconstruct_burst_direction(
@@ -369,6 +373,7 @@ def main():
         "prior_kappa": emcee_cfg.get("prior_kappa", 25.0),
         "likelihood_kappa": emcee_cfg.get("likelihood_kappa", 25.0),
         "random_seed": emcee_cfg.get("random_seed", 42),
+        "stretch_a": emcee_cfg.get("stretch_a", 2.0),
     }
 
     print(f"Running scenario analysis with config: {args.config_path}")

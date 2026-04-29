@@ -188,7 +188,7 @@ def _load_reco_dirs_from_run(run_dir: Path, n_rows: int):
     return reco_dirs, reco_valid
 
 
-def select_electrons_from_run(run_dir: Path, selection_mode: str, direction_mode: str, min_energy_mev: float):
+def select_electrons_from_run(run_dir: Path, selection_mode: str, direction_mode: str, min_energy_mev: float, ct_threshold: float = None):
     run_dir = Path(run_dir)
     vol_path = run_dir / "volume_images" / "volumes.npz"
     if not vol_path.exists():
@@ -225,12 +225,22 @@ def select_electrons_from_run(run_dir: Path, selection_mode: str, direction_mode
         pred_file = run_dir / "predictions" / "channel_predictions.npz"
         if pred_file.exists():
             pred_data = np.load(pred_file, allow_pickle=True)
-            y_pred = np.asarray(pred_data["y_pred"]).astype(int)
-            if y_pred.shape[0] != metadata.shape[0]:
-                raise ValueError(
-                    f"Prediction length mismatch in {pred_file}: {y_pred.shape[0]} vs {metadata.shape[0]}"
-                )
-            mask = y_pred == 1
+            # Re-threshold from stored probabilities if a custom threshold is requested,
+            # otherwise use the stored binary predictions (baked in at pipeline time).
+            if ct_threshold is not None and "y_pred_proba" in pred_data:
+                y_pred_proba = np.asarray(pred_data["y_pred_proba"]).astype(float)
+                if y_pred_proba.shape[0] != metadata.shape[0]:
+                    raise ValueError(
+                        f"Prediction length mismatch in {pred_file}: {y_pred_proba.shape[0]} vs {metadata.shape[0]}"
+                    )
+                mask = y_pred_proba >= ct_threshold
+            else:
+                y_pred = np.asarray(pred_data["y_pred"]).astype(int)
+                if y_pred.shape[0] != metadata.shape[0]:
+                    raise ValueError(
+                        f"Prediction length mismatch in {pred_file}: {y_pred.shape[0]} vs {metadata.shape[0]}"
+                    )
+                mask = y_pred == 1
         else:
             mask = metadata[:, 3].astype(int) == 1
     elif selection_mode == "weighted-ct":
@@ -238,18 +248,22 @@ def select_electrons_from_run(run_dir: Path, selection_mode: str, direction_mode
         if pred_file.exists():
             pred_data = np.load(pred_file, allow_pickle=True)
             y_pred_proba = np.asarray(pred_data["y_pred_proba"]).astype(float)
-            y_pred = np.asarray(pred_data["y_pred"]).astype(int) if "y_pred" in pred_data else None
             if y_pred_proba.shape[0] != metadata.shape[0]:
                 raise ValueError(
                     f"Prediction length mismatch in {pred_file}: {y_pred_proba.shape[0]} vs {metadata.shape[0]}"
                 )
             weights = np.clip(y_pred_proba, 0.0, 1.0)
-            # Keep weighted-ct aligned with legacy behavior:
-            # apply CT selection first, then weight selected clusters by ES probability.
-            if y_pred is not None and y_pred.shape[0] == metadata.shape[0]:
-                mask = y_pred == 1
+            # Apply CT threshold (custom or stored binary) for the selection mask,
+            # then weight selected clusters by ES probability.
+            thr = ct_threshold if ct_threshold is not None else 0.5
+            if ct_threshold is None and "y_pred" in pred_data:
+                y_pred = np.asarray(pred_data["y_pred"]).astype(int)
+                if y_pred.shape[0] == metadata.shape[0]:
+                    mask = y_pred == 1
+                else:
+                    mask = y_pred_proba >= thr
             else:
-                mask = weights > 0.5
+                mask = y_pred_proba >= thr
         else:
             mask = metadata[:, 3].astype(int) == 1
     elif selection_mode == "true-es":
@@ -406,9 +420,11 @@ def _run_emcee(selected_dirs, selected_weights, selected_energies, true_burst_di
         # Wrap theta to [-pi, pi]
         p0[:, 0] = (p0[:, 0] + np.pi) % (2 * np.pi) - np.pi
 
-    # Use affine-invariant stretch moves with scale parameter a=3.0 (established method)
+    # Affine-invariant stretch moves; a=2.0 (default) targets ~23% acceptance.
+    # a=3.0 gives ~8-12% which indicates under-mixing.
+    stretch_a = float(emcee_cfg.get("stretch_a", 2.0))
     sampler = emcee.EnsembleSampler(nwalkers, 2, _logpost,
-                                   moves=[emcee.moves.StretchMove(a=3.0)])
+                                   moves=[emcee.moves.StretchMove(a=stretch_a)])
     sampler.run_mcmc(p0, nsteps, progress=False)
 
     flat = sampler.get_chain(discard=discard, flat=True)
