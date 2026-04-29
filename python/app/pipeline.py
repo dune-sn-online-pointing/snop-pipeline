@@ -264,6 +264,9 @@ Examples:
     if not cc_folder or not es_folder:
         raise ValueError("input_data must define cc_folder/es_folder (or cc_sample_folder/es_sample_folder)")
 
+    cc_vol_folder = config['input_data'].get('cc_vol_folder')
+    es_vol_folder = config['input_data'].get('es_vol_folder')
+
     selected_data = load_and_select_samples(
         cc_folder=cc_folder,
         es_folder=es_folder,
@@ -276,7 +279,9 @@ Examples:
         random_seed=config.get('processing', {}).get('random_seed', 42),
         output_dir=output_dir / "selected_clusters",
         verbose=args.verbose,
-        load_all_planes=config['input_data'].get('load_all_planes', False)
+        load_all_planes=config['input_data'].get('load_all_planes', False),
+        cc_vol_folder=cc_vol_folder,
+        es_vol_folder=es_vol_folder,
     )
     
     metrics.add_sample_selection_metrics(selected_data)
@@ -391,13 +396,15 @@ Examples:
         if not _CHANNEL_TAGGER_AVAILABLE:
             raise RuntimeError(f"Channel Tagger is enabled but not available: {_CT_IMPORT_ERROR}")
             
+        ct_vol_refs = selected_data.get('ct_vol_refs')
         ct_results = tag_channels(
             images=volume_results['images'],
             metadata=volume_results['metadata'],
             model_path=config['neural_networks']['channel_tagger']['model_path'],
             threshold=config['neural_networks']['channel_tagger']['threshold'],
             output_dir=output_dir / "predictions",
-            verbose=args.verbose
+            verbose=args.verbose,
+            vol_refs=ct_vol_refs,  # None → falls back to images; set → lazy file-by-file loading
         )
 
         y_true = ct_results['y_true']

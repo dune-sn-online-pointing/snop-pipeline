@@ -400,25 +400,23 @@ def _run_emcee(selected_dirs, selected_weights, selected_energies, true_burst_di
         p0[:, 0] = -np.pi + rng.random(nwalkers) * 2 * np.pi  # theta in [-pi, pi]
         p0[:, 1] = rng.random(nwalkers) * np.pi  # phi in [0, pi]
     else:
-        # Convert mean direction to spherical coordinates
-        mean_theta, mean_phi = direction_to_angles(mean_electron_dir)
-        # Convert to MCMC convention that matches the likelihood function
-        # MCMC uses: x=sin(phi)*cos(theta), y=cos(phi), z=sin(phi)*sin(theta)
-        # So: phi = arccos(y), theta = atan2(z, x)
-        mean_phi_emcee = np.arccos(np.clip(mean_electron_dir[1], -1.0, 1.0))  # y = cos(phi)
-        mean_theta_emcee = np.arctan2(mean_electron_dir[2], mean_electron_dir[0])  # atan2(z, x)
-
-        # Initialize walkers with perturbations around mean (using configured sigma)
         rng = np.random.default_rng(random_seed)
-        perturbation_rad = prior_sigma_rad  # Use configured prior width
-        p0 = np.empty((nwalkers, 2), dtype=np.float64)
-        p0[:, 0] = mean_theta_emcee + rng.normal(0, perturbation_rad, nwalkers)  # theta (azimuthal)
-        p0[:, 1] = mean_phi_emcee + rng.normal(0, perturbation_rad, nwalkers)   # phi (polar)
-
-        # Ensure phi stays in valid range [0, pi]
-        p0[:, 1] = np.clip(p0[:, 1], 1e-6, np.pi - 1e-6)
-        # Wrap theta to [-pi, pi]
-        p0[:, 0] = (p0[:, 0] + np.pi) % (2 * np.pi) - np.pi
+        if prior_type == "uniform":
+            # Uniform prior: initialize walkers randomly on sphere so the likelihood
+            # drives convergence without bias from the (possibly contaminated) mean dir.
+            p0 = np.empty((nwalkers, 2), dtype=np.float64)
+            p0[:, 0] = -np.pi + rng.random(nwalkers) * 2 * np.pi  # theta in [-pi, pi]
+            # Sample phi from sin(phi) distribution via inverse CDF
+            p0[:, 1] = np.arccos(1 - 2 * rng.random(nwalkers))    # phi in [0, pi]
+        else:
+            # Informative prior: initialize walkers tightly around mean direction
+            mean_phi_emcee = np.arccos(np.clip(mean_electron_dir[1], -1.0, 1.0))
+            mean_theta_emcee = np.arctan2(mean_electron_dir[2], mean_electron_dir[0])
+            p0 = np.empty((nwalkers, 2), dtype=np.float64)
+            p0[:, 0] = mean_theta_emcee + rng.normal(0, prior_sigma_rad, nwalkers)
+            p0[:, 1] = mean_phi_emcee + rng.normal(0, prior_sigma_rad, nwalkers)
+            p0[:, 1] = np.clip(p0[:, 1], 1e-6, np.pi - 1e-6)
+            p0[:, 0] = (p0[:, 0] + np.pi) % (2 * np.pi) - np.pi
 
     # Affine-invariant stretch moves; a=2.0 (default) targets ~23% acceptance.
     # a=3.0 gives ~8-12% which indicates under-mixing.

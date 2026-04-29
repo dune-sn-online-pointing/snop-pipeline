@@ -65,8 +65,15 @@ if not cluster_candidates:
 # Use base folder (parent of X/) for 3-plane matching via match_id (column 13)
 cluster_base_dir = str(cluster_candidates[0].parent)
 
+# Volume images (large format for CT model)
+vol_candidates = sorted(cat_dir.glob(f"{cat}_volume_images*/X"))
+vol_base_dir = str(vol_candidates[0].parent) if vol_candidates else None
+
 cfg["input_data"]["cc_folder"] = cluster_base_dir
 cfg["input_data"]["es_folder"] = cluster_base_dir
+if vol_base_dir:
+  cfg["input_data"]["cc_vol_folder"] = vol_base_dir
+  cfg["input_data"]["es_vol_folder"] = vol_base_dir
 cfg["input_data"]["file_pattern"] = "*_bg_matched_planeX.npz"
 cfg["input_data"]["cc_file_pattern"] = "cc_*_bg_matched_planeX.npz"
 cfg["input_data"]["es_file_pattern"] = "es_*_bg_matched_planeX.npz"

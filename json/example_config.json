@@ -2,6 +2,8 @@
   "input_data": {
     "cc_folder": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples/cat000001/cat000001_cluster_images_tick3_ch2_min2_tot3_e3p0",
     "es_folder": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples/cat000001/cat000001_cluster_images_tick3_ch2_min2_tot3_e3p0",
+    "cc_vol_folder": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples/cat000001/cat000001_volume_images_tick3_ch2_min2_tot3_e3p0",
+    "es_vol_folder": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples/cat000001/cat000001_volume_images_tick3_ch2_min2_tot3_e3p0",
     "file_pattern": "*_planeX.npz",
     "cc_file_pattern": "cc_*_planeX.npz",
     "es_file_pattern": "es_*_planeX.npz",
@@ -49,8 +51,7 @@
       "nwalkers": 128,
       "nsteps": 500,
       "discard": 100,
-      "prior_type": "gaussian_around_mean",
-      "prior_sigma_deg": 10.0,
+      "prior_type": "uniform",
       "likelihood_kappa": 25.0,
       "random_seed": 42
     },

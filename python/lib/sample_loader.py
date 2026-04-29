@@ -15,7 +15,8 @@ def load_and_select_samples(cc_folder, es_folder, n_cc_events, n_es_events,
                             file_pattern='*_planeX.npz', cc_file_pattern=None,
                             es_file_pattern=None, shuffle=True,
                             random_seed=42, output_dir=None, verbose=False,
-                            load_all_planes=False):
+                            load_all_planes=False,
+                            cc_vol_folder=None, es_vol_folder=None):
     """
     Load and select samples from CC and ES folders.
 
@@ -35,10 +36,13 @@ def load_and_select_samples(cc_folder, es_folder, n_cc_events, n_es_events,
         output_dir: Optional directory to save selected data
         verbose: Print detailed progress
         load_all_planes: If True, load X, U, V planes from separate subfolders
+        cc_vol_folder: Optional path to pre-computed large-format CT volume images for CC
+        es_vol_folder: Optional path to pre-computed large-format CT volume images for ES
 
     Returns:
         dict with selected images, metadata, and statistics
         If load_all_planes=True, images dict contains 'X', 'U', 'V' keys
+        If cc_vol_folder/es_vol_folder provided, result contains 'ct_images' (N, H, W) array
     """
 
     if verbose:
@@ -48,6 +52,10 @@ def load_and_select_samples(cc_folder, es_folder, n_cc_events, n_es_events,
         print(f"  Target: {n_cc_events} CC events, {n_es_events} ES events")
         if load_all_planes:
             print(f"  Mode: 3-plane (X, U, V)")
+        if cc_vol_folder:
+            print(f"  CT volume folder (CC): {cc_vol_folder}")
+        if es_vol_folder:
+            print(f"  CT volume folder (ES): {es_vol_folder}")
 
     cc_pattern = cc_file_pattern or file_pattern
     es_pattern = es_file_pattern or file_pattern
@@ -56,14 +64,16 @@ def load_and_select_samples(cc_folder, es_folder, n_cc_events, n_es_events,
     cc_data = _load_samples_from_folder(
         cc_folder, n_cc_events, cc_pattern,
         sample_type='CC', verbose=verbose,
-        load_all_planes=load_all_planes
+        load_all_planes=load_all_planes,
+        vol_folder=cc_vol_folder,
     )
 
     # Load ES samples
     es_data = _load_samples_from_folder(
         es_folder, n_es_events, es_pattern,
         sample_type='ES', verbose=verbose,
-        load_all_planes=load_all_planes
+        load_all_planes=load_all_planes,
+        vol_folder=es_vol_folder,
     )
 
     # Combine data
@@ -77,6 +87,15 @@ def load_and_select_samples(cc_folder, es_folder, n_cc_events, n_es_events,
         all_images = np.concatenate([cc_data['images'], es_data['images']], axis=0)
     all_metadata = np.concatenate([cc_data['metadata'], es_data['metadata']], axis=0)
 
+    # Combine CT volume refs if available
+    cc_refs = cc_data.get('ct_vol_refs')
+    es_refs = es_data.get('ct_vol_refs')
+    all_ct_vol_refs = None
+    if cc_refs is not None and es_refs is not None:
+        all_ct_vol_refs = cc_refs + es_refs
+    elif cc_refs is not None or es_refs is not None:
+        all_ct_vol_refs = (cc_refs or []) + (es_refs or [])
+
     # Shuffle if requested
     if shuffle:
         np.random.seed(random_seed)
@@ -87,6 +106,8 @@ def load_and_select_samples(cc_folder, es_folder, n_cc_events, n_es_events,
         else:
             all_images = all_images[indices]
         all_metadata = all_metadata[indices]
+        if all_ct_vol_refs is not None:
+            all_ct_vol_refs = [all_ct_vol_refs[i] for i in indices]
         if verbose:
             print(f"\n✓ Shuffled {n_samples} clusters")
 
@@ -131,6 +152,7 @@ def load_and_select_samples(cc_folder, es_folder, n_cc_events, n_es_events,
     return {
         'images': all_images,
         'metadata': all_metadata,
+        'ct_vol_refs': all_ct_vol_refs,
         'n_cc_events': cc_data['n_events'],
         'n_es_events': es_data['n_events'],
         'n_cc_clusters': cc_data['n_clusters'],
@@ -144,7 +166,7 @@ def load_and_select_samples(cc_folder, es_folder, n_cc_events, n_es_events,
 
 def _load_samples_from_folder(folder, n_events_target, file_pattern,
                               sample_type='CC', verbose=False,
-                              load_all_planes=False):
+                              load_all_planes=False, vol_folder=None):
     """
     Load samples from a single folder until reaching target number of events.
 
@@ -199,8 +221,11 @@ def _load_samples_from_folder(folder, n_events_target, file_pattern,
     images_list_u = []
     images_list_v = []
     metadata_list = []
+    vol_images_list = []
     events_seen = set()
     files_used = []
+
+    vol_folder_path = Path(vol_folder) / 'X' if vol_folder else None
 
     for file_idx, file_path in enumerate(files):
         if len(events_seen) >= n_events_target:
@@ -240,6 +265,12 @@ def _load_samples_from_folder(folder, n_events_target, file_pattern,
                 # Find common match_ids across all 3 planes
                 common_ids = set(match_ids_x.keys()) & set(match_ids_u.keys()) & set(match_ids_v.keys())
 
+                # Compute the corresponding CT volume file path (strip "_matched")
+                vol_file_ref = None
+                if vol_folder_path is not None:
+                    vol_file_name = file_path.name.replace('_matched', '')
+                    vol_file_ref = str(vol_folder_path / vol_file_name)
+
                 # Process matched clusters
                 for match_id in sorted(common_ids):
                     idx_x = match_ids_x[match_id]
@@ -259,6 +290,9 @@ def _load_samples_from_folder(folder, n_events_target, file_pattern,
                         images_list_u.append(imgs_u[idx_u])
                         images_list_v.append(imgs_v[idx_v])
                         metadata_list.append(meta_x[idx_x])  # Use X metadata as reference
+                        if vol_file_ref is not None:
+                            # Store (file_path, match_id) reference — loaded lazily by CT tagger
+                            vol_images_list.append((vol_file_ref, match_id))
             else:
                 # Single-plane mode: process all clusters
                 for i in range(len(imgs_x)):
@@ -300,6 +334,11 @@ def _load_samples_from_folder(folder, n_events_target, file_pattern,
         images = np.array(images_list_x, dtype=np.float32)
     metadata = np.array(metadata_list, dtype=np.float32)
 
+    # CT volume refs: list of (vol_file_path_str, match_id) — loaded lazily by the CT tagger
+    ct_vol_refs = vol_images_list if (vol_folder_path is not None and vol_images_list) else None
+    if verbose and ct_vol_refs is not None:
+        print(f"  CT volume refs: {len(ct_vol_refs)} entries (lazy-loaded)")
+
     if verbose:
         n_clusters = len(images_list_x)
         mode_str = " (matched via match_id)" if load_all_planes else ""
@@ -309,6 +348,7 @@ def _load_samples_from_folder(folder, n_events_target, file_pattern,
     return {
         'images': images,
         'metadata': metadata,
+        'ct_vol_refs': ct_vol_refs,
         'n_events': len(events_seen),
         'n_clusters': len(images_list_x),
         'files_used': files_used
