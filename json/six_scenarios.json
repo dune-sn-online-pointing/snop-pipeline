@@ -32,11 +32,11 @@
     {
       "name": "scenario_4_weighted_ct",
       "channel_tagger_enabled": true,
-      "channel_tagger_threshold": 0.9,
+      "channel_tagger_threshold": 0.5,
       "report_selection_mode": "weighted-ct",
       "report_direction_mode": "reco",
-      "report_min_energy_mev": 5.0,
-      "report_label": "Weighted CT (CT=0.9, E>5MeV)"
+      "report_min_energy_mev": 3.0,
+      "report_label": "Weighted CT (all events, CT weight)"
     },
     {
       "name": "scenario_5_perfect_ct_e_gt_10mev",

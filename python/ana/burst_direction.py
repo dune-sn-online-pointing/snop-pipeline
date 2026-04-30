@@ -252,18 +252,10 @@ def select_electrons_from_run(run_dir: Path, selection_mode: str, direction_mode
                 raise ValueError(
                     f"Prediction length mismatch in {pred_file}: {y_pred_proba.shape[0]} vs {metadata.shape[0]}"
                 )
+            # Use ALL events; weight each by P(ES) so CC-like events contribute minimally.
+            # No hard threshold — this is the point of weighted-ct vs predicted-es.
             weights = np.clip(y_pred_proba, 0.0, 1.0)
-            # Apply CT threshold (custom or stored binary) for the selection mask,
-            # then weight selected clusters by ES probability.
-            thr = ct_threshold if ct_threshold is not None else 0.5
-            if ct_threshold is None and "y_pred" in pred_data:
-                y_pred = np.asarray(pred_data["y_pred"]).astype(int)
-                if y_pred.shape[0] == metadata.shape[0]:
-                    mask = y_pred == 1
-                else:
-                    mask = y_pred_proba >= thr
-            else:
-                mask = y_pred_proba >= thr
+            mask = np.ones(metadata.shape[0], dtype=bool)
         else:
             mask = metadata[:, 3].astype(int) == 1
     elif selection_mode == "true-es":
@@ -401,22 +393,19 @@ def _run_emcee(selected_dirs, selected_weights, selected_energies, true_burst_di
         p0[:, 1] = rng.random(nwalkers) * np.pi  # phi in [0, pi]
     else:
         rng = np.random.default_rng(random_seed)
+        mean_phi_emcee = np.arccos(np.clip(mean_electron_dir[1], -1.0, 1.0))
+        mean_theta_emcee = np.arctan2(mean_electron_dir[2], mean_electron_dir[0])
         if prior_type == "uniform":
-            # Uniform prior: initialize walkers randomly on sphere so the likelihood
-            # drives convergence without bias from the (possibly contaminated) mean dir.
-            p0 = np.empty((nwalkers, 2), dtype=np.float64)
-            p0[:, 0] = -np.pi + rng.random(nwalkers) * 2 * np.pi  # theta in [-pi, pi]
-            # Sample phi from sin(phi) distribution via inverse CDF
-            p0[:, 1] = np.arccos(1 - 2 * rng.random(nwalkers))    # phi in [0, pi]
+            # Wide init (45°) near mean direction: fast convergence without being
+            # locked by a contaminated mean (which sits ~55° from truth at worst).
+            init_sigma_rad = np.radians(45.0)
         else:
-            # Informative prior: initialize walkers tightly around mean direction
-            mean_phi_emcee = np.arccos(np.clip(mean_electron_dir[1], -1.0, 1.0))
-            mean_theta_emcee = np.arctan2(mean_electron_dir[2], mean_electron_dir[0])
-            p0 = np.empty((nwalkers, 2), dtype=np.float64)
-            p0[:, 0] = mean_theta_emcee + rng.normal(0, prior_sigma_rad, nwalkers)
-            p0[:, 1] = mean_phi_emcee + rng.normal(0, prior_sigma_rad, nwalkers)
-            p0[:, 1] = np.clip(p0[:, 1], 1e-6, np.pi - 1e-6)
-            p0[:, 0] = (p0[:, 0] + np.pi) % (2 * np.pi) - np.pi
+            init_sigma_rad = prior_sigma_rad
+        p0 = np.empty((nwalkers, 2), dtype=np.float64)
+        p0[:, 0] = mean_theta_emcee + rng.normal(0, init_sigma_rad, nwalkers)
+        p0[:, 1] = mean_phi_emcee + rng.normal(0, init_sigma_rad, nwalkers)
+        p0[:, 1] = np.clip(p0[:, 1], 1e-6, np.pi - 1e-6)
+        p0[:, 0] = (p0[:, 0] + np.pi) % (2 * np.pi) - np.pi
 
     # Affine-invariant stretch moves; a=2.0 (default) targets ~23% acceptance.
     # a=3.0 gives ~8-12% which indicates under-mixing.
