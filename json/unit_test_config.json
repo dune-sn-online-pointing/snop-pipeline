@@ -1,0 +1,60 @@
+{
+  "_description": "Self-contained unit test config — uses synthetic data in test/inputs/, no EOS or model files required.",
+
+  "input_data": {
+    "cc_folder": "test/inputs/mock_clusters",
+    "es_folder": "test/inputs/mock_clusters",
+    "file_pattern": "*_planeX.npz",
+    "cc_file_pattern": "cc_*_planeX.npz",
+    "es_file_pattern": "es_*_planeX.npz",
+    "load_all_planes": false
+  },
+
+  "sample_selection": {
+    "n_cc_events": 8,
+    "n_es_events": 5
+  },
+
+  "neural_networks": {
+    "channel_tagger": {
+      "enabled": false,
+      "model_path": "",
+      "threshold": 0.5
+    },
+    "electron_direction": {
+      "enabled": false,
+      "model_path": ""
+    }
+  },
+
+  "volume_creation": {
+    "use_simple_mode": true
+  },
+
+  "analysis": {
+    "min_energy_mev": 0.0,
+    "selection_mode": "true-es",
+    "direction_mode": "true",
+    "emcee": {
+      "enabled": true,
+      "nwalkers": 8,
+      "nsteps": 30,
+      "discard": 5,
+      "prior_type": "uniform",
+      "random_seed": 42
+    },
+    "pdf_path": "data/cosine_energy_pdf.npz"
+  },
+
+  "output": {
+    "base_folder": "test/output/unit_test",
+    "metrics_file": "metrics.json",
+    "report_file": "pipeline_report.pdf"
+  },
+
+  "processing": {
+    "shuffle": false,
+    "random_seed": 42,
+    "verbose": false
+  }
+}

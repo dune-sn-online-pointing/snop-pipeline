@@ -1,113 +1,67 @@
-# Small-Sample Whole-Pipeline Scenarios
+# Tests
 
-This folder contains a lightweight runner that executes the full pipeline for multiple scenarios and checks that each run produces a report.
+All test scripts source `scripts/init.sh` automatically.
 
-All tests expect the runtime environment to be initialized via `scripts/init.sh` (the test scripts source it automatically).
+## Offline unit test (no EOS, no model files)
 
-Folder conventions:
-
-- `test/output/`: runtime-generated artifacts (gitignored except `.gitkeep`)
-- `test/inputs/`: static test inputs/configs that must be versioned
-
-## Script
-
-- `run_small_sample_pipeline.sh`
-- `run_ct_only_test.sh`
-- `run_ed_only_test.sh`
-- `run_batch_one_burst_test.sh`
-- `run_scripts_smoke_test.sh`
-- `run_all_tests.sh`
-- `run_all_pipeline_tests.sh`
-
-## Default Paths
-
-- Samples: `/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples`
-- Networks: `/eos/project-e/ep-nu/evilla/sn-online-pointing/neural-networks`
-- Default category: `cat000001`
-- Output root: `output/test_pipeline_scenarios`
-
-## Run
+Runs the complete code path — sample loading, volume creation, pipeline report, and burst-direction reconstruction — using small synthetic NPZ files committed in `test/inputs/mock_clusters/`. CT and ED inference are disabled; direction reconstruction uses true-ES selection with true electron directions.
 
 ```bash
-./test/run_small_sample_pipeline.sh
+./test/run_unit_test.sh
 ```
 
-CT-only test:
+Inputs committed to git:
+- `test/inputs/mock_clusters/cc_001_planeX.npz` — 10 synthetic CC events (30 clusters, 10×10 images)
+- `test/inputs/mock_clusters/es_001_planeX.npz` — 6 synthetic ES events (12 clusters, 10×10 images)
 
-```bash
-./test/run_ct_only_test.sh
-```
+Config: `json/unit_test_config.json`
 
-ED-only test:
+## EOS-dependent tests
 
-```bash
-./test/run_ed_only_test.sh
-```
+These require CERN EOS access and trained model files.
 
-Run all tests (recommended):
+- **Full six-scenario pipeline** (primary integration test):
+  ```bash
+  ./test/run_small_sample_pipeline.sh
+  ```
+  Uses `json/example_config.json` + `json/six_scenarios.json`. Reads cluster images and CT volume images from EOS, runs all six legacy scenarios, and generates `output/test_pipeline_scenarios/scenario_cos_theta_report.pdf`.
+
+  Run a subset by name:
+  ```bash
+  SCENARIO_NAMES=scenario_1_best_case,scenario_3_full_pipeline ./test/run_small_sample_pipeline.sh
+  ```
+
+  Common overrides:
+  ```bash
+  CAT=cat000002 TEST_N_CC=1000 TEST_N_ES=100 ./test/run_small_sample_pipeline.sh
+  ```
+
+- **CT-only test**: `./test/run_ct_only_test.sh`
+- **One-burst batch test**: `./test/run_batch_one_burst_test.sh`
+- **Script smoke tests** (help/CLI coverage, no EOS needed): `./test/run_scripts_smoke_test.sh`
+
+## Run all tests
 
 ```bash
 ./test/run_all_tests.sh
 ```
 
-Legacy alias (kept for compatibility):
+Runs the offline unit test and smoke tests first, then the EOS-dependent suite.
 
-```bash
-./test/run_all_pipeline_tests.sh
-```
+Legacy alias: `./test/run_all_pipeline_tests.sh`
 
-Run one-burst batch pipeline test (includes default emcee burst-direction report):
+## Scenarios (six_scenarios.json)
 
-```bash
-./test/run_batch_one_burst_test.sh
-```
+| Name | Selection | Direction | Notes |
+|---|---|---|---|
+| `scenario_1_best_case` | true ES | true | Reference upper bound |
+| `scenario_2_perfect_ct` | true ES | reco | CT replaced by truth |
+| `scenario_3_full_pipeline` | CT threshold 0.9, E>5 MeV | reco | Full realistic chain |
+| `scenario_4_weighted_ct` | all events, P(ES) weight | reco | No hard threshold |
+| `scenario_5_perfect_ct_e_gt_10mev` | true ES, E>10 MeV | reco | High-energy cut |
+| `scenario_6_perfect_ct_e_gt_5mev` | true ES, E>5 MeV | reco | Medium-energy cut |
 
-Run script entrypoint smoke tests (help/CLI coverage for all non-batch wrappers and batch python entrypoint):
+## Output conventions
 
-```bash
-./test/run_scripts_smoke_test.sh
-```
-
-Scenarios are generated from `json/example_config.json` using canonical definitions in `json/six_scenarios.json` and include six legacy-style comparisons:
-
-- `scenario_1_best_case`: true ES selection + true electron direction (reference baseline)
-- `scenario_2_perfect_ct`: true ES selection + reconstructed direction
-- `scenario_3_full_pipeline`: CT-enabled predicted ES selection
-- `scenario_4_weighted_ct`: CT-enabled weighted selection by CT probability
-- `scenario_5_perfect_ct_e_gt_10mev`: true ES with energy threshold `E > 10 MeV`
-- `scenario_6_perfect_ct_e_gt_5mev`: true ES with energy threshold `E > 5 MeV`
-
-Run a subset by name (comma-separated list):
-
-```bash
-SCENARIO_NAMES=scenario_1_best_case,scenario_3_full_pipeline ./test/run_small_sample_pipeline.sh
-```
-
-The runner also generates a combined scenario report:
-
-- `output/test_pipeline_scenarios/scenario_cos_theta_report.pdf`
-- `output/test_pipeline_scenarios/scenario_cos_theta_report.json`
-
-This report shows `cos(theta)` distributions and the 68% quantile for each scenario.
-By default, burst-direction aggregation now uses `emcee`; disable with `--no-emcee` when running `python/ana/scenario_cos_theta_report.py`.
-
-You can regenerate the report without rerunning scenarios:
-
-```bash
-source scripts/init.sh
-python3 python/ana/scenario_cos_theta_report.py \
-	--scenarios-root output/test_pipeline_scenarios \
-	--output-pdf output/test_pipeline_scenarios/scenario_cos_theta_report.pdf
-```
-
-## Common Overrides
-
-```bash
-CAT=cat000002 ./test/run_small_sample_pipeline.sh
-```
-
-```bash
-BASE_CONFIG=/path/to/custom_base_config.json \
-OUTPUT_ROOT=/tmp/pipeline_scenarios \
-./test/run_small_sample_pipeline.sh
-```
+- `test/output/` — runtime artifacts (gitignored except `.gitkeep`)
+- `test/inputs/` — static inputs versioned in git
