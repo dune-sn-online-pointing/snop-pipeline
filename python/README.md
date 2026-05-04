@@ -36,6 +36,7 @@ Most users run via `scripts/*.sh`; those wrappers set environment and invoke the
 - Reads CC and ES NPZ files from configured folders/patterns.
 - Selects by event counts (`n_cc_events`, `n_es_events`) and includes all clusters from selected events.
 - Produces `images`, `metadata`, counts and selection summary artifacts.
+- Optional `cc_vol_folder` / `es_vol_folder` parameters: when provided, the loader also records a `ct_vol_refs` list — one `(file_path, match_id)` tuple per cluster — pointing into the large-format CT volume image files (`cat_volume_images_*/X/*.npz`). These tuples are loaded lazily by the CT tagger (see §4) to avoid loading ~3 GB of volume data into RAM at once.
 
 ### 2) Track-selection stage (current behavior)
 
@@ -53,10 +54,14 @@ Current flow is pass-through (no separate model-based pre-selection yet): select
 `channel_tagger.tag_channels(...)`:
 
 - Loads Keras model (`tf.keras.models.load_model(..., compile=False)`).
-- Predicts ES probability (`y_pred_proba`) for each volume.
-- Applies configurable threshold to classify ES/CC.
+- **Input images**: the CT model was trained on large-format wire-plane volume images (208×1242 pixels), not the small cluster images (128×32) used by the ED model. The correct inputs come from the `cat_volume_images_*` directories — a separate data product.
+- **Two inference paths**:
+  - **`vol_refs` path (default for production)**: receives a list of `(file_path, match_id)` tuples from the sample loader. Loads each source file once and batches all clusters from it, keeping peak RAM usage low (~few hundred MB instead of ~3 GB).
+  - **Pre-loaded path**: falls back to a pre-loaded image array when `vol_refs` is `None`.
+- **Class index convention**: the CT model was trained with ES=0, CC=1. P(ES) is therefore taken from output index 0 for 2-class softmax, or `1 - output[:,0]` for single-sigmoid output.
+- **Preprocessing**: raw ADC values only — no log1p or per-image normalization (matches legacy training).
+- Applies configurable threshold to classify ES/CC; saves `predictions/channel_predictions.npz` and text metrics.
 - Computes confusion matrix, accuracy, precision, recall, specificity, F1, ROC/AUC.
-- Saves predictions/metrics under run outputs (`predictions/channel_predictions.npz`, text metrics).
 
 ### 5) Run report
 
@@ -100,10 +105,14 @@ This is where cluster-level direction information is aggregated into one burst d
 - optional energy threshold (`min_energy_mev`),
 - direction mode (`true` or `reco`).
 
-Current implementation note:
+**Selection mode details**:
 
-- `direction_mode="reco"` reads `predictions/reco_directions.npz` when available and aligned.
-- If missing or invalid, it falls back to true-electron vectors and labels this explicitly as `"true (fallback: reco unavailable)"`.
+- `predicted-es`: keeps only clusters where the CT model predicted ES (binary threshold applied).
+- `true-es`: keeps only ground-truth ES clusters (for benchmark scenarios).
+- `weighted-ct`: keeps **all** clusters; assigns each a weight equal to `P(ES)` from the CT model (`y_pred_proba`). No threshold is applied. Note: with a typical CC:ES ratio of ~10:1 in the full sample, CC events with low but non-zero P(ES) can collectively outweigh the ES signal — this mode works best when the CT model has high AUC.
+- `all`: keeps all clusters with uniform weight.
+
+`direction_mode` note: `"reco"` reads `predictions/reco_directions.npz` when available; falls back to true-electron vectors and labels this as `"true (fallback: reco unavailable)"`.
 
 ### Reco-direction persistence contract (v1)
 
@@ -125,12 +134,12 @@ The intended alignment is one row per cluster/volume in the run output, so burst
 `reconstruct_burst_direction(...)` uses one of two methods:
 
 1. **Default emcee posterior aggregation**
-	 - Parameters from `emcee_cfg`: `nwalkers`, `nsteps`, `discard`, `prior_kappa`, `likelihood_kappa`, `random_seed`.
-	 - Prior center: weighted mean of selected electron directions.
-	 - Prior and likelihood in `_run_emcee(...)`:
-		 - prior term: sphere-uniform Jacobian `log(sin(theta))` + concentration toward prior center,
-		 - likelihood term: weighted directional alignment sum.
-	 - Returns posterior samples, reconstructed direction, acceptance fraction, and derived angular uncertainty metrics.
+	 - Parameters from `emcee_cfg`: `nwalkers`, `nsteps`, `discard`, `prior_type`, `random_seed`.
+	 - **Prior** (controlled by `prior_type` config key):
+		 - `"uniform"` (default): flat prior on the sphere. Walkers are initialized within ±45° of the weighted mean electron direction for fast convergence even when that mean is biased by CC contamination.
+		 - `"gaussian_around_mean"`: Gaussian prior centered on the weighted mean electron direction. Only appropriate for pure-ES samples; with CC contamination the prior locks the posterior on the wrong direction.
+	 - **Likelihood**: uses the energy-dependent `pdf(cos_theta_e | E)` lookup table from `data/cosine_energy_pdf.npz` when `pdf_path` is configured (method label `"emcee+pdf"`); falls back to angle-squared sum otherwise.
+	 - Returns posterior samples, reconstructed direction (mean of post-burn-in flat chain), acceptance fraction, and derived angular uncertainty metrics.
 
 2. **Fallback weighted-mean + bootstrap**
 	 - Used when emcee is disabled/unavailable/fails.

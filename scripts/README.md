@@ -41,6 +41,10 @@ After initialization, run these Python entrypoints:
 - Scenario report:
 	- `python3 python/ana/scenario_cos_theta_report.py --scenarios-root output/test_pipeline_scenarios --output-pdf output/test_pipeline_scenarios/scenario_cos_theta_report.pdf`
 
+### CT volume image auto-detection
+
+`test/run_small_sample_pipeline.sh` automatically looks for a `cat_volume_images_*/X` subfolder inside the CAT directory and, if found, injects `cc_vol_folder` and `es_vol_folder` into the pipeline config. No manual path configuration is needed for Condor runs; the volume folder must exist alongside the cluster-image folders.
+
 ## Condor submission
 
 Condor submission tooling is not under `scripts/`.
