@@ -25,21 +25,23 @@ source scripts/init.sh
 After initialization, run these Python entrypoints:
 
 - Full single-run pipeline:
-	- `python3 scripts/run_pipeline.py -j json/full_pipeline_example_config.json`
+	- `python3 scripts/run_pipeline.py -j json/example_config.json`
 - Production six-scenario run:
 	- `./scripts/run_six_scenarios.sh`
 	- uses `json/six_scenarios.json` as the canonical scenario catalog
 	- optional filter: `SCENARIO_NAMES=scenario_1_best_case,scenario_3_full_pipeline`
 - CT-only:
 	- `python3 scripts/run_ct_inference.py -j json/ct_only_example_config.json`
-- ED-only:
-	- `python3 scripts/run_ed_only.py -j json/ed_only_example_config.json`
-- Batch over many CAT folders:
+- Batch over many CAT folders (single machine):
 	- `python3 python/app/pipeline_batch.py -j json/pipeline_100cats_config.json`
-- Legacy neutrino-energy aggregation:
+- Scenario cos(theta) report from existing scenario outputs:
+	- `python3 python/ana/scenario_cos_theta_report.py json/scenario_analysis_config.json`
+- Per-burst direction report from existing batch runs:
+	- `python3 python/ana/burst_direction_batch_report.py --runs-root output/runs --output-pdf out.pdf --output-json out.json`
+- Aggregate scenario reports across CATs:
+	- `python3 python/ana/aggregate_scenario_reports.py --input-root /path/to/condor/output --output-pdf out.pdf`
+- Neutrino-energy aggregation:
 	- `python3 python/ana/plot_neutrino_energy.py -j json/neutrino_energy_100cats_config.json`
-- Scenario report:
-	- `python3 python/ana/scenario_cos_theta_report.py --scenarios-root output/test_pipeline_scenarios --output-pdf output/test_pipeline_scenarios/scenario_cos_theta_report.pdf`
 
 ### CT volume image auto-detection
 

@@ -161,6 +161,7 @@ def main():
             run_cfg["input_data"]["file_pattern"] = f"*_plane{plane}.npz"
             run_cfg["input_data"]["cc_file_pattern"] = f"cc_*_plane{plane}.npz"
             run_cfg["input_data"]["es_file_pattern"] = f"es_*_plane{plane}.npz"
+            run_cfg["input_data"]["load_all_planes"] = False  # batch uses single X-plane path
 
             run_cfg["sample_selection"]["n_cc_events"] = int(cat_cc)
             run_cfg["sample_selection"]["n_es_events"] = int(cat_es)

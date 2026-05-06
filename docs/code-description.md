@@ -18,12 +18,11 @@ This is the code path that connects model inference to SN burst pointing perform
 - `python/app/`: executable workflows
 	- `pipeline.py`: single-run full chain (selection → volumes → CT → optional ED reco export → report)
 	- `pipeline_batch.py`: multi-CAT orchestration + aggregate summaries + burst-direction report
-	- `ed_inference.py`: ED model inference on selected clusters
-	- `ed_mcmc.py`: per-cluster MCMC refinement based on ED outputs
+	- `ed_inference.py`: ED model inference on selected clusters (standalone, not called by `pipeline.py`)
 - `python/lib/`: core processing utilities used by `pipeline.py`
 	- `sample_loader.py`, `volume_creator.py`, `channel_tagger.py`, `metrics_tracker.py`
 - `python/ana/`: analysis/aggregation/report logic
-	- `report_generator.py`, `burst_direction.py`, `burst_direction_batch_report.py`, etc.
+	- `report_generator.py`, `burst_direction.py`, `burst_direction_batch_report.py`, `scenario_cos_theta_report.py`, `aggregate_scenario_reports.py`, etc.
 
 Most users run via `scripts/*.sh`; those wrappers set environment and invoke these Python entrypoints.
 
@@ -67,11 +66,9 @@ Current flow is pass-through (no separate model-based pre-selection yet): select
 
 `ana.report_generator.generate_report(...)` builds PDF and metrics summary for the run.
 
-## ED model path (`python/app/ed_inference.py` + `python/app/ed_mcmc.py`)
+## ED model path (`python/app/ed_inference.py`)
 
-### ED inference
-
-`ed_inference.py` takes:
+`ed_inference.py` is a standalone script (not called by `pipeline.py`). It takes:
 
 - ED Keras model path,
 - `volumes_npz` (`volumes` + optional `cluster_energy`, `true_direction`),
@@ -82,16 +79,6 @@ It selects clusters by mask, runs model prediction, and writes `ed_inference.npz
 - `cluster_idx`,
 - `ed_raw`,
 - optional aligned arrays (`energy`, `tentative_dirs`, `true_direction`).
-
-### ED per-cluster MCMC refinement
-
-`ed_mcmc.py` interprets `ed_raw` as angular-likelihood bins and runs Metropolis-Hastings per selected cluster around tentative directions.
-
-Outputs include:
-
-- `mean_direction`,
-- `best_direction`,
-- `chain_likes`.
 
 ## Burst-level direction aggregation (`python/ana/burst_direction.py`)
 
@@ -161,14 +148,16 @@ Returned burst-level metrics include:
 
 - discovers CAT folders,
 - distributes requested total CC/ES events across CATs,
-- generates per-CAT pipeline configs,
-- runs single pipeline per CAT,
+- generates per-CAT pipeline configs (deep-copies base config, overrides paths, sets `load_all_planes: false` for single X-plane mode),
+- runs `pipeline.py` as a subprocess per CAT,
 - collects per-CAT selected-event counts from `metrics.json`.
 
 It writes batch-level outputs:
 
 - aggregate JSON (`requested_totals`, `selected_totals`, per-cat rows),
 - aggregate PNG (per-cat + cumulative selected events).
+
+Note: for large-scale production over many CATs, use the Condor scripts (`condor/submit_all_cats.sh` + `condor/run_cat_scenarios.sh`) rather than `pipeline_batch.py` directly. `pipeline_batch.py` is suited for single-machine batch runs of tens of CATs.
 
 ### Multi-burst direction report
 

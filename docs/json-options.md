@@ -4,19 +4,24 @@ This directory contains JSON configuration files for the SNOP pipeline analysis.
 
 ## Configuration Files
 
-### Analysis Configurations
-- **`scenario_analysis_config.json`** - Multi-scenario analysis
-- **`burst_direction_analysis_config.json`** - Burst-level pointing analysis
+### Scenario / Analysis Configurations
+- **`six_scenarios.json`** — canonical catalog of the six benchmark scenarios (read by `run_small_sample_pipeline.sh` and `run_six_scenarios.sh`)
+- **`scenario_analysis_config.json`** — input for `scenario_cos_theta_report.py`
+- **`burst_direction_analysis_config.json`** — input for `burst_direction_batch_report.py`
 
-### Pipeline Configurations  
-- **`example_config.json`** - Main pipeline configuration template
-- **`full_pipeline_example_config.json`** - Complete pipeline configuration
-- **`pipeline_100cats_config.json`** - Batch processing configuration
+### Pipeline Configurations
+- **`example_config.json`** — main single-run pipeline template (source of truth for all scenario runs)
+- **`full_pipeline_example_config.json`** — full pipeline with ED enabled
+- **`pipeline_100cats_config.json`** — batch run over 100 CATs via `pipeline_batch.py`
+- **`pipeline_batch_one_burst_test_config.json`** — single-CAT batch test config
 
 ### Component-Specific Configurations
-- **`ct_example_config.json`** - Channel tagging only
-- **`ed_only_example_config.json`** - Electron direction only
-- **`ct_only_example_config.json`** - CT-only analysis
+- **`ct_only_example_config.json`** — CT inference only (`run_ct_inference.py`)
+- **`ct_example_config.json`** — alternate CT config
+- **`ed_only_example_config.json`** — ED inference only
+
+### Test Configuration
+- **`unit_test_config.json`** — offline unit test using synthetic data in `test/inputs/`; no EOS or model files required
 
 ## Key Configuration Sections
 
@@ -86,21 +91,33 @@ In test/Condor runs, `test/run_small_sample_pipeline.sh` auto-detects `cat_volum
 
 ## Usage Examples
 
-### Scenario Analysis
+### Full single-run pipeline
+```bash
+python3 scripts/run_pipeline.py -j json/example_config.json
+```
+
+### Six-scenario production run
+```bash
+./scripts/run_six_scenarios.sh
+# or for a single CAT test:
+./test/run_small_sample_pipeline.sh
+```
+
+### Scenario cos(theta) report from existing outputs
 ```bash
 python3 python/ana/scenario_cos_theta_report.py json/scenario_analysis_config.json
 ```
 
-### Burst Direction Analysis
-```bash  
-python3 python/ana/burst_direction_batch_report.py json/burst_direction_analysis_config.json
-```
-
-### Full Pipeline
+### Per-burst direction report from batch runs
 ```bash
-python3 scripts/run_pipeline.py json/example_config.json
+python3 python/ana/burst_direction_batch_report.py \
+  --runs-root output/runs \
+  --output-pdf output/burst_report.pdf \
+  --output-json output/burst_report.json \
+  --selection-mode predicted-es
 ```
 
-## Parameter Notes
-
-The `min_energy_mev` parameter controls the minimum energy threshold for cluster selection. A value of 3.0 MeV is recommended for optimal performance as it filters out low-energy clusters that can introduce noise in the reconstruction process.
+### Batch run over many CATs (single machine)
+```bash
+python3 python/app/pipeline_batch.py -j json/pipeline_100cats_config.json
+```
