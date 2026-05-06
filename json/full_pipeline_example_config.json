@@ -16,6 +16,14 @@
       "enabled": true,
       "model_path": "/eos/project-e/ep-nu/evilla/sn-online-pointing/neural-networks/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras",
       "threshold": 0.5
+    },
+    "electron_direction": {
+      "enabled": true,
+      "model_path": "/eos/home-e/evilla/dune/sn-tps/neural_networks/electron_direction/three_plane_three_plane_v58_200k_lr_schedule_20251118_110931/checkpoints/model_epoch_12_val_loss_0.8898.keras",
+      "batch_size": 32,
+      "mcmc_steps": 800,
+      "mcmc_proposal_scale": 0.08,
+      "cleanup_intermediate": false
     }
   },
   "volume_creation": {

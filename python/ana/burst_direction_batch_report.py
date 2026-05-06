@@ -57,6 +57,7 @@ def build_batch_report(
     min_energy_mev: float,
     use_emcee: bool,
     emcee_cfg: dict,
+    pdf_path: str = None,
 ):
     output_pdf.parent.mkdir(parents=True, exist_ok=True)
     output_json.parent.mkdir(parents=True, exist_ok=True)
@@ -74,9 +75,11 @@ def build_batch_report(
         reco = reconstruct_burst_direction(
             selected_dirs=selected["selected_dirs"],
             selected_weights=selected["selected_weights"],
+            selected_energies=selected["selected_energy"],
             true_burst_dir=selected["true_burst_dir"],
             use_emcee=use_emcee,
             emcee_cfg=emcee_cfg,
+            pdf_path=pdf_path,
         )
 
         reco_dir = reco["reco_dir"]
@@ -222,6 +225,7 @@ def main():
     parser.add_argument("--emcee-prior-kappa", type=float, default=25.0)
     parser.add_argument("--emcee-likelihood-kappa", type=float, default=25.0)
     parser.add_argument("--random-seed", type=int, default=42)
+    parser.add_argument("--pdf-path", help="Path to energy-cosine PDF file for PDF-based likelihood")
     args = parser.parse_args()
 
     emcee_cfg = {
@@ -242,6 +246,7 @@ def main():
         min_energy_mev=args.min_energy_mev,
         use_emcee=(not args.no_emcee),
         emcee_cfg=emcee_cfg,
+        pdf_path=args.pdf_path,
     )
 
 

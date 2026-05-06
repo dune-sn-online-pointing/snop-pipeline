@@ -47,9 +47,13 @@ condor/submit_all_cats.dryrun
 # Credentials
 *.cc
 
-# Large files
+# Large files — but allow committed test inputs
 *.npz
+!test/inputs/**/*.npz
 *.root
+
+# Local dependency installs (emcee etc installed via pip --target)
+local_packages/
 
 # Keep only the canonical example JSON config tracked
 json/*.json
@@ -61,3 +65,7 @@ json/*.json
 !json/ct_only_example_config.json
 !json/ed_only_example_config.json
 !json/ed_only_folder_example_config.json
+!json/scenario_analysis_config.json
+!json/burst_direction_analysis_config.json
+!json/six_scenarios.json
+!json/unit_test_config.json

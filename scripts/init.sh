@@ -3,7 +3,9 @@
 # Sets up environment, paths, and helper functions
 # Source this script from other scripts: source $SCRIPTS_DIR/init.sh
 
-set -e
+# Do not force shell options here (especially `set -e`) because this file is
+# sourced by other scripts and interactive shells. Keep initialization robust
+# and self-contained instead.
 
 if [[ "${INIT_DONE:-}" == "true" ]]; then
     return 0 2>/dev/null || exit 0
@@ -34,11 +36,15 @@ if [ -f "$LCG_VIEW/setup.sh" ]; then
     case $- in
         *u*) _snop_had_u=1; set +u ;;
     esac
-    source "$LCG_VIEW/setup.sh"
+    if ! source "$LCG_VIEW/setup.sh"; then
+        echo "⚠ Warning: failed to source LCG environment at $LCG_VIEW/setup.sh"
+        echo "  Continuing with current Python environment"
+    else
+        echo "✓ Sourced LCG environment: $LCG_RELEASE"
+    fi
     if [ "$_snop_had_u" -eq 1 ]; then
         set -u
     fi
-    echo "✓ Sourced LCG environment: $LCG_RELEASE"
 else
     echo "⚠ Warning: LCG environment not found at $LCG_VIEW"
     echo "  Using system Python instead"
@@ -50,6 +56,12 @@ export PYTHONPATH="$PYTHON_DIR:$PYTHONPATH"
 # Add Python app modules to PYTHONPATH
 if [ -d "$PYTHON_DIR/app" ]; then
     export PYTHONPATH="$PYTHON_DIR/app:$PYTHONPATH"
+fi
+
+# Add local packages to PYTHONPATH if it exists
+if [ -d "$REPO_DIR/local_packages" ]; then
+    export PYTHONPATH="$REPO_DIR/local_packages:$PYTHONPATH"
+    echo "✓ Added local_packages to PYTHONPATH"
 fi
 
 # Add online-pointing-utils to PYTHONPATH if it exists
@@ -107,23 +119,32 @@ print_info "JSON configs: $JSON_DIR"
 print_info "Output base (SNOP_OUTPUT_BASE): $SNOP_OUTPUT_BASE"
 
 # Check Python version
-PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
-print_info "Python version: $PYTHON_VERSION"
-
-# Check if TensorFlow is available
-if python3 -c "import tensorflow" 2>/dev/null; then
-    TF_VERSION=$(python3 -c "import tensorflow as tf; print(tf.__version__)" 2>/dev/null)
-    print_success "TensorFlow $TF_VERSION is available"
+if command -v python3 >/dev/null 2>&1; then
+    PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}')
+    print_info "Python version: $PYTHON_VERSION"
 else
-    print_warning "TensorFlow is not available"
+    print_warning "python3 not found in PATH"
 fi
 
-# Check if scikit-learn is available
-if python3 -c "import sklearn" 2>/dev/null; then
-    SKLEARN_VERSION=$(python3 -c "import sklearn; print(sklearn.__version__)" 2>/dev/null)
-    print_success "scikit-learn $SKLEARN_VERSION is available"
+# Optionally skip dependency probes in non-interactive runs to avoid slow imports.
+if [[ "${SNOP_SKIP_DEP_CHECKS:-0}" == "1" ]]; then
+    print_info "Skipping TensorFlow/scikit-learn dependency probes (SNOP_SKIP_DEP_CHECKS=1)"
 else
-    print_warning "scikit-learn is not available"
+    # Check if TensorFlow is available
+    if command -v python3 >/dev/null 2>&1 && python3 -c "import tensorflow" 2>/dev/null; then
+        TF_VERSION=$(python3 -c "import tensorflow as tf; print(tf.__version__)" 2>/dev/null)
+        print_success "TensorFlow $TF_VERSION is available"
+    else
+        print_warning "TensorFlow is not available"
+    fi
+
+    # Check if scikit-learn is available
+    if command -v python3 >/dev/null 2>&1 && python3 -c "import sklearn" 2>/dev/null; then
+        SKLEARN_VERSION=$(python3 -c "import sklearn; print(sklearn.__version__)" 2>/dev/null)
+        print_success "scikit-learn $SKLEARN_VERSION is available"
+    else
+        print_warning "scikit-learn is not available"
+    fi
 fi
 
 export INIT_DONE=true

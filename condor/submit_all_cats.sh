@@ -79,7 +79,7 @@ PY
 
 DEFAULT_SAMPLES_BASE="/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples"
 DEFAULT_CAT_GLOB="cat[0-9][0-9][0-9][0-9][0-9][0-9]"
-DEFAULT_OUTPUT_BASE="output/condor_scenarios"
+DEFAULT_OUTPUT_BASE="output/condor_scenarios_corrected"
 
 JSON_SAMPLES_BASE="$(json_get_or_default "${PIPELINE_BATCH_JSON}" "pipeline_batch.samples.base_dir" "${DEFAULT_SAMPLES_BASE}")"
 JSON_CAT_GLOB="$(json_get_or_default "${PIPELINE_BATCH_JSON}" "pipeline_batch.samples.cat_glob" "${DEFAULT_CAT_GLOB}")"
@@ -88,26 +88,27 @@ JSON_OUTPUT_BASE="$(json_get_or_default "${PIPELINE_BATCH_JSON}" "pipeline_batch
 SAMPLES_BASE="${SAMPLES_BASE:-${JSON_SAMPLES_BASE}}"
 CAT_GLOB="${CAT_GLOB:-${JSON_CAT_GLOB}}"
 CAT_LIMIT="${CAT_LIMIT:-0}"
-TEST_N_CC="${TEST_N_CC:-1000}"
-TEST_N_ES="${TEST_N_ES:-100}"
+TEST_N_CC="${TEST_N_CC:-3300}"
+TEST_N_ES="${TEST_N_ES:-330}"
 OUTPUT_BASE="${OUTPUT_BASE:-${JSON_OUTPUT_BASE}}"
+BASE_CONFIG="${BASE_CONFIG:-${REPO_DIR}/json/example_config.json}"
 REQUEST_CPUS="${REQUEST_CPUS:-1}"
 REQUEST_MEMORY="${REQUEST_MEMORY:-8 GB}"
 REQUEST_DISK="${REQUEST_DISK:-4 GB}"
 JOB_FLAVOUR="${JOB_FLAVOUR:-workday}"
 CATS_PER_JOB="${CATS_PER_JOB:-5}"
-MAX_MATERIALIZE="${MAX_MATERIALIZE:-5}"
-MAX_IDLE="${MAX_IDLE:-5}"
 DRY_RUN="${DRY_RUN:-0}"
 USER_NAME="${USER_NAME:-$(id -un)}"
 SUBMIT_TAG="${SUBMIT_TAG:-$(date +%Y%m%d_%H%M%S)}"
-LOG_DIR_REL="${LOG_DIR_REL:-condor/logs/${SUBMIT_TAG}}"
+LOG_DIR_REL="${LOG_DIR_REL:-/tmp/${USER_NAME}/snop_condor_logs/${SUBMIT_TAG}}"
 CAT_LIST_REL="${CAT_LIST_REL:-condor/cat_list.txt}"
 PENDING_CAT_LIST_REL="${PENDING_CAT_LIST_REL:-condor/cat_list_pending.txt}"
 CAT_GROUP_LIST_REL="${CAT_GROUP_LIST_REL:-condor/cat_group_list.txt}"
 SUCCESS_MARKER_REL="${SUCCESS_MARKER_REL:-scenario_cos_theta_report.json}"
 GENERATED_SUB_REL="${GENERATED_SUB_REL:-condor/submit_all_cats.generated.sub}"
 PROC_CAT_MAP_REL="${PROC_CAT_MAP_REL:-condor/proc_cat_map.txt}"
+CONDOR_STDOUT="${CONDOR_STDOUT:-/dev/null}"
+CONDOR_STDERR="${CONDOR_STDERR:-/dev/null}"
 
 if [[ "${OUTPUT_BASE}" != /* ]]; then
   OUTPUT_BASE_ABS="${REPO_DIR}/${OUTPUT_BASE}"
@@ -256,19 +257,17 @@ arguments             = bash ${REPO_DIR}/condor/run_cat_scenarios.sh \$(cat_grou
 initialdir            = ${REPO_DIR}
 should_transfer_files = NO
 
-output                = ${LOG_DIR_ABS}/job_\$(ClusterId)_\$(ProcId).out
-error                 = ${LOG_DIR_ABS}/job_\$(ClusterId)_\$(ProcId).err
+output                = \$(CONDOR_STDOUT)
+error                 = \$(CONDOR_STDERR)
 log                   = ${LOG_DIR_ABS}/job_\$(ClusterId)_\$(ProcId).log
 
 request_cpus          = \$(REQUEST_CPUS)
 request_memory        = \$(REQUEST_MEMORY)
 request_disk          = \$(REQUEST_DISK)
 +JobFlavour           = "\$(JOB_FLAVOUR)"
-max_materialize       = \$(MAX_MATERIALIZE)
-max_idle              = \$(MAX_IDLE)
 
 batch_name            = "snop-all-cats-${USER_NAME}"
-environment           = "TEST_N_CC=\$(TEST_N_CC) TEST_N_ES=\$(TEST_N_ES) OUTPUT_BASE=\$(OUTPUT_BASE)"
+environment           = "TEST_N_CC=\$(TEST_N_CC) TEST_N_ES=\$(TEST_N_ES) OUTPUT_BASE=\$(OUTPUT_BASE) BASE_CONFIG=\$(BASE_CONFIG)"
 
 queue cat_group from ${CAT_GROUP_LIST_ABS}
 EOF
@@ -278,12 +277,13 @@ submit_cmd=(
   TEST_N_CC="${TEST_N_CC}"
   TEST_N_ES="${TEST_N_ES}"
   OUTPUT_BASE="${OUTPUT_BASE_ABS}"
+  BASE_CONFIG="${BASE_CONFIG}"
+  CONDOR_STDOUT="${CONDOR_STDOUT}"
+  CONDOR_STDERR="${CONDOR_STDERR}"
   REQUEST_CPUS="${REQUEST_CPUS}"
   REQUEST_MEMORY="${REQUEST_MEMORY}"
   REQUEST_DISK="${REQUEST_DISK}"
   JOB_FLAVOUR="${JOB_FLAVOUR}"
-  MAX_MATERIALIZE="${MAX_MATERIALIZE}"
-  MAX_IDLE="${MAX_IDLE}"
   "${GENERATED_SUB_ABS}"
 )
 
@@ -298,18 +298,19 @@ else
   cluster_id="$(printf '%s\n' "${submit_output}" | grep -oE 'cluster[[:space:]]+[0-9]+' | awk '{print $2}' | tail -n1 || true)"
   if [[ -n "${cluster_id}" ]]; then
     cluster_artifacts_dir="${REPO_DIR}/condor/submissions/${cluster_id}"
-    mkdir -p "${cluster_artifacts_dir}"
-    cp "${PROC_CAT_MAP_ABS}" "${cluster_artifacts_dir}/proc_cat_map.txt"
-    cp "${CAT_GROUP_LIST_ABS}" "${cluster_artifacts_dir}/cat_group_list.txt"
-    cp "${GENERATED_SUB_ABS}" "${cluster_artifacts_dir}/submit_all_cats.generated.sub"
+    if mkdir -p "${cluster_artifacts_dir}" 2>/dev/null; then
+      cp "${PROC_CAT_MAP_ABS}" "${cluster_artifacts_dir}/proc_cat_map.txt" 2>/dev/null || true
+      cp "${CAT_GROUP_LIST_ABS}" "${cluster_artifacts_dir}/cat_group_list.txt" 2>/dev/null || true
+      cp "${GENERATED_SUB_ABS}" "${cluster_artifacts_dir}/submit_all_cats.generated.sub" 2>/dev/null || true
+      echo "Proc→CAT map: ${cluster_artifacts_dir}/proc_cat_map.txt"
+      echo "Submit artifacts: ${cluster_artifacts_dir}"
+    else
+      echo "Warning: could not write submit artifacts under ${cluster_artifacts_dir} (likely quota)."
+    fi
 
     echo "Cluster ID: ${cluster_id}"
-    echo "Proc→CAT map: ${cluster_artifacts_dir}/proc_cat_map.txt"
     echo "Log directory: ${LOG_DIR_ABS}"
-    echo "Submit artifacts: ${cluster_artifacts_dir}"
-    echo "Note: With late materialization, condor_q shows only materialized ProcIds."
-    echo "Check factory summary: condor_q -factory ${cluster_id}"
-    echo "Check visible jobs:    condor_q ${cluster_id} -nobatch"
+    echo "Check queue: condor_q ${cluster_id} -nobatch"
   fi
 fi
 

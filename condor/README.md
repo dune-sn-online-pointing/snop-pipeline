@@ -8,6 +8,23 @@ This folder provides a tidy HTCondor flow to run the 6-scenario pipeline test fo
 ./condor/submit_all_cats.sh
 ```
 
+One-command submit + wait + aggregate (recommended for long campaigns):
+
+```bash
+./condor/submit_wait_aggregate.sh \
+  --samples-base /eos/user/e/evilla/dune/sn-tps/sn-burst-samples \
+  --output-base output/condor_scenarios_corrected
+```
+
+Submit only (no waiting, no aggregation):
+
+```bash
+./condor/submit_wait_aggregate.sh \
+  --samples-base /eos/user/e/evilla/dune/sn-tps/sn-burst-samples \
+  --output-base output/condor_scenarios_corrected \
+  --no-wait
+```
+
 The script now auto-generates a submission file at runtime:
 
 - `condor/submit_all_cats.generated.sub`
@@ -39,6 +56,29 @@ TEST_N_ES=100 \
 ./condor/submit_all_cats.sh
 ```
 
+Run only a subset of scenarios for all submitted CATs:
+
+```bash
+SCENARIO_NAMES=scenario_1_best_case,scenario_3_full_pipeline ./condor/submit_all_cats.sh
+```
+
+Use a custom scenario catalog:
+
+```bash
+SCENARIO_CATALOG=/path/to/custom_scenarios.json ./condor/submit_all_cats.sh
+```
+
+Condor event logs (`job_*.log`) default to:
+
+- `/tmp/<user>/snop_condor_logs/<submit_tag>/`
+
+To avoid AFS quota holds from huge stdout/stderr, submission now defaults to:
+
+- `CONDOR_STDOUT=/dev/null`
+- `CONDOR_STDERR=/dev/null`
+
+You can override these if needed for debugging.
+
 Submit fewer/more CATs per Condor job:
 
 ```bash
@@ -69,19 +109,9 @@ Resource/flavour overrides:
 REQUEST_CPUS=1 REQUEST_MEMORY="10 GB" REQUEST_DISK="6 GB" JOB_FLAVOUR="tomorrow" ./condor/submit_all_cats.sh
 ```
 
-AFS-load throttling (recommended for large campaigns):
+Queue visibility:
 
 ```bash
-MAX_MATERIALIZE=5 MAX_IDLE=5 ./condor/submit_all_cats.sh
-```
-
-This limits how many jobs are materialized/idle at once, reducing concurrent load on AFS-backed working directories and log writes.
-
-When throttling is enabled, `condor_q <cluster>` may show only a subset of ProcIds (materialized jobs).
-Use:
-
-```bash
-condor_q -factory <cluster_id>
 condor_q <cluster_id> -nobatch
 ```
 
@@ -95,6 +125,15 @@ This produces per-CAT artifacts including:
 
 - `<OUTPUT_BASE>/<cat>/scenario_cos_theta_report.pdf`
 - `<OUTPUT_BASE>/<cat>/scenario_cos_theta_report.json`
+
+To reduce storage usage, scenario subfolders (`scenario_*`) are now pruned after
+the CAT-level report is generated. The per-CAT summary files above are kept.
+
+Disable pruning for debugging by setting:
+
+```bash
+PRUNE_SCENARIO_OUTPUTS=0 ./condor/submit_all_cats.sh
+```
 
 ## 2) Aggregate all finished CAT reports
 

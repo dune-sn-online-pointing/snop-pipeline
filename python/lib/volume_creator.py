@@ -176,44 +176,64 @@ def create_volumes(images, metadata, pointing_utils_dir, output_dir,
 
 def create_volumes_simple(images, metadata, output_dir, verbose=False):
     """
-    Simple volume creation without external scripts (placeholder).
-    
-    This is a simplified version that just repackages the 2D images as "volumes"
-    for testing purposes. In production, use create_volumes() which calls the
-    proper online-pointing-utils scripts.
-    
+    Simple volume creation without external scripts.
+
+    Handles both single-plane and 3-plane input data.
+
     Args:
-        images: Cluster images (N, H, W, C)
-        metadata: Cluster metadata (N, 13)
+        images: Cluster images - either (N, H, W) array or dict with 'X', 'U', 'V' keys
+        metadata: Cluster metadata (N, 13+)
         output_dir: Directory to save volume data
         verbose: Print progress
-        
+
     Returns:
-        dict with volume data (same as input for now)
+        dict with volume data
     """
-    
     if verbose:
         print(f"\nVolume Creation (Simple Mode):")
-        print(f"  Input clusters: {len(images)}")
-        print(f"  WARNING: Using simplified volume creation for testing")
-    
+
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
-    
-    # In simple mode, just save the 2D images as "volumes"
-    # In production, these would be actual 3D volumes
-    output_file = output_path / "volumes.npz"
-    np.savez(output_file, images=images, metadata=metadata)
-    
+
+    # Check if 3-plane mode
+    if isinstance(images, dict) and 'X' in images:
+        three_plane_mode = True
+        n_samples = len(images['X'])
+        if verbose:
+            print(f"  Input clusters: {n_samples} (3-plane mode: X, U, V)")
+            print(f"  Image shapes: X={images['X'].shape}, U={images['U'].shape}, V={images['V'].shape}")
+
+        # Save all three planes
+        output_file = output_path / "volumes.npz"
+        np.savez(output_file,
+                 images_x=images['X'],
+                 images_u=images['U'],
+                 images_v=images['V'],
+                 metadata=metadata)
+
+        volume_shape = images['X'][0].shape
+    else:
+        three_plane_mode = False
+        n_samples = len(images)
+        if verbose:
+            print(f"  Input clusters: {n_samples} (single-plane mode)")
+
+        output_file = output_path / "volumes.npz"
+        np.savez(output_file, images=images, metadata=metadata)
+
+        volume_shape = images[0].shape
+
     if verbose:
-        print(f"  ✓ Saved {len(images)} 'volumes' to {output_file}")
-        print(f"    (Note: These are still 2D images, not true 3D volumes)")
-    
+        print(f"  ✓ Saved {n_samples} 'volumes' to {output_file}")
+        if not three_plane_mode:
+            print(f"    (Note: These are still 2D images, not true 3D volumes)")
+
     return {
         'images': images,
         'metadata': metadata,
-        'n_volumes': len(images),
-        'n_input_clusters': len(images),
-        'volume_shape': images[0].shape,
-        'success_rate': 1.0
+        'n_volumes': n_samples,
+        'n_input_clusters': n_samples,
+        'volume_shape': volume_shape,
+        'success_rate': 1.0,
+        'three_plane_mode': three_plane_mode
     }

@@ -1,0 +1,24 @@
+{
+  "analysis": {
+    "runs_root": "output/pipeline_100cats",
+    "output_pdf": "output/burst_direction_analysis.pdf", 
+    "output_json": "output/burst_direction_analysis.json",
+    "selection_mode": "predicted-es",
+    "direction_mode": "reco",
+    "min_energy_mev": 3.0,
+    "emcee": {
+      "enabled": true,
+      "nwalkers": 128,
+      "nsteps": 500,
+      "discard": 100,
+      "prior_kappa": 25.0,
+      "likelihood_kappa": 25.0,
+      "random_seed": 42
+    },
+    "description": "Burst direction analysis with energy filtering"
+  },
+  "metadata": {
+    "purpose": "Analysis of burst-level pointing performance",
+    "note": "min_energy_mev=3.0 recommended for noise reduction"
+  }
+}

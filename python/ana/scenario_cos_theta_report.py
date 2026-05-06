@@ -60,7 +60,7 @@ def _format_q(value):
     return f"{value:.2f}"
 
 
-def build_report(scenarios_root: Path, output_pdf: Path, default_selection_mode: str, use_emcee: bool, emcee_cfg: dict):
+def build_report(scenarios_root: Path, output_pdf: Path, default_selection_mode: str, use_emcee: bool, emcee_cfg: dict, pdf_path: str = None, min_energy_mev: float = 0.0):
     scenario_dirs = sorted([p for p in scenarios_root.iterdir() if p.is_dir() and p.name.startswith("scenario_")])
     if not scenario_dirs:
         raise RuntimeError(f"No scenario_* directories found in {scenarios_root}")
@@ -80,46 +80,59 @@ def build_report(scenarios_root: Path, output_pdf: Path, default_selection_mode:
 
         selection_mode = scenario_settings.get("selection_mode", default_selection_mode)
         direction_mode = scenario_settings.get("direction_mode", "reco")
-        min_energy_mev = float(scenario_settings.get("min_energy_mev", 0.0))
+        scenario_min_energy = float(scenario_settings.get("min_energy_mev", min_energy_mev))
         scenario_label = scenario_settings.get("label", scenario_dir.name)
+        # ct_threshold: re-threshold from stored probabilities if the scenario config specifies one
+        ct_threshold = scenario_settings.get("ct_threshold")
+        ct_threshold = float(ct_threshold) if ct_threshold is not None else None
 
         selected = select_electrons_from_run(
             latest_run,
             selection_mode=selection_mode,
             direction_mode=direction_mode,
-            min_energy_mev=min_energy_mev,
+            min_energy_mev=scenario_min_energy,
+            ct_threshold=ct_threshold,
         )
 
         reco = reconstruct_burst_direction(
             selected_dirs=selected["selected_dirs"],
             selected_weights=selected["selected_weights"],
+            selected_energies=selected["selected_energy"],
             true_burst_dir=selected["true_burst_dir"],
             use_emcee=use_emcee,
             emcee_cfg=emcee_cfg,
+            pdf_path=pdf_path,
         )
 
         theta_deg = reco["theta_samples_deg"]
-        cos_theta = np.cos(np.radians(theta_deg)) if theta_deg.size > 0 else np.array([], dtype=np.float64)
+        reco_dir = reco["reco_dir"]
 
+        # Compute the PRIMARY metric: cos(angle between reconstructed and true direction)
+        # This is a SINGLE value per CAT, used for cross-CAT aggregate distributions
+        if reco_dir is not None:
+            cos_to_truth = float(np.clip(np.dot(reco_dir, selected["true_burst_dir"]), -1.0, 1.0))
+        else:
+            cos_to_truth = float("nan")
+
+        # For the angular error distribution (MCMC uncertainty quantification)
         if theta_deg.size > 0:
             q50_theta = float(np.quantile(theta_deg, 0.50))
             q68_theta = float(np.quantile(theta_deg, 0.68))
+            # q68_cos represents cos(68th-percentile angular error), for display purposes
             q68_cos = float(np.cos(np.radians(q68_theta)))
-            forward_frac = float(np.mean(cos_theta > 0))
+            forward_frac = float(np.mean(np.cos(np.radians(theta_deg)) > 0))
         else:
             q50_theta = float("nan")
             q68_theta = float("nan")
             q68_cos = float("nan")
             forward_frac = float("nan")
 
+        # For plotting: keep theta_deg for per-CAT angular uncertainty distributions
+        # But for aggregate cos(theta) histogram: use cos_to_truth (single value per CAT)
+        cos_theta = np.array([cos_to_truth], dtype=np.float64)  # Single value, not MCMC samples
+
         metrics = _load_metrics(latest_run)
         ct_accuracy = metrics.get("steps", {}).get("channel_tagging", {}).get("performance", {}).get("accuracy")
-
-        reco_dir = reco["reco_dir"]
-        if reco_dir is None:
-            cos_to_truth = float("nan")
-        else:
-            cos_to_truth = float(np.clip(np.dot(reco_dir, selected["true_burst_dir"]), -1.0, 1.0))
 
         report_rows.append(
             {
@@ -129,7 +142,7 @@ def build_report(scenarios_root: Path, output_pdf: Path, default_selection_mode:
                 "selection_mode": selection_mode,
                 "direction_mode": direction_mode,
                 "direction_mode_used": selected["direction_mode_used"],
-                "min_energy_mev": min_energy_mev,
+                "min_energy_mev": scenario_min_energy,
                 "n_selected": selected["n_selected"],
                 "aggregation_method": reco["method"],
                 "acceptance_fraction": reco["acceptance_fraction"],
@@ -334,39 +347,46 @@ def build_report(scenarios_root: Path, output_pdf: Path, default_selection_mode:
 def main():
     _require_init_done()
 
-    parser = argparse.ArgumentParser(description="Build scenario PDF report with burst-level pointing aggregation")
-    parser.add_argument("--scenarios-root", default="output/test_pipeline_scenarios", help="Root folder containing scenario_* directories")
-    parser.add_argument("--output-pdf", default="output/test_pipeline_scenarios/scenario_cos_theta_report.pdf", help="Output PDF path")
-    parser.add_argument(
-        "--selection-mode",
-        choices=["predicted-es", "true-es", "all", "weighted-ct"],
-        default="predicted-es",
-        help="Default fallback selection mode when scenario config has no reporting.selection_mode",
-    )
-    parser.add_argument("--no-emcee", action="store_true", help="Disable emcee and use weighted mean + bootstrap")
-    parser.add_argument("--emcee-nwalkers", type=int, default=64)
-    parser.add_argument("--emcee-nsteps", type=int, default=2000)
-    parser.add_argument("--emcee-discard", type=int, default=400)
-    parser.add_argument("--emcee-prior-kappa", type=float, default=25.0)
-    parser.add_argument("--emcee-likelihood-kappa", type=float, default=25.0)
-    parser.add_argument("--random-seed", type=int, default=42)
+    parser = argparse.ArgumentParser(description="Generate scenario analysis report from JSON config")
+    parser.add_argument("config_path", help="Path to JSON configuration file")
     args = parser.parse_args()
 
-    emcee_cfg = {
-        "nwalkers": args.emcee_nwalkers,
-        "nsteps": args.emcee_nsteps,
-        "discard": args.emcee_discard,
-        "prior_kappa": args.emcee_prior_kappa,
-        "likelihood_kappa": args.emcee_likelihood_kappa,
-        "random_seed": args.random_seed,
+    # Load configuration from JSON
+    with open(args.config_path, 'r') as f:
+        config = json.load(f)
+    
+    analysis_config = config.get('analysis', {})
+    emcee_cfg = analysis_config.get('emcee', {})
+    
+    # Extract parameters from config
+    scenarios_root = analysis_config.get('scenarios_root', 'output/test_pipeline_scenarios')
+    output_pdf = analysis_config.get('output_pdf', 'scenario_report.pdf') 
+    selection_mode = analysis_config.get('selection_mode', 'predicted-es')
+    min_energy_mev = analysis_config.get('min_energy_mev', 0.0)
+    pdf_path = analysis_config.get('pdf_path', None)
+    use_emcee = emcee_cfg.get('enabled', True)
+    
+    emcee_params = {
+        "nwalkers": emcee_cfg.get("nwalkers", 128),
+        "nsteps": emcee_cfg.get("nsteps", 500),
+        "discard": emcee_cfg.get("discard", 100),
+        "prior_kappa": emcee_cfg.get("prior_kappa", 25.0),
+        "likelihood_kappa": emcee_cfg.get("likelihood_kappa", 25.0),
+        "random_seed": emcee_cfg.get("random_seed", 42),
+        "stretch_a": emcee_cfg.get("stretch_a", 2.0),
     }
 
+    print(f"Running scenario analysis with config: {args.config_path}")
+    print(f"Key parameters: min_energy_mev={min_energy_mev}, emcee_enabled={use_emcee}")
+
     output_pdf, summary_json = build_report(
-        scenarios_root=Path(args.scenarios_root),
-        output_pdf=Path(args.output_pdf),
-        default_selection_mode=args.selection_mode,
-        use_emcee=(not args.no_emcee),
-        emcee_cfg=emcee_cfg,
+        scenarios_root=Path(scenarios_root),
+        output_pdf=Path(output_pdf),
+        default_selection_mode=selection_mode,
+        use_emcee=use_emcee,
+        emcee_cfg=emcee_params,
+        pdf_path=pdf_path,
+        min_energy_mev=min_energy_mev,
     )
 
     print(f"Saved report PDF: {output_pdf}")

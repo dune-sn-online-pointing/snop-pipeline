@@ -9,6 +9,85 @@ try:
 except Exception:
     emcee = None
 
+try:
+    from scipy.interpolate import RegularGridInterpolator
+    print("Warning: scipy version may be incompatible but will try to use it")
+except Exception as e:
+    print(f"Failed to import RegularGridInterpolator: {e}")
+    RegularGridInterpolator = None
+
+
+def load_pdf_interpolator(pdf_path):
+    """Load and create interpolator for energy-cosine PDF (compatible with old pipeline)."""
+    if pdf_path is None or not Path(pdf_path).exists():
+        return None
+    
+    try:
+        data = np.load(pdf_path)
+        pdf_2d = data['pdf_2d']
+        energy_bins = data['energy_bins']  # Shape: (N_energy, 2) with [min, max] for each bin
+        cosine_bin_centers = data['cosine_bin_centers']
+        
+        # Create energy bin centers from min/max ranges
+        energy_centers = energy_bins.mean(axis=1)
+        
+        # Try scipy interpolator first
+        if RegularGridInterpolator is not None:
+            try:
+                interpolator = RegularGridInterpolator(
+                    (energy_centers, cosine_bin_centers),
+                    pdf_2d,
+                    method='linear',
+                    bounds_error=False,
+                    fill_value=1e-10
+                )
+                return interpolator
+            except Exception as e:
+                print(f"Warning: scipy interpolator failed ({e}), using simple interpolation")
+        
+        # Fallback to simple bilinear interpolation
+        def simple_interpolator(points):
+            """Simple bilinear interpolation fallback."""
+            points = np.atleast_2d(points)
+            result = np.full(points.shape[0], 1e-10)
+            
+            for i, (energy, cosine) in enumerate(points):
+                # Find nearest energy bin
+                e_idx = np.searchsorted(energy_centers, energy)
+                e_idx = np.clip(e_idx, 0, len(energy_centers) - 1)
+                
+                # Find nearest cosine bin  
+                c_idx = np.searchsorted(cosine_bin_centers, cosine)
+                c_idx = np.clip(c_idx, 0, len(cosine_bin_centers) - 1)
+                
+                # Simple nearest neighbor for now
+                if 0 <= e_idx < pdf_2d.shape[0] and 0 <= c_idx < pdf_2d.shape[1]:
+                    result[i] = max(pdf_2d[e_idx, c_idx], 1e-10)
+            
+            return result
+        
+        return simple_interpolator
+        
+    except Exception as e:
+        print(f"Warning: Failed to load PDF from {pdf_path}: {e}")
+        return None
+
+
+def _pdf_likelihood(selected_dirs, selected_energies, true_direction, pdf_interpolator):
+    """Compute log-likelihood using PDF (compatible with old pipeline method)."""
+    if pdf_interpolator is None or selected_dirs.shape[0] == 0:
+        return 0.0
+    
+    # Compute cosine angles between predicted directions and true direction
+    cos_angles = np.clip(selected_dirs @ true_direction, -1.0, 1.0)
+    
+    # Evaluate PDF for each cluster
+    points = np.column_stack([selected_energies, cos_angles])
+    pdf_values = pdf_interpolator(points)
+    pdf_values = np.maximum(pdf_values, 1e-10)  # Avoid log(0)
+    
+    return float(np.sum(np.log(pdf_values)))
+
 
 def normalize_rows(vectors):
     vectors = np.asarray(vectors, dtype=np.float64)
@@ -43,12 +122,17 @@ def angles_to_direction(theta, phi):
 
 
 def angular_error_deg(direction_a, direction_b):
+    """Compute angular error in degrees between two direction vectors."""
     a = normalize_vector(direction_a)
     b = normalize_vector(direction_b)
     if a is None or b is None:
         return float("nan")
-    cos_theta = float(np.clip(np.dot(a, b), -1.0, 1.0))
-    return float(np.degrees(np.arccos(cos_theta)))
+    cos_theta = np.clip(np.dot(a, b), -1.0, 1.0)
+    # Handle both scalar and array cases
+    if np.isscalar(cos_theta):
+        return float(np.degrees(np.arccos(cos_theta)))
+    else:
+        return float(np.degrees(np.arccos(cos_theta.item())))
 
 
 def _resolve_direction_inputs(metadata, direction_mode):
@@ -67,18 +151,44 @@ def _resolve_direction_inputs(metadata, direction_mode):
     direction_mode_used = direction_mode
     if direction_mode == "true":
         electron_dirs = normalize_rows(true_electron_vec)
+        electron_valid = true_electron_valid
     elif direction_mode == "reco":
-        # Reconstructed ED directions are not persisted in current refactor run outputs yet.
-        # Keep deterministic fallback and expose it in reports.
+        # Placeholder; caller must provide reconstructed vectors from persisted contract.
         electron_dirs = normalize_rows(true_electron_vec)
-        direction_mode_used = "true (fallback: reco unavailable)"
+        electron_valid = np.zeros(metadata.shape[0], dtype=bool)
     else:
         raise ValueError(f"Unsupported direction_mode: {direction_mode}")
 
-    return electron_dirs, true_electron_valid, true_burst_dir, direction_mode_used
+    return electron_dirs, electron_valid, true_burst_dir, direction_mode_used
 
 
-def select_electrons_from_run(run_dir: Path, selection_mode: str, direction_mode: str, min_energy_mev: float):
+def _load_reco_dirs_from_run(run_dir: Path, n_rows: int):
+    reco_path = Path(run_dir) / "predictions" / "reco_directions.npz"
+    if not reco_path.exists():
+        return None, None
+
+    data = np.load(reco_path, allow_pickle=True)
+    if "reco_dirs" not in data:
+        return None, None
+
+    reco_dirs = np.asarray(data["reco_dirs"], dtype=np.float64)
+    if reco_dirs.ndim != 2 or reco_dirs.shape[1] != 3:
+        return None, None
+    if reco_dirs.shape[0] != n_rows:
+        return None, None
+
+    reco_dirs = normalize_rows(reco_dirs)
+    reco_valid = np.isfinite(reco_dirs).all(axis=1) & (np.linalg.norm(reco_dirs, axis=1) > 0)
+
+    if "has_reco" in data:
+        has_reco = np.asarray(data["has_reco"]).astype(bool)
+        if has_reco.shape[0] == n_rows:
+            reco_valid = reco_valid & has_reco
+
+    return reco_dirs, reco_valid
+
+
+def select_electrons_from_run(run_dir: Path, selection_mode: str, direction_mode: str, min_energy_mev: float, ct_threshold: float = None):
     run_dir = Path(run_dir)
     vol_path = run_dir / "volume_images" / "volumes.npz"
     if not vol_path.exists():
@@ -93,6 +203,19 @@ def select_electrons_from_run(run_dir: Path, selection_mode: str, direction_mode
         metadata, direction_mode
     )
 
+    if direction_mode == "reco":
+        reco_dirs, reco_valid = _load_reco_dirs_from_run(run_dir, metadata.shape[0])
+        if reco_dirs is not None and np.any(reco_valid):
+            electron_dirs = reco_dirs
+            valid_electron = reco_valid
+            direction_mode_used = "reco"
+        else:
+            raise RuntimeError(
+                f"direction_mode='reco' requested but reco_directions.npz not found or contains no valid "
+                f"directions in {run_dir}/predictions/. "
+                "Make sure electron_direction is enabled in the pipeline config."
+            )
+
     # Cluster reconstructed energy (already e3p0-cut upstream in data production).
     energy = metadata[:, 10] if metadata.shape[1] > 10 else np.full(metadata.shape[0], np.nan)
 
@@ -102,12 +225,22 @@ def select_electrons_from_run(run_dir: Path, selection_mode: str, direction_mode
         pred_file = run_dir / "predictions" / "channel_predictions.npz"
         if pred_file.exists():
             pred_data = np.load(pred_file, allow_pickle=True)
-            y_pred = np.asarray(pred_data["y_pred"]).astype(int)
-            if y_pred.shape[0] != metadata.shape[0]:
-                raise ValueError(
-                    f"Prediction length mismatch in {pred_file}: {y_pred.shape[0]} vs {metadata.shape[0]}"
-                )
-            mask = y_pred == 1
+            # Re-threshold from stored probabilities if a custom threshold is requested,
+            # otherwise use the stored binary predictions (baked in at pipeline time).
+            if ct_threshold is not None and "y_pred_proba" in pred_data:
+                y_pred_proba = np.asarray(pred_data["y_pred_proba"]).astype(float)
+                if y_pred_proba.shape[0] != metadata.shape[0]:
+                    raise ValueError(
+                        f"Prediction length mismatch in {pred_file}: {y_pred_proba.shape[0]} vs {metadata.shape[0]}"
+                    )
+                mask = y_pred_proba >= ct_threshold
+            else:
+                y_pred = np.asarray(pred_data["y_pred"]).astype(int)
+                if y_pred.shape[0] != metadata.shape[0]:
+                    raise ValueError(
+                        f"Prediction length mismatch in {pred_file}: {y_pred.shape[0]} vs {metadata.shape[0]}"
+                    )
+                mask = y_pred == 1
         else:
             mask = metadata[:, 3].astype(int) == 1
     elif selection_mode == "weighted-ct":
@@ -119,6 +252,8 @@ def select_electrons_from_run(run_dir: Path, selection_mode: str, direction_mode
                 raise ValueError(
                     f"Prediction length mismatch in {pred_file}: {y_pred_proba.shape[0]} vs {metadata.shape[0]}"
                 )
+            # Use ALL events; weight each by P(ES) so CC-like events contribute minimally.
+            # No hard threshold — this is the point of weighted-ct vs predicted-es.
             weights = np.clip(y_pred_proba, 0.0, 1.0)
             mask = np.ones(metadata.shape[0], dtype=bool)
         else:
@@ -170,67 +305,139 @@ def _theta_samples_from_bootstrap(selected_dirs, selected_weights, true_burst_di
     return theta_samples[np.isfinite(theta_samples)]
 
 
-def _run_emcee(selected_dirs, selected_weights, emcee_cfg):
+
+def _run_emcee(selected_dirs, selected_weights, selected_energies, true_burst_dir, emcee_cfg, pdf_interpolator=None):
     if emcee is None:
         raise RuntimeError("emcee is required but not available")
 
-    nwalkers = int(emcee_cfg.get("nwalkers", 64))
-    nsteps = int(emcee_cfg.get("nsteps", 2000))
-    discard = int(emcee_cfg.get("discard", 400))
-    prior_kappa = float(emcee_cfg.get("prior_kappa", 25.0))
-    likelihood_kappa = float(emcee_cfg.get("likelihood_kappa", 25.0))
+    # Use established MCMC parameters: 128 walkers × 500 steps with 100-step burn-in (20%)
+    nwalkers = int(emcee_cfg.get("nwalkers", 128))
+    nsteps = int(emcee_cfg.get("nsteps", 500))
+    discard = int(emcee_cfg.get("discard", 100))
     random_seed = int(emcee_cfg.get("random_seed", 42))
+
+    # Prior configuration
+    prior_type = emcee_cfg.get("prior_type", "uniform")
+    prior_sigma_deg = float(emcee_cfg.get("prior_sigma_deg", 10.0))
+    prior_sigma_rad = np.radians(prior_sigma_deg)
 
     if nwalkers < 8:
         nwalkers = 8
     if nwalkers % 2 != 0:
         nwalkers += 1
     if discard >= nsteps:
-        discard = max(0, nsteps // 4)
+        discard = max(0, nsteps // 5)  # 20% burn-in
 
-    prior_center = _weighted_mean_direction(selected_dirs, selected_weights)
-    if prior_center is None:
-        raise ValueError("Cannot build prior center from empty selected directions")
+    # Calculate mean electron direction for Gaussian prior
+    mean_electron_dir = _weighted_mean_direction(selected_dirs, selected_weights)
+    if mean_electron_dir is None:
+        mean_electron_dir = np.array([0, 0, 1], dtype=np.float64)  # Fallback
 
-    def _logprior(theta_phi):
-        theta, phi = theta_phi
-        if theta < 0 or theta > np.pi:
+    # Prior: Gaussian around mean direction vs uniform on sphere
+    def _logprior(args):
+        theta, phi = args[0], args[1]
+        if theta < -np.pi or theta > np.pi:
             return -np.inf
-        if phi < -np.pi or phi > np.pi:
+        if phi < 0 or phi > np.pi:
             return -np.inf
-        direction = angles_to_direction(theta, phi)
-        # sin(theta): uniform over sphere; vMF-like concentration around weighted mean
-        return np.log(np.sin(theta) + 1e-12) + prior_kappa * float(np.dot(direction, prior_center))
 
-    def _logpost(theta_phi):
-        lp = _logprior(theta_phi)
+        if prior_type == "gaussian_around_mean":
+            # Gaussian prior centered on mean electron direction
+            direction = np.array([
+                np.sin(phi) * np.cos(theta),
+                np.cos(phi),
+                np.sin(phi) * np.sin(theta)
+            ])
+            cos_angle = np.clip(np.dot(direction, mean_electron_dir), -1.0, 1.0)
+            angular_distance = np.arccos(cos_angle)
+
+            # Gaussian likelihood in angular distance
+            log_gaussian = -0.5 * (angular_distance / prior_sigma_rad) ** 2
+            return log_gaussian + np.log(np.sin(phi) + 1e-12)  # Include Jacobian
+        else:
+            # Uniform prior on sphere (original)
+            return np.log(np.sin(phi) + 1e-12)
+
+    def _logpost(args):
+        lp = _logprior(args)
         if not np.isfinite(lp):
             return -np.inf
-        direction = angles_to_direction(theta_phi[0], theta_phi[1])
-        align = np.clip(selected_dirs @ direction, -1.0, 1.0)
-        ll = likelihood_kappa * float(np.sum(selected_weights * align))
+
+        theta, phi = args[0], args[1]
+        # Direction convention matching original:
+        # x = sin(phi) * cos(theta)
+        # z = sin(phi) * sin(theta)
+        # y = cos(phi)
+        reco_x = np.sin(phi) * np.cos(theta)
+        reco_z = np.sin(phi) * np.sin(theta)
+        reco_y = np.cos(phi)
+        direction = np.array([reco_x, reco_y, reco_z])
+
+        # Use PDF likelihood (matching original loglike_E_weighted)
+        if pdf_interpolator is not None:
+            ll = _pdf_likelihood(selected_dirs, selected_energies, direction, pdf_interpolator)
+        else:
+            # Fallback to angle-squared likelihood (original loglike without PDF)
+            cos_angles = np.clip(selected_dirs @ direction, -1.0, 1.0)
+            angles = np.arccos(cos_angles)
+            ll = -float(np.sum(angles ** 2))
+
         return lp + ll
 
-    theta0, phi0 = direction_to_angles(prior_center)
-    rng = np.random.default_rng(random_seed)
-    p0 = np.empty((nwalkers, 2), dtype=np.float64)
-    p0[:, 0] = np.clip(theta0 + rng.normal(0, 0.15, nwalkers), 1e-5, np.pi - 1e-5)
-    p0[:, 1] = ((phi0 + rng.normal(0, 0.15, nwalkers) + np.pi) % (2 * np.pi)) - np.pi
+    # Initialize walkers around mean electron direction (calculated earlier for prior)
+    if mean_electron_dir is None:
+        # Fallback to uniform initialization if mean direction fails
+        rng = np.random.default_rng(random_seed)
+        p0 = np.empty((nwalkers, 2), dtype=np.float64)
+        p0[:, 0] = -np.pi + rng.random(nwalkers) * 2 * np.pi  # theta in [-pi, pi]
+        p0[:, 1] = rng.random(nwalkers) * np.pi  # phi in [0, pi]
+    else:
+        rng = np.random.default_rng(random_seed)
+        mean_phi_emcee = np.arccos(np.clip(mean_electron_dir[1], -1.0, 1.0))
+        mean_theta_emcee = np.arctan2(mean_electron_dir[2], mean_electron_dir[0])
+        if prior_type == "uniform":
+            # Wide init (45°) near mean direction: fast convergence without being
+            # locked by a contaminated mean (which sits ~55° from truth at worst).
+            init_sigma_rad = np.radians(45.0)
+        else:
+            init_sigma_rad = prior_sigma_rad
+        p0 = np.empty((nwalkers, 2), dtype=np.float64)
+        p0[:, 0] = mean_theta_emcee + rng.normal(0, init_sigma_rad, nwalkers)
+        p0[:, 1] = mean_phi_emcee + rng.normal(0, init_sigma_rad, nwalkers)
+        p0[:, 1] = np.clip(p0[:, 1], 1e-6, np.pi - 1e-6)
+        p0[:, 0] = (p0[:, 0] + np.pi) % (2 * np.pi) - np.pi
 
-    sampler = emcee.EnsembleSampler(nwalkers, 2, _logpost, moves=emcee.moves.StretchMove())
+    # Affine-invariant stretch moves; a=2.0 (default) targets ~23% acceptance.
+    # a=3.0 gives ~8-12% which indicates under-mixing.
+    stretch_a = float(emcee_cfg.get("stretch_a", 2.0))
+    sampler = emcee.EnsembleSampler(nwalkers, 2, _logpost,
+                                   moves=[emcee.moves.StretchMove(a=stretch_a)])
     sampler.run_mcmc(p0, nsteps, progress=False)
 
     flat = sampler.get_chain(discard=discard, flat=True)
     if flat.shape[0] == 0:
         raise RuntimeError("emcee produced no post-burn-in samples")
 
-    sample_dirs = np.array([angles_to_direction(t, p) for t, p in flat], dtype=np.float64)
-    reco_dir = normalize_vector(np.mean(sample_dirs, axis=0))
-    if reco_dir is None:
-        raise RuntimeError("Failed to build reconstructed direction from emcee samples")
+    # Convert samples to Cartesian using same convention as logpost (matching original)
+    # flat[:,0] = theta, flat[:,1] = phi
+    sample_dirs = np.zeros((flat.shape[0], 3), dtype=np.float64)
+    sample_dirs[:, 0] = np.sin(flat[:, 1]) * np.cos(flat[:, 0])  # x = sin(phi)*cos(theta)
+    sample_dirs[:, 1] = np.cos(flat[:, 1])  # y = cos(phi)
+    sample_dirs[:, 2] = np.sin(flat[:, 1]) * np.sin(flat[:, 0])  # z = sin(phi)*sin(theta)
+
+    # Get mean direction (matching original)
+    avg_x = np.mean(sample_dirs[:, 0])
+    avg_y = np.mean(sample_dirs[:, 1])
+    avg_z = np.mean(sample_dirs[:, 2])
+    norm = np.sqrt(avg_x**2 + avg_y**2 + avg_z**2)
+    reco_dir = np.array([avg_x/norm, avg_y/norm, avg_z/norm], dtype=np.float64)
+
+    method_name = "emcee"
+    if pdf_interpolator is not None:
+        method_name = "emcee+pdf"
 
     return {
-        "method": "emcee",
+        "method": method_name,
         "reco_dir": reco_dir,
         "sample_dirs": sample_dirs,
         "acceptance_fraction": float(np.mean(sampler.acceptance_fraction)),
@@ -240,12 +447,15 @@ def _run_emcee(selected_dirs, selected_weights, emcee_cfg):
 def reconstruct_burst_direction(
     selected_dirs,
     selected_weights,
+    selected_energies, 
     true_burst_dir,
     use_emcee=True,
     emcee_cfg=None,
+    pdf_path=None,
 ):
     selected_dirs = np.asarray(selected_dirs, dtype=np.float64)
     selected_weights = np.asarray(selected_weights, dtype=np.float64)
+    selected_energies = np.asarray(selected_energies, dtype=np.float64)
 
     if selected_dirs.shape[0] == 0:
         return {
@@ -256,11 +466,17 @@ def reconstruct_burst_direction(
             "omega68_deg": float("nan"),
             "acceptance_fraction": float("nan"),
         }
+        
+    # Load PDF if path provided
+    pdf_interpolator = None
+    if pdf_path is not None:
+        pdf_interpolator = load_pdf_interpolator(pdf_path)
 
     emcee_cfg = emcee_cfg or {}
     if use_emcee:
         try:
-            emcee_res = _run_emcee(selected_dirs, selected_weights, emcee_cfg)
+            emcee_res = _run_emcee(selected_dirs, selected_weights, selected_energies, 
+                                   true_burst_dir, emcee_cfg, pdf_interpolator)
             theta_samples_deg = np.array([
                 angular_error_deg(sample_dir, true_burst_dir) for sample_dir in emcee_res["sample_dirs"]
             ], dtype=np.float64)
@@ -268,7 +484,7 @@ def reconstruct_burst_direction(
             single_pass = angular_error_deg(emcee_res["reco_dir"], true_burst_dir)
             omega68 = float(np.quantile(theta_samples_deg, 0.68)) if theta_samples_deg.size > 0 else float("nan")
             return {
-                "method": "emcee",
+                "method": emcee_res["method"],
                 "reco_dir": emcee_res["reco_dir"],
                 "theta_samples_deg": theta_samples_deg,
                 "single_pass_theta_deg": single_pass,

@@ -24,19 +24,19 @@
       "aggregate_plot": "output/pipeline_100cats/aggregate_summary.png"
     },
     "condor": {
-      "output_base": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples"
+      "output_base": "output/condor_scenarios_3mev"
     },
     "burst_direction_report": {
       "enabled": true,
       "use_emcee": true,
       "selection_mode": "predicted-es",
       "direction_mode": "reco",
-      "min_energy_mev": 0.0,
+      "min_energy_mev": 3.0,
       "output_pdf": "output/pipeline_100cats/burst_direction_report.pdf",
       "output_json": "output/pipeline_100cats/burst_direction_report.json",
-      "emcee_nwalkers": 64,
-      "emcee_nsteps": 2000,
-      "emcee_discard": 400,
+      "emcee_nwalkers": 128,
+      "emcee_nsteps": 500,
+      "emcee_discard": 100,
       "emcee_prior_kappa": 25.0,
       "emcee_likelihood_kappa": 25.0,
       "random_seed": 42

@@ -74,7 +74,12 @@ class MetricsTracker:
             'n_es_clusters': sample_data['n_es_clusters'],
             'total_clusters': sample_data['total_clusters'],
             'cc_files_used': len(sample_data['cc_files_used']),
-            'es_files_used': len(sample_data['es_files_used'])
+            'es_files_used': len(sample_data['es_files_used']),
+            # Add requested and available counts for transparency
+            'requested_cc_events': sample_data.get('requested_cc_events', 'N/A'),
+            'requested_es_events': sample_data.get('requested_es_events', 'N/A'),
+            'available_cc_events': sample_data.get('available_cc_events', 'N/A'),
+            'available_es_events': sample_data.get('available_es_events', 'N/A')
         }
     
     def add_cluster_selection_metrics(self, selected_data):
