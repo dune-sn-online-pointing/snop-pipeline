@@ -1,0 +1,33 @@
+{
+  "catalog_name": "v80_threshold_scan",
+  "version": 1,
+  "scenarios": [
+    {
+      "name": "scenario_3_v80_t60",
+      "channel_tagger_enabled": true,
+      "channel_tagger_threshold": 0.6,
+      "report_selection_mode": "predicted-es",
+      "report_direction_mode": "reco",
+      "report_min_energy_mev": 5.0,
+      "report_label": "Full pipeline (CT=0.6, E>5MeV)"
+    },
+    {
+      "name": "scenario_3_v80_t70",
+      "channel_tagger_enabled": true,
+      "channel_tagger_threshold": 0.7,
+      "report_selection_mode": "predicted-es",
+      "report_direction_mode": "reco",
+      "report_min_energy_mev": 5.0,
+      "report_label": "Full pipeline (CT=0.7, E>5MeV)"
+    },
+    {
+      "name": "scenario_3_v80_t80",
+      "channel_tagger_enabled": true,
+      "channel_tagger_threshold": 0.8,
+      "report_selection_mode": "predicted-es",
+      "report_direction_mode": "reco",
+      "report_min_energy_mev": 5.0,
+      "report_label": "Full pipeline (CT=0.8, E>5MeV)"
+    }
+  ]
+}
