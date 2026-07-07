@@ -78,9 +78,14 @@ def tag_channels(images, metadata, model_path, threshold=0.5,
     if verbose:
         print(f"  Running predictions...")
 
+    preprocess_mode = _resolve_preprocess_mode(model_path)
+    if verbose:
+        print(f"  Image preprocessing: {preprocess_mode}")
+
     if vol_refs is not None:
         # Memory-efficient path: load volume images file-by-file grouped by source file
-        y_pred_proba = _predict_from_vol_refs(model, vol_refs, n_samples, verbose)
+        y_pred_proba = _predict_from_vol_refs(model, vol_refs, n_samples, verbose,
+                                              preprocess_mode=preprocess_mode)
     else:
         # Pre-loaded images path
         # Handle 3-plane mode: extract X-plane for CT classification
@@ -89,7 +94,8 @@ def tag_channels(images, metadata, model_path, threshold=0.5,
                 print(f"  3-plane mode detected: using X-plane for channel tagging")
             images = images['X']
 
-        images_input = _preprocess_ct_images(np.array(images, dtype=np.float32))
+        images_input = _preprocess_ct_images(np.array(images, dtype=np.float32),
+                                             mode=preprocess_mode)
         y_pred_proba = model.predict(images_input, batch_size=32, verbose=0)
 
     # Normalize to a 1D ES-probability vector.
@@ -148,16 +154,39 @@ def tag_channels(images, metadata, model_path, threshold=0.5,
     }
 
 
-def _preprocess_ct_images(images):
-    """Prepare CT images for model input: add channel dimension only.
-    The ct_volume_v52 model was trained on raw ADC values with no external normalization."""
+def _resolve_preprocess_mode(model_path):
+    """Determine the image preprocessing the CT model was trained with.
+
+    v80+ trainers write a results.json next to best_model.keras with
+    preprocessing.image (e.g. "log1p"). Legacy models (v52..v79 deployments)
+    have no such file and were applied on raw ADC values.
+    """
+    import json
+    results_file = Path(model_path).parent / 'results.json'
+    try:
+        with open(results_file) as f:
+            spec = json.load(f).get('preprocessing', {}).get('image', 'raw')
+        return 'log1p' if str(spec).startswith('log1p') else 'raw'
+    except (OSError, ValueError):
+        return 'raw'
+
+
+def _preprocess_ct_images(images, mode='raw'):
+    """Prepare CT images for model input.
+
+    mode='raw':   add channel dimension only (legacy v52-era models).
+    mode='log1p': np.log1p on ADC values, as used by v80+ trainers
+                  (see refactor-ml-for-pointing docs/CT_v80.md)."""
     images = np.asarray(images, dtype=np.float32)
+    if mode == 'log1p':
+        images = np.log1p(images)
     if images.ndim == 3:
         images = images[..., np.newaxis]  # (N, H, W, 1)
     return images
 
 
-def _predict_from_vol_refs(model, vol_refs, n_samples, verbose=False):
+def _predict_from_vol_refs(model, vol_refs, n_samples, verbose=False,
+                           preprocess_mode='raw'):
     """Load volume images file-by-file and run CT inference, returning probabilities in original order."""
     from collections import defaultdict
 
@@ -190,7 +219,7 @@ def _predict_from_vol_refs(model, vol_refs, n_samples, verbose=False):
 
         if batch_imgs:
             batch_arr = np.array(batch_imgs, dtype=np.float32)
-            batch_arr = _preprocess_ct_images(batch_arr)  # log1p + per-image scale
+            batch_arr = _preprocess_ct_images(batch_arr, mode=preprocess_mode)
             preds = model.predict(batch_arr, batch_size=32, verbose=0)
             preds = np.asarray(preds)
             # Training label encoding: ES=0, CC=1 → class 0 output = P(ES)
