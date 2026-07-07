@@ -1,0 +1,24 @@
+{
+  "catalog_name": "v80_validation_t85_t875",
+  "version": 1,
+  "scenarios": [
+    {
+      "name": "scenario_3_v80_t85",
+      "channel_tagger_enabled": true,
+      "channel_tagger_threshold": 0.85,
+      "report_selection_mode": "predicted-es",
+      "report_direction_mode": "reco",
+      "report_min_energy_mev": 5.0,
+      "report_label": "Full pipeline (CT=0.85, E>5MeV)"
+    },
+    {
+      "name": "scenario_3_v80_t875",
+      "channel_tagger_enabled": true,
+      "channel_tagger_threshold": 0.875,
+      "report_selection_mode": "predicted-es",
+      "report_direction_mode": "reco",
+      "report_min_energy_mev": 5.0,
+      "report_label": "Full pipeline (CT=0.875, E>5MeV)"
+    }
+  ]
+}
