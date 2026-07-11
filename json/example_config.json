@@ -51,7 +51,8 @@
       "nwalkers": 128,
       "nsteps": 500,
       "discard": 100,
-      "prior_type": "uniform",
+      "prior_type": "gaussian_around_mean",
+      "prior_sigma_deg": 10.0,
       "likelihood_kappa": 25.0,
       "random_seed": 42
     },
