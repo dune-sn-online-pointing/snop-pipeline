@@ -1,5 +1,5 @@
 {
-  "catalog_name": "six_scenarios_v80_t085",
+  "catalog_name": "six_scenarios_v80_t080",
   "version": 1,
   "scenarios": [
     {
@@ -23,11 +23,11 @@
     {
       "name": "scenario_3_full_pipeline",
       "channel_tagger_enabled": true,
-      "channel_tagger_threshold": 0.85,
+      "channel_tagger_threshold": 0.8,
       "report_selection_mode": "predicted-es",
       "report_direction_mode": "reco",
       "report_min_energy_mev": 5.0,
-      "report_label": "Full pipeline (CT v80=0.85, E>5MeV)"
+      "report_label": "Full pipeline (CT v80=0.80, E>5MeV)"
     },
     {
       "name": "scenario_4_weighted_ct",
