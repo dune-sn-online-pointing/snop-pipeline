@@ -11,6 +11,10 @@ OUTPUT_ROOT="${OUTPUT_ROOT:-${REPO_DIR}/output/test_pipeline_scenarios}"
 PRUNE_SCENARIO_OUTPUTS="${PRUNE_SCENARIO_OUTPUTS:-1}"
 SCENARIO_CATALOG="${SCENARIO_CATALOG:-${REPO_DIR}/json/six_scenarios.json}"
 SCENARIO_NAMES="${SCENARIO_NAMES:-}"
+# PDF_PATH (env, default = the deployed table) selects the cosine-vs-energy likelihood
+# table used by the scenario burst fit. A retrained ED needs its own table, because the
+# table IS the model's angular resolution. Default unchanged.
+PDF_PATH="${PDF_PATH:-${REPO_DIR}/data/cosine_energy_pdf.npz}"
 
 SAMPLES_BASE="${SAMPLES_BASE:-/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples}"
 NETWORKS_BASE="${NETWORKS_BASE:-/eos/project-e/ep-nu/evilla/sn-online-pointing/neural-networks}"
@@ -48,27 +52,38 @@ run_scenario() {
   local scenario_config="${scenario_dir}/config.json"
   mkdir -p "${scenario_dir}"
 
-  python3 - <<'PY' "${BASE_CONFIG}" "${scenario_config}" "${SAMPLES_BASE}" "${CAT}" "${CT_MODEL_DEFAULT}" "${scenario_dir}" "${n_cc}" "${n_es}" "${ct_enabled}" "${ct_threshold}" "${report_selection_mode}" "${report_direction_mode}" "${report_min_energy_mev}" "${report_label}"
+  python3 - <<'PY' "${BASE_CONFIG}" "${scenario_config}" "${SAMPLES_BASE}" "${CAT}" "${CT_MODEL_DEFAULT}" "${scenario_dir}" "${n_cc}" "${n_es}" "${ct_enabled}" "${ct_threshold}" "${report_selection_mode}" "${report_direction_mode}" "${report_min_energy_mev}" "${report_label}" "${SCENARIO_CATALOG}" "${scenario_name}"
 import json
+import os
 import sys
 from pathlib import Path
 
-base_config, out_config, samples_base, cat, ct_model, scenario_dir, n_cc, n_es, ct_enabled, ct_threshold, report_selection_mode, report_direction_mode, report_min_energy_mev, report_label = sys.argv[1:]
+base_config, out_config, samples_base, cat, ct_model, scenario_dir, n_cc, n_es, ct_enabled, ct_threshold, report_selection_mode, report_direction_mode, report_min_energy_mev, report_label, scenario_catalog, scenario_name = sys.argv[1:]
 
 with open(base_config, "r") as f:
     cfg = json.load(f)
 
 cat_dir = Path(samples_base) / cat
-cluster_candidates = sorted(cat_dir.glob(f"{cat}_cluster_images*/X"))
+# PRODUCT_SUFFIX (env, default empty) selects an alternative product set such as
+# "_matchfix" or "_radmask": only folders whose name ends with the suffix qualify.
+# With it empty the first sorted candidate is used, i.e. the original product
+# ("..._e3p0" sorts before "..._e3p0_<suffix>"), so the default is unchanged.
+_suffix = os.environ.get("PRODUCT_SUFFIX", "").strip()
+def _pick(cands):
+  if _suffix:
+    cands = [c for c in cands if c.parent.name.endswith(_suffix)]
+  return cands
+cluster_candidates = _pick(sorted(cat_dir.glob(f"{cat}_cluster_images*/X")))
 if not cluster_candidates:
-  raise RuntimeError(f"Could not find cluster image X-folder under {cat_dir}")
+  raise RuntimeError(f"Could not find cluster image X-folder under {cat_dir} (PRODUCT_SUFFIX='{_suffix}')")
 
 # Use base folder (parent of X/) for 3-plane matching via match_id (column 13)
 cluster_base_dir = str(cluster_candidates[0].parent)
 
 # Volume images (large format for CT model)
-vol_candidates = sorted(cat_dir.glob(f"{cat}_volume_images*/X"))
+vol_candidates = _pick(sorted(cat_dir.glob(f"{cat}_volume_images*/X")))
 vol_base_dir = str(vol_candidates[0].parent) if vol_candidates else None
+print(f"Products: clusters={cluster_base_dir} volumes={vol_base_dir}")
 
 cfg["input_data"]["cc_folder"] = cluster_base_dir
 cfg["input_data"]["es_folder"] = cluster_base_dir
@@ -96,6 +111,22 @@ cfg["reporting"] = {
   "ct_threshold": float(ct_threshold),
   "label": report_label,
 }
+# Optional per-scenario extras (e.g. the "mixture" block of scenario_7_mixture_ct) are copied
+# verbatim from the catalog entry so the report stage can read them from config.json.
+try:
+  with open(scenario_catalog, "r") as f:
+    _entry = next((s for s in json.load(f).get("scenarios", []) if s.get("name") == scenario_name), {})
+  if isinstance(_entry.get("mixture"), dict):
+    cfg["reporting"]["mixture"] = _entry["mixture"]
+  # Optional per-scenario likelihood table: overrides the run-wide PDF_PATH for THIS
+  # scenario only. Needed when one campaign mixes tables (e.g. the v63 campaign uses a
+  # CC-mixture table for the full-pipeline scenario and v63's own table elsewhere).
+  # Absent from the catalog entry -> PDF_PATH applies, i.e. behaviour is unchanged.
+  if isinstance(_entry.get("pdf_path"), str) and _entry["pdf_path"].strip():
+    cfg["reporting"]["pdf_path"] = _entry["pdf_path"].strip()
+    cfg.setdefault("analysis", {})["pdf_path"] = _entry["pdf_path"].strip()
+except Exception as _exc:  # never fail the run for the optional block
+  print(f"warning: could not read optional catalog extras: {_exc}")
 
 with open(out_config, "w") as f:
     json.dump(cfg, f, indent=2)
@@ -244,7 +275,7 @@ cat > "${SCENARIO_CONFIG}" << EOF
     "selection_mode": "predicted-es",
     "min_energy_mev": 3.0,
     "emcee": ${EMCEE_CONFIG},
-    "pdf_path": "${REPO_DIR}/data/cosine_energy_pdf.npz",
+    "pdf_path": "${PDF_PATH}",
     "description": "Scenario analysis reading MCMC config from ${BASE_CONFIG_PATH}"
   }
 }
@@ -273,6 +304,34 @@ if [[ "${PRUNE_SCENARIO_OUTPUTS}" == "1" ]]; then
   find "${OUTPUT_ROOT}" -path "*/predictions/*" -type f -delete
   # Finally remove scenario directories
   find "${OUTPUT_ROOT}" -mindepth 1 -maxdepth 1 -type d -name 'scenario_*' -exec rm -rf {} +
+elif [[ "${PRUNE_SCENARIO_OUTPUTS}" == "2" ]]; then
+  # Slim mode: keep per-event outputs (predictions/*.npz, metadata) for offline re-evaluation,
+  # drop only the large image arrays. Scenario directories, configs and metrics are kept.
+  echo
+  echo "Slim-pruning intermediate images (PRUNE_SCENARIO_OUTPUTS=2): keeping predictions/ and metadata..."
+  for scenario_dir in "${OUTPUT_ROOT}"/scenario_*/; do
+    if [[ -f "${scenario_dir}/pipeline_run_"*/metrics.json ]]; then
+      scenario_name=$(basename "$scenario_dir")
+      find "${scenario_dir}" -name "metrics.json" -exec cp {} "${OUTPUT_ROOT}/${scenario_name}_metrics.json" \;
+    fi
+  done
+  python3 - "${OUTPUT_ROOT}" <<'PYSLIM'
+import sys
+from pathlib import Path
+import numpy as np
+root = Path(sys.argv[1])
+for vol in root.glob("scenario_*/pipeline_run_*/volume_images/volumes.npz"):
+    data = np.load(vol, allow_pickle=True)
+    keep = {}
+    for key in data.files:
+        arr = data[key]
+        if key == "metadata" or getattr(arr, "nbytes", 0) < 8_000_000:
+            keep[key] = arr
+    np.savez_compressed(vol, **keep)
+    print(f"slimmed {vol}: kept {sorted(keep)}")
+PYSLIM
+  find "${OUTPUT_ROOT}" -path "*/selected_clusters/*.npz" -type f -delete
+  find "${OUTPUT_ROOT}" -path "*/plots/*" -type f -delete
 fi
 
 echo

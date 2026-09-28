@@ -282,6 +282,10 @@ Examples:
         load_all_planes=config['input_data'].get('load_all_planes', False),
         cc_vol_folder=cc_vol_folder,
         es_vol_folder=es_vol_folder,
+        # Budget in GENERATED events (see sample_loader): 'generated' is the default,
+        # 'legacy' reproduces the pre-fix behaviour that loaded every file.
+        event_budget_mode=config['sample_selection'].get('event_budget_mode', 'generated'),
+        events_per_file=config['sample_selection'].get('events_per_file', 40),
     )
     
     metrics.add_sample_selection_metrics(selected_data)

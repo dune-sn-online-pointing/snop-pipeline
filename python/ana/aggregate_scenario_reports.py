@@ -17,6 +17,7 @@ _MIN_SELECTED = {
     "true-es": 200,
     "predicted-es": 100,
     "weighted-ct": 100,
+    "mixture-ct": 100,
 }
 _MIN_SELECTED_DEFAULT = 100
 
@@ -27,6 +28,7 @@ SCENARIO_COLORS = {
     "Weighted CT (predicted ES weights)":   "#8fb3d9",
     "Perfect CT (E > 10 MeV)":             "#b889b8",
     "Perfect CT (E > 5 MeV)":              "#e4d66e",
+    "Mixture CT (all events, calibrated P(ES), grid)": "#6f9fd8",
 }
 _FALLBACK_COLORS = plt.cm.Set2(np.linspace(0, 1, 8))
 
@@ -55,7 +57,9 @@ def _format_num(value, nd=2):
     return f"{value:.{nd}f}"
 
 
-def _build_summary(cat_payloads):
+def _build_summary(cat_payloads, min_selected=None):
+    """min_selected: None keeps the historical per-mode _MIN_SELECTED thresholds;
+    an int applies that single threshold to every mode; 0 disables the filter."""
     scenario_metrics = {}
     filtered_cats = 0
 
@@ -65,7 +69,8 @@ def _build_summary(cat_payloads):
             n_selected = int(row.get("n_selected", 0))
             selection_mode = row.get("selection_mode", "")
 
-            threshold = _MIN_SELECTED.get(selection_mode, _MIN_SELECTED_DEFAULT)
+            threshold = (_MIN_SELECTED.get(selection_mode, _MIN_SELECTED_DEFAULT)
+                         if min_selected is None else int(min_selected))
             if n_selected < threshold:
                 filtered_cats += 1
                 print(f"Filtering {cat_name} ({label}): only {n_selected} events (< {threshold} threshold for {selection_mode})")
@@ -431,7 +436,17 @@ def main():
                         help="Root containing per-cat folders with scenario_cos_theta_report.json")
     parser.add_argument("--output-pdf", required=True)
     parser.add_argument("--output-json", required=True)
+    parser.add_argument("--min-selected", type=int, default=None,
+                        help="Override the per-mode n_selected thresholds with a single "
+                             "value for every selection mode (default: keep the historical "
+                             "200 true-es / 100 others).")
+    parser.add_argument("--no-min-selected", action="store_true",
+                        help="Disable the n_selected filter entirely (equivalent to "
+                             "--min-selected 0). With the 330-event budget the true-es "
+                             "scenarios sit near the 200 threshold, so the default filter "
+                             "would drop a large, biased fraction of the cats.")
     args = parser.parse_args()
+    min_selected = 0 if args.no_min_selected else args.min_selected
 
     input_root = Path(args.input_root)
     if not input_root.exists():
@@ -450,7 +465,7 @@ def main():
         raise RuntimeError(
             f"No valid scenario_cos_theta_report.json found under {input_root}")
 
-    summary = _build_summary(cat_payloads)
+    summary = _build_summary(cat_payloads, min_selected=min_selected)
 
     output_pdf = Path(args.output_pdf)
     output_json = Path(args.output_json)
@@ -462,6 +477,7 @@ def main():
     payload = {
         "input_root": str(input_root),
         "n_cats": len(cat_payloads),
+        "min_selected_override": min_selected,
         "scenarios": summary,
     }
     with open(output_json, "w") as f:

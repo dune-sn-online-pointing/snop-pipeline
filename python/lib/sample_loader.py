@@ -16,7 +16,8 @@ def load_and_select_samples(cc_folder, es_folder, n_cc_events, n_es_events,
                             es_file_pattern=None, shuffle=True,
                             random_seed=42, output_dir=None, verbose=False,
                             load_all_planes=False,
-                            cc_vol_folder=None, es_vol_folder=None):
+                            cc_vol_folder=None, es_vol_folder=None,
+                            event_budget_mode='generated', events_per_file=40):
     """
     Load and select samples from CC and ES folders.
 
@@ -38,6 +39,18 @@ def load_and_select_samples(cc_folder, es_folder, n_cc_events, n_es_events,
         load_all_planes: If True, load X, U, V planes from separate subfolders
         cc_vol_folder: Optional path to pre-computed large-format CT volume images for CC
         es_vol_folder: Optional path to pre-computed large-format CT volume images for ES
+        event_budget_mode: How n_cc_events / n_es_events are counted.
+            'generated' (default): budget in GENERATED events, identity =
+                (file index in sorted order, event number). Files hold
+                `events_per_file` generated events numbered 1..events_per_file, so
+                n_events_target spans n_events_target // events_per_file complete files
+                plus the first (n_events_target % events_per_file) events of the next
+                one. Generated events that leave no matched cluster still count.
+            'legacy': the pre-2026-09 behaviour, a set of bare event numbers. Because
+                event numbers restart at 1 in every file the set saturates at
+                `events_per_file`, the target is never reached and ALL files are loaded.
+                Kept only to reproduce past results.
+        events_per_file: Generated events per input file (40 for the SN burst samples).
 
     Returns:
         dict with selected images, metadata, and statistics
@@ -66,6 +79,8 @@ def load_and_select_samples(cc_folder, es_folder, n_cc_events, n_es_events,
         sample_type='CC', verbose=verbose,
         load_all_planes=load_all_planes,
         vol_folder=cc_vol_folder,
+        event_budget_mode=event_budget_mode,
+        events_per_file=events_per_file,
     )
 
     # Load ES samples
@@ -74,6 +89,8 @@ def load_and_select_samples(cc_folder, es_folder, n_cc_events, n_es_events,
         sample_type='ES', verbose=verbose,
         load_all_planes=load_all_planes,
         vol_folder=es_vol_folder,
+        event_budget_mode=event_budget_mode,
+        events_per_file=events_per_file,
     )
 
     # Combine data
@@ -136,6 +153,12 @@ def load_and_select_samples(cc_folder, es_folder, n_cc_events, n_es_events,
         with open(output_path / 'selection_summary.txt', 'w') as f:
             f.write(f"Sample Selection Summary\n")
             f.write(f"{'='*60}\n\n")
+            f.write(f"Event budget mode: {event_budget_mode} "
+                    f"({events_per_file} generated events/file)\n")
+            f.write(f"CC generated-event budget: {cc_data['n_events_budget']} "
+                    f"over {cc_data['n_files_budget']} files\n")
+            f.write(f"ES generated-event budget: {es_data['n_events_budget']} "
+                    f"over {es_data['n_files_budget']} files\n\n")
             f.write(f"CC Events: {cc_data['n_events']} (requested: {n_cc_events})\n")
             f.write(f"CC Clusters: {cc_data['n_clusters']}\n\n")
             f.write(f"ES Events: {es_data['n_events']} (requested: {n_es_events})\n")
@@ -160,13 +183,20 @@ def load_and_select_samples(cc_folder, es_folder, n_cc_events, n_es_events,
         'total_clusters': len(all_metadata),
         'cc_files_used': cc_data['files_used'],
         'es_files_used': es_data['files_used'],
-        'three_plane_mode': load_all_planes
+        'three_plane_mode': load_all_planes,
+        'event_budget_mode': event_budget_mode,
+        'events_per_file': int(events_per_file),
+        'n_cc_events_budget': cc_data['n_events_budget'],
+        'n_es_events_budget': es_data['n_events_budget'],
+        'n_cc_files_budget': cc_data['n_files_budget'],
+        'n_es_files_budget': es_data['n_files_budget'],
     }
 
 
 def _load_samples_from_folder(folder, n_events_target, file_pattern,
                               sample_type='CC', verbose=False,
-                              load_all_planes=False, vol_folder=None):
+                              load_all_planes=False, vol_folder=None,
+                              event_budget_mode='generated', events_per_file=40):
     """
     Load samples from a single folder until reaching target number of events.
 
@@ -227,8 +257,45 @@ def _load_samples_from_folder(folder, n_events_target, file_pattern,
 
     vol_folder_path = Path(vol_folder) / 'X' if vol_folder else None
 
+    # --- generated-event budget -------------------------------------------------
+    # Event numbers restart at 1..events_per_file in EVERY file, so an event is only
+    # identified by (file index in sorted order, event number). n_events_target
+    # generated events = `n_full_files` complete files plus the first `n_rest` events
+    # of the next one. Generated events whose clusters do not survive matching still
+    # consume the budget, which is the point: a burst is the first N GENERATED events.
+    budget_mode = str(event_budget_mode or 'generated').lower()
+    if budget_mode not in ('generated', 'legacy'):
+        raise ValueError(f"Unsupported event_budget_mode: {event_budget_mode!r} "
+                         "(expected 'generated' or 'legacy')")
+    budget_generated = budget_mode == 'generated'
+    events_per_file = int(events_per_file)
+    if budget_generated and events_per_file < 1:
+        raise ValueError(f"events_per_file must be >= 1, got {events_per_file}")
+    if budget_generated:
+        n_full_files = int(n_events_target) // events_per_file
+        n_rest = int(n_events_target) % events_per_file
+        last_file_idx = n_full_files if n_rest > 0 else n_full_files - 1
+        n_files_budget = last_file_idx + 1
+    else:
+        n_full_files = n_rest = 0
+        last_file_idx = len(files) - 1
+        n_files_budget = len(files)
+
+    def _in_generated_budget(f_idx, ev_num):
+        if f_idx < n_full_files:
+            return True
+        return f_idx == n_full_files and 1 <= ev_num <= n_rest
+
+    if budget_generated and verbose:
+        print(f"  {sample_type}: generated-event budget {n_events_target} = "
+              f"{n_full_files} full files + first {n_rest} events of file {n_full_files + 1} "
+              f"({events_per_file} events/file)")
+
     for file_idx, file_path in enumerate(files):
-        if len(events_seen) >= n_events_target:
+        if budget_generated:
+            if file_idx > last_file_idx:
+                break
+        elif len(events_seen) >= n_events_target:
             break
 
         try:
@@ -279,33 +346,45 @@ def _load_samples_from_folder(folder, n_events_target, file_pattern,
 
                     event_num = int(meta_x[idx_x, 0])
 
-                    if event_num not in events_seen:
-                        if len(events_seen) >= n_events_target:
-                            break
-                        events_seen.add(event_num)
+                    if budget_generated:
+                        if not _in_generated_budget(file_idx, event_num):
+                            continue
+                        events_seen.add((file_idx, event_num))
+                    else:
+                        if event_num not in events_seen:
+                            if len(events_seen) >= n_events_target:
+                                break
+                            events_seen.add(event_num)
+                        if event_num not in events_seen:
+                            continue
 
                     # Include all matched clusters from selected events
-                    if event_num in events_seen:
-                        images_list_x.append(imgs_x[idx_x])
-                        images_list_u.append(imgs_u[idx_u])
-                        images_list_v.append(imgs_v[idx_v])
-                        metadata_list.append(meta_x[idx_x])  # Use X metadata as reference
-                        if vol_file_ref is not None:
-                            # Store (file_path, match_id) reference — loaded lazily by CT tagger
-                            vol_images_list.append((vol_file_ref, match_id))
+                    images_list_x.append(imgs_x[idx_x])
+                    images_list_u.append(imgs_u[idx_u])
+                    images_list_v.append(imgs_v[idx_v])
+                    metadata_list.append(meta_x[idx_x])  # Use X metadata as reference
+                    if vol_file_ref is not None:
+                        # Store (file_path, match_id) reference — loaded lazily by CT tagger
+                        vol_images_list.append((vol_file_ref, match_id))
             else:
                 # Single-plane mode: process all clusters
                 for i in range(len(imgs_x)):
                     event_num = int(meta_x[i, 0])
 
-                    if event_num not in events_seen:
-                        if len(events_seen) >= n_events_target:
-                            break
-                        events_seen.add(event_num)
+                    if budget_generated:
+                        if not _in_generated_budget(file_idx, event_num):
+                            continue
+                        events_seen.add((file_idx, event_num))
+                    else:
+                        if event_num not in events_seen:
+                            if len(events_seen) >= n_events_target:
+                                break
+                            events_seen.add(event_num)
+                        if event_num not in events_seen:
+                            continue
 
-                    if event_num in events_seen:
-                        images_list_x.append(imgs_x[i])
-                        metadata_list.append(meta_x[i])
+                    images_list_x.append(imgs_x[i])
+                    metadata_list.append(meta_x[i])
 
             files_used.append(str(file_path.name))
 
@@ -313,14 +392,22 @@ def _load_samples_from_folder(folder, n_events_target, file_pattern,
                 print(f"    Processed {file_idx + 1}/{len(files)} files, "
                       f"{len(events_seen)} events, {len(images_list_x)} clusters", end='\r')
 
-            if len(events_seen) >= n_events_target:
+            if budget_generated:
+                if file_idx >= last_file_idx:
+                    break
+            elif len(events_seen) >= n_events_target:
                 break
 
         except Exception as e:
             print(f"\n  Warning: Error loading {file_path.name}: {e}")
             continue
 
-    if len(events_seen) < n_events_target:
+    if budget_generated:
+        if len(files) < n_files_budget:
+            print(f"\n  WARNING: {sample_type}: only {len(files)} files available, "
+                  f"{n_files_budget} needed for {n_events_target} generated events "
+                  f"({events_per_file} per file)")
+    elif len(events_seen) < n_events_target:
         print(f"\n  WARNING: Only found {len(events_seen)} events "
               f"(requested {n_events_target})")
 
@@ -351,5 +438,8 @@ def _load_samples_from_folder(folder, n_events_target, file_pattern,
         'ct_vol_refs': ct_vol_refs,
         'n_events': len(events_seen),
         'n_clusters': len(images_list_x),
-        'files_used': files_used
+        'files_used': files_used,
+        'n_events_budget': int(n_events_target) if budget_generated else None,
+        'n_files_budget': min(n_files_budget, len(files)),
+        'budget_mode': budget_mode,
     }

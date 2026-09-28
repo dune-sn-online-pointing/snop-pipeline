@@ -16,6 +16,7 @@ sys.path.insert(0, str(python_root))
 from ana.burst_direction import (
     angular_error_deg,
     reconstruct_burst_direction,
+    reconstruct_burst_direction_grid_mixture,
     select_electrons_from_run,
 )
 
@@ -54,6 +55,61 @@ def _scenario_color(index):
     return palette[index % len(palette)]
 
 
+def _mixture_row_extra(selected, reco):
+    """JSON-serialisable extras for the mixture-ct row (scenario 7)."""
+    mix = selected.get("mixture", {})
+    extra = dict(reco.get("extra", {}))
+    is_es = np.asarray(mix.get("is_es_true", []), dtype=bool)
+    p_es = np.asarray(mix.get("p_es", []), dtype=float)
+    extra.update({
+        "pi_used": mix.get("pi_used"),
+        "pi_mode": mix.get("pi_mode"),
+        "ct_source": mix.get("ct_source"),
+        "n_loaded": mix.get("n_loaded"),
+        "n_true_es_loaded": mix.get("n_true_es_loaded"),
+        "n_true_es_used": int(np.sum(is_es)) if is_es.size else 0,
+        "mean_p_true_es": float(np.mean(p_es[is_es])) if np.any(is_es) else float("nan"),
+        "mean_p_true_cc": float(np.mean(p_es[~is_es])) if np.any(~is_es) else float("nan"),
+    })
+    return extra
+
+
+def _save_mixture_outputs(run_dir: Path, selected, reco, mixture_cfg):
+    """Persist per-event inputs and the grid posterior of the mixture fit for offline re-evaluation."""
+    pred_dir = Path(run_dir) / "predictions"
+    pred_dir.mkdir(parents=True, exist_ok=True)
+    mix = selected["mixture"]
+    np.savez_compressed(
+        pred_dir / "mixture_events.npz",
+        reco_dirs=np.asarray(selected["selected_dirs"], dtype=np.float32),
+        energy=np.asarray(selected["selected_energy"], dtype=np.float32),
+        p_es=np.asarray(mix["p_es"], dtype=np.float32),
+        ct_score=np.asarray(mix["ct_score"], dtype=np.float32),
+        is_es_true=np.asarray(mix["is_es_true"], dtype=bool),
+        true_electron_dirs=np.asarray(mix["true_electron_dirs"], dtype=np.float32),
+        true_nu_dirs=np.asarray(mix["true_nu_dirs"], dtype=np.float32),
+        event_number=np.asarray(mix["event_number"], dtype=np.int64),
+        true_particle_energy=np.asarray(mix["true_particle_energy"], dtype=np.float32),
+        true_burst_dir=np.asarray(selected["true_burst_dir"], dtype=np.float64),
+        pi_used=float(mix["pi_used"]),
+        pi_mode=str(mix["pi_mode"]),
+        ct_source=str(mix["ct_source"]),
+        n_loaded=int(mix["n_loaded"]),
+        n_true_es_loaded=int(mix["n_true_es_loaded"]),
+        mixture_cfg=json.dumps(mixture_cfg or {}),
+    )
+    if reco.get("posterior") is not None:
+        np.savez_compressed(
+            pred_dir / "mixture_posterior.npz",
+            posterior=np.asarray(reco["posterior"], dtype=np.float32),
+            log_like=np.asarray(reco["log_like"], dtype=np.float32),
+            grid_n=int(reco["extra"].get("grid_n", len(reco["posterior"]))),
+            reco_dir=np.asarray(reco["reco_dir"], dtype=np.float64),
+            map_dir=np.asarray(reco["map_dir"], dtype=np.float64),
+            true_burst_dir=np.asarray(selected["true_burst_dir"], dtype=np.float64),
+        )
+
+
 def _format_q(value):
     if value is None or np.isnan(value):
         return "n/a"
@@ -86,23 +142,50 @@ def build_report(scenarios_root: Path, output_pdf: Path, default_selection_mode:
         ct_threshold = scenario_settings.get("ct_threshold")
         ct_threshold = float(ct_threshold) if ct_threshold is not None else None
 
+        # scenario-7 "mixture-ct": extra settings travel in reporting.mixture (from the catalog entry)
+        mixture_cfg = scenario_settings.get("mixture") if selection_mode == "mixture-ct" else None
+
+        # Per-scenario likelihood table, if the catalog entry set one (reporting.pdf_path,
+        # written by test/run_small_sample_pipeline.sh). Falls back to the run-wide
+        # pdf_path, so a catalog without the key behaves exactly as before.
+        scenario_pdf_path = scenario_settings.get("pdf_path") or pdf_path
+
         selected = select_electrons_from_run(
             latest_run,
             selection_mode=selection_mode,
             direction_mode=direction_mode,
             min_energy_mev=scenario_min_energy,
             ct_threshold=ct_threshold,
+            mixture_cfg=mixture_cfg,
         )
 
-        reco = reconstruct_burst_direction(
-            selected_dirs=selected["selected_dirs"],
-            selected_weights=selected["selected_weights"],
-            selected_energies=selected["selected_energy"],
-            true_burst_dir=selected["true_burst_dir"],
-            use_emcee=use_emcee,
-            emcee_cfg=emcee_cfg,
-            pdf_path=pdf_path,
-        )
+        if selection_mode == "mixture-ct":
+            mcfg = mixture_cfg or {}
+            mix = selected["mixture"]
+            reco = reconstruct_burst_direction_grid_mixture(
+                selected_dirs=selected["selected_dirs"],
+                selected_energies=selected["selected_energy"],
+                p_es=mix["p_es"],
+                true_burst_dir=selected["true_burst_dir"],
+                pdf_es_path=mcfg.get("pdf_es_path", scenario_pdf_path),
+                pdf_cc_path=mcfg.get("pdf_cc_path"),
+                cc_pdf_mode=mcfg.get("cc_pdf_mode", "table"),
+                grid_n=int(mcfg.get("grid_n", 41253)),
+                pdf_floor=float(mcfg.get("pdf_floor", 1e-4)),
+                random_seed=int(emcee_cfg.get("random_seed", 42)),
+                cc_map_path=mcfg.get("cc_map_path"),
+            )
+            _save_mixture_outputs(latest_run, selected, reco, mcfg)
+        else:
+            reco = reconstruct_burst_direction(
+                selected_dirs=selected["selected_dirs"],
+                selected_weights=selected["selected_weights"],
+                selected_energies=selected["selected_energy"],
+                true_burst_dir=selected["true_burst_dir"],
+                use_emcee=use_emcee,
+                emcee_cfg=emcee_cfg,
+                pdf_path=scenario_pdf_path,
+            )
 
         theta_deg = reco["theta_samples_deg"]
         reco_dir = reco["reco_dir"]
@@ -143,6 +226,7 @@ def build_report(scenarios_root: Path, output_pdf: Path, default_selection_mode:
                 "direction_mode": direction_mode,
                 "direction_mode_used": selected["direction_mode_used"],
                 "min_energy_mev": scenario_min_energy,
+                "pdf_path": scenario_pdf_path,
                 "n_selected": selected["n_selected"],
                 "aggregation_method": reco["method"],
                 "acceptance_fraction": reco["acceptance_fraction"],
@@ -157,6 +241,8 @@ def build_report(scenarios_root: Path, output_pdf: Path, default_selection_mode:
                 "theta_deg": theta_deg,
                 "cos_theta": cos_theta,
                 "color": _scenario_color(idx),
+                # mixture-ct only: truth-free credible region etc. (empty for the other modes)
+                "extra": _mixture_row_extra(selected, reco) if selection_mode == "mixture-ct" else {},
             }
         )
 
@@ -326,6 +412,7 @@ def build_report(scenarios_root: Path, output_pdf: Path, default_selection_mode:
                         "aggregation_method": row["aggregation_method"],
                         "acceptance_fraction": row["acceptance_fraction"],
                         "min_energy_mev": row["min_energy_mev"],
+                        "pdf_path": row["pdf_path"],
                         "single_pass_theta_deg": row["single_pass_theta_deg"],
                         "q50_theta_deg": row["q50_theta_deg"],
                         "q68_theta_deg": row["q68_theta_deg"],
@@ -333,6 +420,7 @@ def build_report(scenarios_root: Path, output_pdf: Path, default_selection_mode:
                         "cos_to_truth": row["cos_to_truth"],
                         "forward_frac": row["forward_frac"],
                         "ct_accuracy": row["ct_accuracy"],
+                        **row.get("extra", {}),
                     }
                     for row in report_rows
                 ],
@@ -374,7 +462,15 @@ def main():
         "likelihood_kappa": emcee_cfg.get("likelihood_kappa", 25.0),
         "random_seed": emcee_cfg.get("random_seed", 42),
         "stretch_a": emcee_cfg.get("stretch_a", 2.0),
+        # Forwarded since 2026-09-07: before that the prior keys were dropped here and
+        # _run_emcee always used its "uniform" default whatever the config said.
+        "prior_type": emcee_cfg.get("prior_type", "uniform"),
+        "prior_sigma_deg": emcee_cfg.get("prior_sigma_deg", 10.0),
+        "pdf_lookup": emcee_cfg.get("pdf_lookup", "clipped"),
+        "pdf_floor": emcee_cfg.get("pdf_floor", 1e-4),
     }
+    print(f"emcee prior: {emcee_params['prior_type']} (sigma {emcee_params['prior_sigma_deg']} deg), "
+          f"pdf lookup: {emcee_params['pdf_lookup']}")
 
     print(f"Running scenario analysis with config: {args.config_path}")
     print(f"Key parameters: min_energy_mev={min_energy_mev}, emcee_enabled={use_emcee}")

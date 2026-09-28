@@ -197,6 +197,9 @@ def _predict_from_vol_refs(model, vol_refs, n_samples, verbose=False,
 
     y_pred_proba = np.zeros(n_samples, dtype=np.float32)
     files_processed = 0
+    n_resolved = 0
+    n_unresolved = 0
+    n_positional_fallback = 0
 
     for vol_file, entries in file_to_indices.items():
         try:
@@ -209,13 +212,42 @@ def _predict_from_vol_refs(model, vol_refs, n_samples, verbose=False,
             files_processed += 1
             continue
 
+        # Resolve match_id -> position in the volume file through the file's own
+        # metadata. The position is NOT the match_id: volumes whose main cluster is
+        # unmatched (match_id -1) are stored too, so positions drift and a positional
+        # lookup returned another event's image for ~30% of volumes (bug fixed
+        # 2026-09-06). Legacy products without 'main_cluster_match_id' fall back to
+        # the positional lookup.
+        id_to_pos = None
+        try:
+            vol_meta = vol_data['metadata']
+            if len(vol_meta) > 0 and isinstance(vol_meta[0], dict) and 'main_cluster_match_id' in vol_meta[0]:
+                id_to_pos = {}
+                for pos, m in enumerate(vol_meta):
+                    mid = int(m.get('main_cluster_match_id', -1))
+                    if mid >= 0 and mid not in id_to_pos:
+                        id_to_pos[mid] = pos
+        except Exception:
+            id_to_pos = None
+
         # Build batch: (vol_image, original_index) for each entry in this file
         batch_imgs = []
         batch_indices = []
         for orig_idx, match_id in entries:
-            if match_id < len(vol_images):
-                batch_imgs.append(vol_images[match_id])
-                batch_indices.append(orig_idx)
+            if id_to_pos is not None:
+                pos = id_to_pos.get(int(match_id))
+                if pos is None:
+                    n_unresolved += 1
+                    continue
+                n_resolved += 1
+            else:
+                if match_id >= len(vol_images):
+                    n_unresolved += 1
+                    continue
+                pos = match_id
+                n_positional_fallback += 1
+            batch_imgs.append(vol_images[pos])
+            batch_indices.append(orig_idx)
 
         if batch_imgs:
             batch_arr = np.array(batch_imgs, dtype=np.float32)
@@ -238,6 +270,8 @@ def _predict_from_vol_refs(model, vol_refs, n_samples, verbose=False,
 
     if verbose:
         print(f"  CT inference: {files_processed}/{len(file_to_indices)} files done")
+    print(f"  CT volume lookup: {n_resolved} resolved via metadata match_id, "
+          f"{n_positional_fallback} positional (legacy files), {n_unresolved} unresolved (P(ES)=0)")
 
     return y_pred_proba
 
