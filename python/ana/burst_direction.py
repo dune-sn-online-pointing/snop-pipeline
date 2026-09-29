@@ -16,6 +16,46 @@ except Exception as e:
     print(f"Failed to import RegularGridInterpolator: {e}")
     RegularGridInterpolator = None
 
+# Detector-frame reco-direction acceptance R(d): the real spherical-harmonic helpers live in
+# ana.combo_acceptance (combo study, 28 September 2026, section 8.2).  burst_direction is
+# imported both as `ana.burst_direction` (PYTHONPATH = <repo>/python, set by scripts/init.sh
+# and inherited by every condor job through test/run_small_sample_pipeline.sh) and, in a
+# couple of scripts, as a top-level `burst_direction` with <repo>/python/ana on sys.path; the
+# fallback below covers the second case so the import cannot fail at pipeline run time.
+try:
+    from ana.combo_acceptance import legendre_moments_of_rows, multipole_bands
+except ImportError:  # pragma: no cover - import-path fallback only
+    import sys as _sys
+
+    _sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+    from ana.combo_acceptance import legendre_moments_of_rows, multipole_bands
+
+# Z_i(n) = sum_l lambda_l^(i) R_l(n) is floored exactly as in the offline study
+# (python/ana/combo_gridfit.py): a band-limited R can dip low and Z must stay positive.
+Z_FLOOR = 1e-3
+
+
+def load_reco_acceptance(path):
+    """Detector-frame reco-direction acceptance R(d), <R>_sphere = 1, as real-SH
+    coefficients up to lmax (see python/ana/combo_tables.py).  Measured on the
+    table-building slice from the selection's TRUE-CC reco directions, which cannot
+    know the burst axis.  MUST be rebuilt whenever the ED model, the CT model or the
+    selection changes (combo_study.md section 8.4), together with the ES table and the
+    P(ES|score) calibration, and the rotated-R null must be re-run each time."""
+    z = np.load(path, allow_pickle=True)
+    return {"coeffs": np.asarray(z["coeffs"], dtype=np.float64),
+            "lmax": int(z["lmax"]), "path": str(path)}
+
+
+def acceptance_moments(pdf_table, energies, lmax):
+    """lambda_l^(i) = int pdf_ES(c | E_i) P_l(c) dc  ->  (N, lmax+1); computed once per fit.
+
+    With the pdf rows in the cos-density convention (integral over c in [-1, 1] equal to 1)
+    lambda_0 == 1, so Z_i(n) = sum_l lambda_l^(i) R_l(n) reduces to 1 for R == 1.
+    """
+    return legendre_moments_of_rows(pdf_rows_for_energies(pdf_table, energies),
+                                    pdf_table["cos_centers"], int(lmax))
+
 
 def load_pdf_interpolator(pdf_path, mode="clipped", pdf_floor=1e-4):
     """Energy-cosine pdf lookup for the burst likelihood.
@@ -134,13 +174,20 @@ def _load_pdf_interpolator_hole(pdf_path):
 
 
 def _pdf_likelihood(selected_dirs, selected_energies, true_direction, pdf_interpolator,
-                    selected_weights=None):
+                    selected_weights=None, acceptance=None, acceptance_moments=None):
     """Weighted log-likelihood sum_i w_i log pdf_ES(cos_i | E_i).
 
     `selected_weights=None` (or all ones) is the plain sum used by the hard-selection
     scenarios. The weighted-ct scenario passes P(ES) per event; until 2026-09-07 those
     weights never reached the likelihood, so that scenario was an unweighted fit of all
-    events."""
+    events.
+
+    `acceptance` (from load_reco_acceptance) adds the detector-frame acceptance
+    normalisation of the ES kernel: with p_i(d|n) = m_i(d.n) R(d) / Z_i(n) the per-event
+    factor log R(d_i) is independent of the trial direction and drops out of the posterior,
+    while -sum_i w_i log Z_i(n) does not.  `acceptance_moments` is the (N, lmax+1) matrix
+    of lambda_l^(i) from acceptance_moments(), computed once per fit.  Left at None the
+    result is bit-identical to the pre-2026-09-29 likelihood."""
     if pdf_interpolator is None or selected_dirs.shape[0] == 0:
         return 0.0
 
@@ -152,10 +199,25 @@ def _pdf_likelihood(selected_dirs, selected_energies, true_direction, pdf_interp
     pdf_values = pdf_interpolator(points)
     pdf_values = np.maximum(pdf_values, 1e-10)  # Avoid log(0)
     log_pdf = np.log(pdf_values)
-    if selected_weights is None:
-        return float(np.sum(log_pdf))
-    w = np.asarray(selected_weights, dtype=np.float64)
-    return float(np.sum(w * log_pdf))
+    if acceptance is None:
+        if selected_weights is None:
+            return float(np.sum(log_pdf))
+        w = np.asarray(selected_weights, dtype=np.float64)
+        return float(np.sum(w * log_pdf))
+
+    if acceptance_moments is None:
+        raise ValueError("_pdf_likelihood: acceptance needs acceptance_moments "
+                         "(see ana.burst_direction.acceptance_moments)")
+    w = (np.ones(log_pdf.shape[0], dtype=np.float64) if selected_weights is None
+         else np.asarray(selected_weights, dtype=np.float64))
+    ll = float(np.sum(w * log_pdf))
+    # p_i(d|n) = m_i(d.n) R(d) / Z_i(n): log R(d_i) is independent of n and drops out,
+    # -sum_i w_i log Z_i(n) does not.  Z_i(n) = sum_l lambda_l^(i) R_l(n).
+    n_dir = np.asarray(true_direction, dtype=np.float64).reshape(1, 3)
+    rl = multipole_bands(acceptance["coeffs"], n_dir, int(acceptance["lmax"]))[:, 0]
+    z = np.maximum(np.asarray(acceptance_moments, dtype=np.float64) @ rl, Z_FLOOR)
+    ll -= float(np.sum(w * np.log(z)))
+    return ll
 
 
 def normalize_rows(vectors):
@@ -339,6 +401,19 @@ def select_electrons_from_run(run_dir: Path, selection_mode: str, direction_mode
         mask = np.ones(metadata.shape[0], dtype=bool)
         mixture_extra = _mixture_event_probabilities(run_dir, metadata, mixture_cfg)
         weights = mixture_extra["p_es"]
+        # Optional HARD CT cut, opt-in through mixture.ct_hard_cut (default None = keep every
+        # event, i.e. unchanged).  The r3 re-scan and the combo study both recommend a
+        # relaxed hard cut (CT v80 >= 0.50) before the mixture fit.  A hard cut and
+        # mixture.s_min with p_floor = 0 give the SAME posterior -- a p_i = 0 event only adds
+        # the trial-direction-independent log q_CC -- but the cut keeps n_selected, the
+        # reported purity and the cost of the fit honest.
+        ct_hard_cut = mixture_cfg.get("ct_hard_cut")
+        if ct_hard_cut is not None:
+            ct_score_all = mixture_extra["ct_score"]
+            if not np.all(np.isfinite(ct_score_all)):
+                raise ValueError("mixture.ct_hard_cut needs per-event CT scores "
+                                 "(mixture.ct_source must be 'ct')")
+            mask = mask & (ct_score_all >= float(ct_hard_cut))
     else:
         raise ValueError(f"Unsupported selection_mode: {selection_mode}")
 
@@ -400,7 +475,8 @@ def _theta_samples_from_bootstrap(selected_dirs, selected_weights, true_burst_di
 
 
 
-def _run_emcee(selected_dirs, selected_weights, selected_energies, true_burst_dir, emcee_cfg, pdf_interpolator=None):
+def _run_emcee(selected_dirs, selected_weights, selected_energies, true_burst_dir, emcee_cfg,
+               pdf_interpolator=None, acceptance=None, acceptance_moments=None):
     if emcee is None:
         raise RuntimeError("emcee is required but not available")
 
@@ -470,7 +546,8 @@ def _run_emcee(selected_dirs, selected_weights, selected_energies, true_burst_di
         # Use PDF likelihood (matching original loglike_E_weighted)
         if pdf_interpolator is not None:
             ll = _pdf_likelihood(selected_dirs, selected_energies, direction, pdf_interpolator,
-                                 selected_weights=selected_weights)
+                                 selected_weights=selected_weights, acceptance=acceptance,
+                                 acceptance_moments=acceptance_moments)
         else:
             # Fallback to angle-squared likelihood (original loglike without PDF)
             cos_angles = np.clip(selected_dirs @ direction, -1.0, 1.0)
@@ -504,6 +581,14 @@ def _run_emcee(selected_dirs, selected_weights, selected_energies, true_burst_di
             log_pdf = np.log(np.maximum(pdf_interpolator(pts), 1e-10)).reshape(cos_grid.shape)
             w = np.asarray(selected_weights, dtype=np.float64)
             ll_grid = w @ log_pdf
+            if acceptance is not None:
+                # seed at the maximum of the likelihood the sampler actually targets: the
+                # -sum_i w_i log Z_i(n) term tilts the surface by O(100) per burst, so the
+                # R-free grid maximum is not where the walkers should start.
+                rl_seed = multipole_bands(acceptance["coeffs"], grid, int(acceptance["lmax"]))
+                z_seed = np.maximum(np.asarray(acceptance_moments, dtype=np.float64) @ rl_seed,
+                                    Z_FLOOR)
+                ll_grid = ll_grid - (w @ np.log(z_seed))
             i_max = int(np.argmax(ll_grid))
             seed_dir = grid[i_max]
             init_sigma_cfg = emcee_cfg.get("init_sigma_deg", "auto")
@@ -587,6 +672,7 @@ def reconstruct_burst_direction(
     use_emcee=True,
     emcee_cfg=None,
     pdf_path=None,
+    acceptance_path=None,
 ):
     selected_dirs = np.asarray(selected_dirs, dtype=np.float64)
     selected_weights = np.asarray(selected_weights, dtype=np.float64)
@@ -612,10 +698,23 @@ def reconstruct_burst_direction(
             mode=str(emcee_cfg.get("pdf_lookup", "clipped")),
             pdf_floor=float(emcee_cfg.get("pdf_floor", 1e-4)),
         )
+    # Detector-frame acceptance normalisation of the ES kernel (optional; absent =
+    # unchanged).  The (N, lmax+1) Legendre moments of the per-event pdf rows are computed
+    # ONCE here, before the sampler, not per likelihood call.
+    acceptance = load_reco_acceptance(acceptance_path) if acceptance_path else None
+    acc_moments = None
+    if acceptance is not None:
+        if pdf_interpolator is None:
+            raise ValueError("acceptance_path needs a usable pdf_path: the acceptance "
+                             "normalisation only makes sense for the ES-pdf likelihood")
+        acc_moments = acceptance_moments(
+            load_pdf_table(pdf_path, pdf_floor=float(emcee_cfg.get("pdf_floor", 1e-4))),
+            selected_energies, acceptance["lmax"])
     if use_emcee:
         try:
             emcee_res = _run_emcee(selected_dirs, selected_weights, selected_energies, 
-                                   true_burst_dir, emcee_cfg, pdf_interpolator)
+                                   true_burst_dir, emcee_cfg, pdf_interpolator,
+                                   acceptance=acceptance, acceptance_moments=acc_moments)
             theta_samples_deg = np.array([
                 angular_error_deg(sample_dir, true_burst_dir) for sample_dir in emcee_res["sample_dirs"]
             ], dtype=np.float64)
@@ -839,12 +938,22 @@ def cc_map_lookup(cc_map, dirs):
 
 
 def grid_mixture_posterior(selected_dirs, selected_energies, p_es, pdf_es_table, pdf_cc_table,
-                           grid_n=41253, chunk=4096, cc_const_per_event=None):
+                           grid_n=41253, chunk=4096, cc_const_per_event=None, acceptance=None):
     """Exact posterior of the burst direction on an equal-area sphere grid (uniform prior).
 
     Per event the mixture density m_i(cos) = p_i pdf_ES(cos|E_i) + (1-p_i) pdf_CC(cos|E_i) is
     tabulated once on the cos-bin centres (energy interpolated, clipped); log m_i is then
     interpolated linearly in cos (clipped into the centre range) for every grid direction.
+
+    With `acceptance` (from load_reco_acceptance) the ES component carries the detector-frame
+    acceptance normalisation and the premixed-row trick no longer applies, so a second branch
+    evaluates
+        m_i(n) = p_i pdf_ES(d_i.n | E_i) / Z_i(n) + (1 - p_i) q_CC,i,
+        Z_i(n) = sum_{l<=lmax} lambda_l^(i) R_l(n)
+    with the ES row interpolated in the log and q_CC,i the (trial-direction independent) CC
+    density of the event.  R(d_i) itself cancels between the two components of the consistent
+    common-acceptance model and is therefore not applied (combo_study.md section 3.1).
+    `acceptance=None` is bit-identical to the pre-2026-09-29 code.
 
     Returns (grid_dirs (G,3), log_like (G,), posterior (G,) normalised to sum 1).
     """
@@ -859,11 +968,30 @@ def grid_mixture_posterior(selected_dirs, selected_energies, p_es, pdf_es_table,
         rows_cc = np.asarray(cc_const_per_event, dtype=np.float64)[:, None] * np.ones((1, cos_centers.shape[0]))
     else:
         rows_cc = pdf_rows_for_energies(pdf_cc_table, energies)
-    rows = p * pdf_rows_for_energies(pdf_es_table, energies) + (1.0 - p) * rows_cc
-    log_rows = np.log(np.maximum(rows, 1e-300)).astype(np.float32)  # (N, n_cos)
+    rows_es = pdf_rows_for_energies(pdf_es_table, energies)
+    log_rows = None
+    if acceptance is None:
+        rows = p * rows_es + (1.0 - p) * rows_cc
+        log_rows = np.log(np.maximum(rows, 1e-300)).astype(np.float32)  # (N, n_cos)
 
     grid = fibonacci_sphere_grid(int(grid_n))
     grid32 = grid.astype(np.float32)
+    lam = rl_grid = log_rows_es = q_cc = None
+    if acceptance is not None:
+        lmax = int(acceptance["lmax"])
+        lam = legendre_moments_of_rows(rows_es, cos_centers, lmax)          # (N, lmax+1)
+        rl_grid = multipole_bands(acceptance["coeffs"], grid, lmax)         # (lmax+1, G)
+        log_rows_es = np.log(np.maximum(rows_es, 1e-300)).astype(np.float32)
+        if cc_const_per_event is not None:
+            q_cc = np.asarray(cc_const_per_event, dtype=np.float64)
+        else:
+            # The deployed model has a FLAT CC component (0.5); a per-event detector-frame
+            # constant is handled above.  A cos-dependent CC table together with the
+            # acceptance term was never studied, so refuse it rather than drop it silently.
+            if not np.allclose(rows_cc, rows_cc[:, :1]):
+                raise ValueError("acceptance is only supported with a flat or per-event "
+                                 "constant CC component (cc_pdf_mode 'flat' or 'detector-map')")
+            q_cc = np.asarray(rows_cc[:, 0], dtype=np.float64)
     c0 = np.float32(cos_centers[0])
     c_last = np.float32(cos_centers[-1])
     inv_dc = np.float32(1.0 / (cos_centers[1] - cos_centers[0]))
@@ -874,9 +1002,18 @@ def grid_mixture_posterior(selected_dirs, selected_energies, p_es, pdf_es_table,
         t = (np.clip(dirs @ g.T, c0, c_last) - c0) * inv_dc  # (N, g) in [0, n_c-1]
         idx = np.minimum(t.astype(np.int32), n_c - 2)
         frac = t - idx
-        v0 = np.take_along_axis(log_rows, idx, axis=1)
-        v1 = np.take_along_axis(log_rows, idx + 1, axis=1)
-        log_like[start:start + chunk] = np.sum(v0 + (v1 - v0) * frac, axis=0, dtype=np.float64)
+        if acceptance is None:
+            v0 = np.take_along_axis(log_rows, idx, axis=1)
+            v1 = np.take_along_axis(log_rows, idx + 1, axis=1)
+            log_like[start:start + chunk] = np.sum(v0 + (v1 - v0) * frac, axis=0, dtype=np.float64)
+        else:
+            v0 = np.take_along_axis(log_rows_es, idx, axis=1)
+            v1 = np.take_along_axis(log_rows_es, idx + 1, axis=1)
+            g_es = np.exp(v0 + (v1 - v0) * frac)          # pdf_ES(d_i . n), log-interpolated
+            z = np.maximum(lam @ rl_grid[:, start:start + chunk], Z_FLOOR)
+            m = p * g_es / z + (1.0 - p) * q_cc[:, None]
+            log_like[start:start + chunk] = np.sum(np.log(np.maximum(m, 1e-300)), axis=0,
+                                                   dtype=np.float64)
     log_post = log_like - np.max(log_like)
     post = np.exp(log_post)
     post /= np.sum(post)
@@ -907,7 +1044,8 @@ def hpd_region_from_grid(post, credible_mass=0.68):
 def reconstruct_burst_direction_grid_mixture(selected_dirs, selected_energies, p_es, true_burst_dir,
                                              pdf_es_path, pdf_cc_path=None, cc_pdf_mode="table",
                                              grid_n=41253, pdf_floor=1e-4, n_theta_samples=4000,
-                                             random_seed=42, credible_mass=0.68, cc_map_path=None):
+                                             random_seed=42, credible_mass=0.68, cc_map_path=None,
+                                             acceptance_path=None):
     """Scenario-7 aggregation: grid posterior of the ES/CC mixture likelihood.
 
     Fills the same keys as reconstruct_burst_direction (method, reco_dir, theta_samples_deg,
@@ -946,9 +1084,12 @@ def reconstruct_burst_direction_grid_mixture(selected_dirs, selected_energies, p
         pdf_cc_table = load_pdf_table(pdf_cc_path, pdf_floor=pdf_floor)
         cc_pdf_mode = "table"
 
+    # Detector-frame acceptance normalisation of the ES kernel (optional; absent = unchanged)
+    acceptance = load_reco_acceptance(acceptance_path) if acceptance_path else None
+
     grid, log_like, post = grid_mixture_posterior(
         selected_dirs, selected_energies, p_es, pdf_es_table, pdf_cc_table, grid_n=grid_n,
-        cc_const_per_event=cc_const,
+        cc_const_per_event=cc_const, acceptance=acceptance,
     )
 
     mean_dir = normalize_vector(np.sum(post[:, None] * grid, axis=0))
@@ -987,6 +1128,8 @@ def reconstruct_burst_direction_grid_mixture(selected_dirs, selected_energies, p
         "pdf_cc_path": pdf_cc_table["path"],
         "sum_p_es": float(np.sum(p_es)),
         "log_like_max": float(np.max(log_like)),
+        "acceptance_path": (acceptance["path"] if acceptance is not None else None),
+        "acceptance_lmax": (int(acceptance["lmax"]) if acceptance is not None else None),
     }
     return {
         "method": "grid-mixture",

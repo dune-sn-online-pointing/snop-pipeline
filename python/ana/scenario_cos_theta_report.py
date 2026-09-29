@@ -150,6 +150,14 @@ def build_report(scenarios_root: Path, output_pdf: Path, default_selection_mode:
         # pdf_path, so a catalog without the key behaves exactly as before.
         scenario_pdf_path = scenario_settings.get("pdf_path") or pdf_path
 
+        # Per-scenario detector-frame reco-direction acceptance (reporting.acceptance_path,
+        # written from the catalog entry by test/run_small_sample_pipeline.sh, or
+        # mixture.acceptance_path for the mixture block).  Absent -> no acceptance term and
+        # every existing result is bit-identical.  See combo_study.md section 8.
+        scenario_acceptance_path = scenario_settings.get("acceptance_path")
+        if isinstance(scenario_acceptance_path, str) and not scenario_acceptance_path.strip():
+            scenario_acceptance_path = None
+
         selected = select_electrons_from_run(
             latest_run,
             selection_mode=selection_mode,
@@ -174,6 +182,7 @@ def build_report(scenarios_root: Path, output_pdf: Path, default_selection_mode:
                 pdf_floor=float(mcfg.get("pdf_floor", 1e-4)),
                 random_seed=int(emcee_cfg.get("random_seed", 42)),
                 cc_map_path=mcfg.get("cc_map_path"),
+                acceptance_path=mcfg.get("acceptance_path", scenario_acceptance_path),
             )
             _save_mixture_outputs(latest_run, selected, reco, mcfg)
         else:
@@ -185,6 +194,7 @@ def build_report(scenarios_root: Path, output_pdf: Path, default_selection_mode:
                 use_emcee=use_emcee,
                 emcee_cfg=emcee_cfg,
                 pdf_path=scenario_pdf_path,
+                acceptance_path=scenario_acceptance_path,
             )
 
         theta_deg = reco["theta_samples_deg"]
@@ -227,6 +237,8 @@ def build_report(scenarios_root: Path, output_pdf: Path, default_selection_mode:
                 "direction_mode_used": selected["direction_mode_used"],
                 "min_energy_mev": scenario_min_energy,
                 "pdf_path": scenario_pdf_path,
+                "acceptance_path": (mixture_cfg or {}).get("acceptance_path",
+                                                           scenario_acceptance_path),
                 "n_selected": selected["n_selected"],
                 "aggregation_method": reco["method"],
                 "acceptance_fraction": reco["acceptance_fraction"],
@@ -413,6 +425,7 @@ def build_report(scenarios_root: Path, output_pdf: Path, default_selection_mode:
                         "acceptance_fraction": row["acceptance_fraction"],
                         "min_energy_mev": row["min_energy_mev"],
                         "pdf_path": row["pdf_path"],
+                        "acceptance_path": row["acceptance_path"],
                         "single_pass_theta_deg": row["single_pass_theta_deg"],
                         "q50_theta_deg": row["q50_theta_deg"],
                         "q68_theta_deg": row["q68_theta_deg"],

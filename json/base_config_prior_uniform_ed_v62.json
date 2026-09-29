@@ -1,0 +1,69 @@
+{
+  "_note": "Copy of base_config_prior_uniform.json with the electron-direction model swapped to v62. ED v62: v58 recipe retrained from scratch on the matcher-fixed ES production pool. The cosine-vs-energy likelihood table is rebuilt for this model from its own validation split (deployed selection: main-track U and V partners), see refactor-ml-for-pointing/docs/ED_v62_matchfix_retrain.md. NOTE: the scenario burst fit reads its table from the scenario_analysis_config.json that test/run_small_sample_pipeline.sh generates, i.e. from the PDF_PATH env var; analysis.pdf_path here is kept consistent for anything that reads the base config directly.",
+  "input_data": {
+    "cc_folder": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples/cat000001/cat000001_cluster_images_tick3_ch2_min2_tot3_e3p0",
+    "es_folder": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples/cat000001/cat000001_cluster_images_tick3_ch2_min2_tot3_e3p0",
+    "cc_vol_folder": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples/cat000001/cat000001_volume_images_tick3_ch2_min2_tot3_e3p0",
+    "es_vol_folder": "/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples/cat000001/cat000001_volume_images_tick3_ch2_min2_tot3_e3p0",
+    "file_pattern": "*_planeX.npz",
+    "cc_file_pattern": "cc_*_planeX.npz",
+    "es_file_pattern": "es_*_planeX.npz",
+    "load_all_planes": true,
+    "_note": "3-plane mode: matches clusters across X/U/V using match_id (metadata column 13)"
+  },
+  "sample_selection": {
+    "n_cc_events": 3300,
+    "n_es_events": 350,
+    "description": "Full burst sample: 350 ES + 3300 CC events"
+  },
+  "neural_networks": {
+    "channel_tagger": {
+      "enabled": true,
+      "model_path": "/eos/project-e/ep-nu/evilla/sn-online-pointing/neural-networks/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras",
+      "threshold": 0.5,
+      "description": "Channel tagging CNN for ES vs CC classification"
+    },
+    "electron_direction": {
+      "enabled": true,
+      "model_path": "/eos/project-e/ep-nu/evilla/sn-online-pointing/neural-networks/electron_direction/three_plane_v62_matchfix_20260921_131047/best_model.keras",
+      "pdf_file": "/eos/project-e/ep-nu/evilla/sn-online-pointing/neural-networks/electron_direction/three_plane_v62_matchfix_20260921_131047/cosine_energy_pdf.npz",
+      "batch_size": 32,
+      "mcmc_steps": 800,
+      "mcmc_proposal_scale": 0.08,
+      "cleanup_intermediate": false,
+      "description": "ED stage using v62 (ED v62: v58 recipe retrained from scratch on the matcher-fixed ES production pool)"
+    }
+  },
+  "volume_creation": {
+    "pointing_utils_dir": "/afs/cern.ch/work/e/evilla/private/dune/refactor-snop-pipeline/submodules/online-pointing-utils",
+    "use_simple_mode": true,
+    "description": "Use simple mode unless online-pointing-utils is set and available"
+  },
+  "analysis": {
+    "min_energy_mev": 3.0,
+    "selection_mode": "predicted-es",
+    "direction_mode": "reco",
+    "emcee": {
+      "enabled": true,
+      "nwalkers": 128,
+      "nsteps": 500,
+      "discard": 100,
+      "prior_type": "uniform",
+      "prior_sigma_deg": 10.0,
+      "likelihood_kappa": 25.0,
+      "random_seed": 42
+    },
+    "pdf_path": "/eos/project-e/ep-nu/evilla/sn-online-pointing/neural-networks/electron_direction/three_plane_v62_matchfix_20260921_131047/cosine_energy_pdf.npz",
+    "description": "Analysis parameters for burst direction reconstruction"
+  },
+  "output": {
+    "base_folder": "output",
+    "metrics_file": "metrics.json",
+    "report_file": "pipeline_report.pdf"
+  },
+  "processing": {
+    "shuffle": true,
+    "random_seed": 42,
+    "verbose": true
+  }
+}

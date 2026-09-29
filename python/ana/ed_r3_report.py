@@ -97,6 +97,20 @@ def main():
                                       "SCENARIO 1 (best case, TRUE directions): theta68 [deg]", s1names)
         summary["scenario_1_ncats"] = int(len(cats))
 
+    ba = {"Tv63": "Tv63 v63 resolution table (r3 default)",
+          "BA": "BA burst-axis table (matched cut)",
+          "BAe3": "BAe3 burst-axis table (E>3, loosest)"}
+    for tag, scen, title in (("s2ba", "scenario_2", "SCENARIO 2 (perfect CT, E>3)"),
+                             ("s6ba", "scenario_6", "SCENARIO 6 (perfect CT, E>5)"),
+                             ("s5ba", "scenario_5", "SCENARIO 5 (perfect CT, E>10)")):
+        cats, cols = merge(f"{args.dir}/{tag}_*.npz")
+        if not len(cats):
+            continue
+        tags = [t for t in ("Tv63", "BA", "BAe3") if f"cos_{t}" in cols]
+        summary[scen + "_burstaxis"] = block(cats, cols, tags, "Tv63",
+                                             f"{title}: theta68 [deg]", ba)
+        summary[scen + "_burstaxis_ncats"] = int(len(cats))
+
     if args.out_json:
         Path(args.out_json).write_text(json.dumps(summary, indent=2))
         print(f"\nwrote {args.out_json}")

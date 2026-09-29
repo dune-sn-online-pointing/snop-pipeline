@@ -125,6 +125,12 @@ try:
   if isinstance(_entry.get("pdf_path"), str) and _entry["pdf_path"].strip():
     cfg["reporting"]["pdf_path"] = _entry["pdf_path"].strip()
     cfg.setdefault("analysis", {})["pdf_path"] = _entry["pdf_path"].strip()
+  # Optional per-scenario detector-frame reco-direction acceptance (49 real-SH coefficients,
+  # combo_study.md section 8).  Read by python/ana/scenario_cos_theta_report.py and forwarded
+  # to BOTH reconstruct functions.  Absent from the catalog entry -> no acceptance term, i.e.
+  # behaviour is unchanged.
+  if isinstance(_entry.get("acceptance_path"), str) and _entry["acceptance_path"].strip():
+    cfg["reporting"]["acceptance_path"] = _entry["acceptance_path"].strip()
 except Exception as _exc:  # never fail the run for the optional block
   print(f"warning: could not read optional catalog extras: {_exc}")
 
