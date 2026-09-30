@@ -1,0 +1,15 @@
+universe            = vanilla
+executable          = /afs/cern.ch/work/e/evilla/private/dune/refactor-snop-pipeline/condor/distance_replay/run_distance.sh
+initialdir          = /afs/cern.ch/work/e/evilla/private/dune/refactor-snop-pipeline
+should_transfer_files = NO
+output              = /afs/cern.ch/work/e/evilla/private/dune/refactor-snop-pipeline/condor/logs/distance_replay/dist_$(ClusterId)_$(ProcId).out
+error               = /afs/cern.ch/work/e/evilla/private/dune/refactor-snop-pipeline/condor/logs/distance_replay/dist_$(ClusterId)_$(ProcId).err
+log                 = /afs/cern.ch/work/e/evilla/private/dune/refactor-snop-pipeline/condor/logs/distance_replay/dist_$(ClusterId)_$(ProcId).log
+request_cpus        = 1
+request_memory      = 4 GB
+request_disk        = 4 GB
++JobFlavour         = "workday"
+max_materialize     = 60
+batch_name          = "snop-distance-replay-$ENV(USER)"
+environment         = "CATS=$(cats) FRACS=0.826446,0.694444,0.591716,0.510204,0.444444 SEEDS=1,2,3 CHUNKOUT=/eos/project-e/ep-nu/evilla/sn-online-pointing/pipeline-campaign/v63_matchfix_1000_acc_t030_distance/chunk_$(cats).json"
+queue cats from /afs/cern.ch/work/e/evilla/private/dune/refactor-snop-pipeline/condor/distance_replay/chunks.txt
