@@ -168,11 +168,74 @@ def theta_deg(cos):
 
 
 # ======================================================================================
+REF_COMMIT = "e06414f"   # last commit BEFORE the acceptance term entered burst_direction.py
+
+
+def _load_reference_module():
+    """Import the pre-acceptance burst_direction.py (git REF_COMMIT) as a separate module.
+
+    The stored REFERENCE numbers below were produced on one lxplus node; other CPUs (e.g.
+    AMD EPYC vs Intel) round reductions differently at the 1e-14 level, and the emcee chain
+    amplifies that to ~0.05 deg, so exact equality against stored numbers is machine
+    dependent.  Producing the reference on THIS machine at test time with the old code keeps
+    the bit-identity claim exact.  Returns None if git is unavailable (fallback: tolerances).
+    """
+    import importlib.util
+    import subprocess
+    import tempfile
+    try:
+        src = subprocess.run(["git", "-C", str(REPO), "show",
+                              f"{REF_COMMIT}:python/ana/burst_direction.py"],
+                             capture_output=True, text=True, check=True).stdout
+    except Exception as exc:  # noqa: BLE001
+        print(f"  NOTE  reference module unavailable ({exc}); using stored numbers with tolerances")
+        return None
+    tmp = Path(tempfile.mkdtemp(prefix="bd_ref_")) / "burst_direction_ref.py"
+    tmp.write_text(src)
+    spec = importlib.util.spec_from_file_location("burst_direction_ref", tmp)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def check_bit_identity():
     print("\n(1) BIT-IDENTITY with acceptance_path=None (two real bursts, cats 623/624)")
     dev = load_collect(DEV_COLLECT)
     interp = load_pdf_interpolator(str(ES_TABLE), mode="clipped", pdf_floor=1e-4)
+    old = _load_reference_module()
+    if old is not None:
+        print(f"  reference = pre-change module from git {REF_COMMIT}, run on this machine "
+              "(exact equality); stored numbers checked with tolerances only")
     for cat, ref in REFERENCE.items():
+        if old is not None:
+            # same-machine reference from the old code
+            dirs0, energy0, ct0, true_dir0 = burst(dev, cat)
+            p0 = p_es_deployed(ct0)
+            interp0 = old.load_pdf_interpolator(str(ES_TABLE), mode="clipped", pdf_floor=1e-4)
+            r0 = old.reconstruct_burst_direction(selected_dirs=dirs0, selected_weights=p0,
+                                                 selected_energies=energy0, true_burst_dir=true_dir0,
+                                                 use_emcee=True, emcee_cfg=EMCEE_CFG,
+                                                 pdf_path=str(ES_TABLE))
+            g0 = old.reconstruct_burst_direction_grid_mixture(
+                selected_dirs=dirs0, selected_energies=energy0, p_es=p0, true_burst_dir=true_dir0,
+                pdf_es_path=str(ES_TABLE), cc_pdf_mode="flat", grid_n=GRID_N_STUDY,
+                pdf_floor=1e-4, random_seed=42)
+            ref = dict(ref)
+            ref["pdf_loglike_3dirs"] = [old._pdf_likelihood(dirs0, energy0, TRIAL[k], interp0,
+                                                             selected_weights=p0) for k in range(3)]
+            ref["emcee_reco_dir"] = r0["reco_dir"]
+            ref["emcee_theta_deg"] = r0["single_pass_theta_deg"]
+            ref["emcee_omega68_deg"] = r0["omega68_deg"]
+            ref["grid_reco_dir"] = g0["reco_dir"]
+            ref["grid_theta_deg"] = g0["single_pass_theta_deg"]
+            ref["grid_omega68_deg"] = g0["omega68_deg"]
+            ref["grid_loglike_3dirs"] = g0["log_like"][np.asarray(ref["grid_idx_3dirs"], dtype=np.int64)]
+            stored = REFERENCE[cat]
+            check(abs(g0["single_pass_theta_deg"] - stored["grid_theta_deg"]) < 1e-5
+                  and abs(r0["single_pass_theta_deg"] - stored["emcee_theta_deg"]) < 0.3,
+                  f"cat{cat}: old code on this machine vs stored reference numbers within tolerance "
+                  f"(grid d={abs(g0['single_pass_theta_deg'] - stored['grid_theta_deg']):.1e} deg, "
+                  f"emcee d={abs(r0['single_pass_theta_deg'] - stored['emcee_theta_deg']):.2e} deg)")
         dirs, energy, ct, true_dir = burst(dev, cat)
         p = p_es_deployed(ct)
         check(dirs.shape[0] == ref["n_selected"],
