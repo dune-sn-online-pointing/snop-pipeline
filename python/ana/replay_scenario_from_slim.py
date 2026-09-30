@@ -31,6 +31,25 @@ a different CT working point is therefore a catalog edit (new threshold, its mat
 purity calibration and acceptance file) plus a new `--out`; no code change.  `--resolved-only`
 prints what the entry resolves to and exits, for auditing that before a 1000-cat run.
 
+Event trimming (supernova-distance study), OPT-IN, default off:
+  --keep-fraction F[,F2,...] --trim-seed S[,S2,...] --chunk-out FILE.json
+keeps, BEFORE the selection, a random subset of round(F * N_gen) of the burst's GENERATED ES
+events and, independently, round(F * N_gen) of its GENERATED CC events (N_gen = --n-gen-es 330 /
+--n-gen-cc 3300, the campaign's generated-event budget; see python/lib/sample_loader.py).  A burst
+at distance d has N(d) = N(10 kpc) (10/d)^2 events of both classes, so F = (10/d)^2.  Generated
+events that left no matched cluster are part of the budget (they occupy "empty" slots), so a kept
+subset is a uniform random subset of the generated events, not of the reconstructed ones.  The
+volumes.npz metadata does not store the input-file index of an event (only its per-file event
+number), so the event identity used for the draw is the event's stored truth record (class,
+event number, neutrino energy and momentum, true position): all clusters of one event share it
+and it does not depend on the loader's shuffle.  The draw is reproducible from (seed, cat, class)
+and NESTED in F for a given seed (the events kept at a smaller F are a subset of those kept at a
+larger F).  The three per-cluster files are subset consistently and the UNCHANGED selection and
+fit run on them; nothing is re-inferred.  The per-cluster predictions only exist for the loaded
+330 + 3300 events, so F > 1 (closer supernovae) is impossible.  With --keep-fraction every
+(F, seed) pair is fitted per cat from one tar extraction and all rows go to ONE json per job
+(--chunk-out); no per-cat files are written.  Without --keep-fraction the driver is unchanged.
+
 Usage:
   python3 python/ana/replay_scenario_from_slim.py \
       --catalog json/seven_scenarios_v63_acceptance.json \
@@ -137,6 +156,64 @@ def extract_run(tar_path, source_scenario, dest):
     return dest, metrics, pre
 
 
+TRIM_FILES = NEEDED  # the per-cluster files subset consistently by the event trimming
+
+
+def _event_keys(metadata):
+    """Per-row event identity: (class, event number, nu energy, nu momentum, true position).
+
+    Rows of one generated event share it; the loader's shuffle does not change it.  Returned as
+    an integer label per row (0..n_events-1) in a CANONICAL order (lexicographic in the record),
+    so the draw below does not depend on the row order in volumes.npz.
+    """
+    m = np.asarray(metadata, dtype=np.float64)
+    rec = np.column_stack([m[:, 3], m[:, 0], m[:, 14], m[:, 15], m[:, 16], m[:, 17],
+                           m[:, 4], m[:, 5], m[:, 6]])
+    _, inv = np.unique(rec, axis=0, return_inverse=True)
+    return np.asarray(inv).reshape(-1)
+
+
+def trim_keep_mask(metadata, keep_fraction, seed, cat_number, n_gen_es, n_gen_cc):
+    """Row mask keeping round(F*N_gen) generated events of each class (see module docstring)."""
+    m = np.asarray(metadata, dtype=np.float64)
+    is_es = m[:, 3].astype(int) == 1
+    keys = _event_keys(m)
+    keep = np.zeros(m.shape[0], dtype=bool)
+    info = {}
+    for cls, sel, n_gen, cls_id in (("es", is_es, int(n_gen_es), 1), ("cc", ~is_es, int(n_gen_cc), 0)):
+        ev = np.unique(keys[sel])                      # canonical order of this class's events
+        n_obs = int(ev.size)
+        if n_obs > n_gen:
+            raise ValueError(f"{cls}: {n_obs} reconstructed events > generated budget {n_gen}")
+        n_keep = int(np.floor(float(keep_fraction) * n_gen + 0.5))
+        rng = np.random.default_rng([int(seed), int(cat_number), cls_id])
+        # a random rank for each of the n_gen generated-event slots; the n_obs reconstructed
+        # events occupy slots 0..n_obs-1 in canonical order, the rest left no cluster
+        rank = rng.permutation(n_gen)
+        kept_ev = ev[rank[:n_obs] < n_keep]
+        keep |= sel & np.isin(keys, kept_ev)
+        info[f"n_gen_{cls}"] = n_gen
+        info[f"n_gen_{cls}_kept"] = n_keep
+        info[f"n_reco_{cls}_loaded"] = n_obs
+        info[f"n_reco_{cls}_kept"] = int(kept_ev.size)
+        info[f"n_rows_{cls}_kept"] = int(np.sum(keep & sel))
+    return keep, info
+
+
+def write_trimmed_run(src_dir, dest_dir, keep):
+    """Copy the per-cluster files of `src_dir` into `dest_dir`, keeping the rows in `keep`."""
+    src_dir, dest_dir = Path(src_dir), Path(dest_dir)
+    n = keep.shape[0]
+    for rel in TRIM_FILES:
+        (dest_dir / rel).parent.mkdir(parents=True, exist_ok=True)
+        with np.load(src_dir / rel, allow_pickle=True) as z:
+            arrays = {k: (z[k][keep] if (z[k].ndim >= 1 and z[k].shape[0] == n) else z[k])
+                      for k in z.files}
+        with open(dest_dir / rel, "wb") as fh:
+            np.savez(fh, **arrays)
+    return dest_dir
+
+
 def fit_one(run_dir, rep, emcee_cfg):
     """Exactly the per-scenario body of scenario_cos_theta_report.build_report."""
     selection_mode = rep["selection_mode"]
@@ -213,6 +290,92 @@ def row_from_fit(scenario_name, rep, run_dir, selected, reco, extra, metrics):
     }
 
 
+def run_trimmed(args, rep, emcee_cfg, fracs, seeds):
+    """Event-trimming mode: every (F, seed) per cat, all rows into ONE json (--chunk-out)."""
+    camp, chunk_out = Path(args.campaign), Path(args.chunk_out)
+    if chunk_out.is_file() and chunk_out.stat().st_size > 0 and not args.overwrite:
+        print(f"{chunk_out} exists, nothing to do (use --overwrite)")
+        return
+    chunk_out.parent.mkdir(parents=True, exist_ok=True)
+    cats = parse_cats(args.cats)
+    scratch_root = Path(tempfile.mkdtemp(prefix="replay_trim_", dir=args.scratch))
+    rows, errors = [], []
+    t0 = time.time()
+    try:
+        for n in cats:
+            cat = f"cat{n:06d}"
+            tar = camp / cat / f"{cat}_scenarios_slim.tar"
+            if not tar.is_file():
+                print(f"  {cat}: no slim tar, skipped", flush=True)
+                errors.append({"cat": n, "error": "no slim tar"})
+                continue
+            work = scratch_root / cat
+            try:
+                got = extract_run(tar, args.source_scenario, work / "full")
+                if got is None:
+                    errors.append({"cat": n, "error": f"no usable {args.source_scenario} run"})
+                    continue
+                run_dir, metrics, pre = got
+                meta = np.load(run_dir / "volume_images" / "volumes.npz",
+                               allow_pickle=True)["metadata"]
+                for f in fracs:
+                    for sd in seeds:
+                        try:
+                            keep, info = trim_keep_mask(meta, f, sd, n, args.n_gen_es,
+                                                        args.n_gen_cc)
+                            tdir = write_trimmed_run(run_dir, work / "trim", keep)
+                            selected, reco, extra = fit_one(tdir, rep, emcee_cfg)
+                            row = row_from_fit(args.scenario, rep, f"{tar}:{pre}", selected,
+                                               reco, extra, metrics)
+                            row.update({"cat": n, "keep_fraction": f, "trim_seed": sd,
+                                        "true_burst_dir": [float(x) for x in
+                                                           selected["true_burst_dir"]],
+                                        "reco_dir": (None if reco["reco_dir"] is None else
+                                                     [float(x) for x in reco["reco_dir"]]),
+                                        **info})
+                            rows.append(row)
+                            print(f"  {cat} F={f:.4f} s={sd}: n={row['n_selected']} "
+                                  f"theta={np.degrees(np.arccos(np.clip(row['cos_to_truth'], -1, 1))):.2f} "
+                                  f"({time.time() - t0:.0f}s)", flush=True)
+                        except Exception as exc:  # noqa: BLE001
+                            errors.append({"cat": n, "keep_fraction": f, "trim_seed": sd,
+                                           "error": repr(exc)})
+                            print(f"  {cat} F={f} s={sd}: FAILED {exc!r}", flush=True)
+                        finally:
+                            shutil.rmtree(work / "trim", ignore_errors=True)
+            except Exception as exc:  # noqa: BLE001
+                errors.append({"cat": n, "error": repr(exc)})
+                print(f"  {cat}: FAILED {exc!r}", flush=True)
+            finally:
+                shutil.rmtree(work, ignore_errors=True)
+    finally:
+        shutil.rmtree(scratch_root, ignore_errors=True)
+    payload = {
+        "driver": "python/ana/replay_scenario_from_slim.py (event-trimming mode)",
+        "catalog": str(Path(args.catalog).resolve()),
+        "scenario": args.scenario,
+        "source_scenario": args.source_scenario,
+        "campaign": str(camp),
+        "cats": args.cats,
+        "keep_fractions": fracs,
+        "trim_seeds": seeds,
+        "n_gen_es": args.n_gen_es,
+        "n_gen_cc": args.n_gen_cc,
+        "reporting": rep,
+        "note": ("analysis stage only on the stored ED v63 directions and CT v80 scores; before "
+                 "the selection round(F*N_gen) generated events of each class are kept "
+                 "(uniform random subset by event identity, nested in F per seed)"),
+        "rows": rows,
+        "errors": errors,
+    }
+    tmp = chunk_out.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(payload) + "\n")
+    os.replace(tmp, chunk_out)
+    print(f"done: {len(rows)} fits, {len(errors)} errors, {time.time() - t0:.0f}s -> {chunk_out}")
+    if errors:
+        raise SystemExit(2)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--catalog", required=True)
@@ -228,7 +391,25 @@ def main():
     ap.add_argument("--emcee-json", default=None, help="optional json with the emcee block")
     ap.add_argument("--resolved-only", action="store_true",
                     help="print the settings the catalog entry resolves to, then exit")
+    ap.add_argument("--keep-fraction", default=None,
+                    help="OPT-IN event trimming: comma list of fractions F in (0, 1] of the "
+                         "generated ES and CC events kept before the selection (F = (10/d)^2)")
+    ap.add_argument("--trim-seed", default="1",
+                    help="comma list of trimming seeds; every (F, seed) pair is fitted")
+    ap.add_argument("--n-gen-es", type=int, default=330, help="generated ES events per burst")
+    ap.add_argument("--n-gen-cc", type=int, default=3300, help="generated CC events per burst")
+    ap.add_argument("--chunk-out", default=None,
+                    help="with --keep-fraction: the ONE json this job writes (all rows)")
     args = ap.parse_args()
+    trim_fracs = trim_seeds = None
+    if args.keep_fraction is not None:
+        trim_fracs = [float(x) for x in str(args.keep_fraction).split(",") if x.strip()]
+        trim_seeds = [int(x) for x in str(args.trim_seed).split(",") if x.strip()]
+        if not trim_fracs or any(not (0.0 < f <= 1.0) for f in trim_fracs):
+            raise SystemExit("--keep-fraction values must be in (0, 1]: the stored predictions "
+                             "only hold the loaded events, a closer supernova needs new samples")
+        if not args.chunk_out:
+            raise SystemExit("--keep-fraction needs --chunk-out (one output file per job)")
 
     catalog = json.loads(Path(args.catalog).read_text())
     entry = next((s for s in catalog.get("scenarios", []) if s.get("name") == args.scenario), None)
@@ -271,6 +452,8 @@ def main():
                          f"{ {k: resolved[k] for k in missing} }")
     if args.resolved_only:
         return
+    if trim_fracs is not None:
+        return run_trimmed(args, rep, emcee_cfg, trim_fracs, trim_seeds)
 
     camp, out_root = Path(args.campaign), Path(args.out)
     out_root.mkdir(parents=True, exist_ok=True)
