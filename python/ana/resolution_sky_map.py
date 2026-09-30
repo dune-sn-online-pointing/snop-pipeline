@@ -34,6 +34,7 @@ Usage:
   python3 python/ana/resolution_sky_map.py [--out <dir>] [--n-boot 2000]
 """
 import argparse
+import matplotlib.patheffects as pe
 import io
 import json
 import tarfile
@@ -253,8 +254,8 @@ def draw_mollweide(ax, cells, norm, cmap, title, fontsize=7):
         dark = norm(c["theta68"]) > 0.55
         ax.text(np.radians(lon_c), np.radians(lat_c),
                 f"{c['theta68']:.1f}$\\pm${c['theta68_err']:.1f}\nN={c['N']}",
-                ha="center", va="center", fontsize=fontsize,
-                color="white" if dark else "black")
+                ha="center", va="center", fontsize=fontsize, color="white",
+                path_effects=[pe.withStroke(linewidth=1.6, foreground="black")])
     for name, v in AXES.items():
         lon = np.degrees(np.arctan2(v[1], v[0]))
         lat = np.degrees(np.arcsin(v[2]))
@@ -271,7 +272,7 @@ def draw_mollweide(ax, cells, norm, cmap, title, fontsize=7):
     ax.set_xticklabels([])
     ax.set_yticks(np.radians([-60, -30, 0, 30, 60]))
     ax.tick_params(labelsize=7)
-    ax.set_title(title, fontsize=10, pad=14)
+    ax.set_title(title + "\ngold stars = the six detector axes (+-x, +-y, +-z)", fontsize=10, pad=14)
 
 
 def lambert_octant(v):
@@ -305,7 +306,8 @@ def draw_octant(ax, cells, norm, cmap, title):
         xy = lambert_octant(np.array([r * np.cos(lc), r * np.sin(lc), zc]))[0]
         dark = norm(c["theta68"]) > 0.55
         ax.text(xy[0], xy[1], f"{c['theta68']:.1f}$\\pm${c['theta68_err']:.1f}\nN={c['N']}",
-                ha="center", va="center", fontsize=6.3, color="white" if dark else "black")
+                ha="center", va="center", fontsize=6.3, color="white",
+                path_effects=[pe.withStroke(linewidth=1.6, foreground="black")])
     for name, v in (("|x|", (1, 0, 0)), ("|y|", (0, 1, 0)), ("|z|", (0, 0, 1))):
         xy = lambert_octant(np.array(v, dtype=float))[0]
         ax.plot(*xy, marker="*", ms=13, mec="k", mfc="gold", zorder=5)
@@ -443,7 +445,7 @@ def main():
                 f"sign-folded, 999 cats (incl. dev + slice), {len(maps['octant_all'])} cells")
     fig.suptitle("Deployed configuration: resolution relative to the detector axes and coordinate "
                  "planes\n(Lambert equal-area projection centred on (1,1,1)/$\\sqrt{3}$; equal-area "
-                 "cells; text $\\theta_{68}\\pm$68% bootstrap [deg], N)", fontsize=10)
+                 "cells; text $\\theta_{68}\\pm$68% bootstrap [deg], N; gold stars = detector axes)", fontsize=10)
     cbar(fig, axs, norm_dep)
     fig.savefig(out / "sky_resolution_folded.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
