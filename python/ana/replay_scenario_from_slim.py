@@ -299,7 +299,7 @@ def run_trimmed(args, rep, emcee_cfg, fracs, seeds):
     chunk_out.parent.mkdir(parents=True, exist_ok=True)
     cats = parse_cats(args.cats)
     scratch_root = Path(tempfile.mkdtemp(prefix="replay_trim_", dir=args.scratch))
-    rows, errors = [], []
+    rows, errors, no_fit = [], [], []
     t0 = time.time()
     try:
         for n in cats:
@@ -320,9 +320,17 @@ def run_trimmed(args, rep, emcee_cfg, fracs, seeds):
                                allow_pickle=True)["metadata"]
                 for f in fracs:
                     for sd in seeds:
+                        info = {}
                         try:
                             keep, info = trim_keep_mask(meta, f, sd, n, args.n_gen_es,
                                                         args.n_gen_cc)
+                            if int(keep.sum()) == 0:
+                                # empty burst (very small F): not an error, listed in `no_fit`
+                                no_fit.append({"cat": n, "keep_fraction": f, "trim_seed": sd,
+                                               "reason": "no reconstructed event kept", **info})
+                                print(f"  {cat} F={f:.4f} s={sd}: no events kept, no fit",
+                                      flush=True)
+                                continue
                             tdir = write_trimmed_run(run_dir, work / "trim", keep)
                             selected, reco, extra = fit_one(tdir, rep, emcee_cfg)
                             row = row_from_fit(args.scenario, rep, f"{tar}:{pre}", selected,
@@ -339,7 +347,7 @@ def run_trimmed(args, rep, emcee_cfg, fracs, seeds):
                                   f"({time.time() - t0:.0f}s)", flush=True)
                         except Exception as exc:  # noqa: BLE001
                             errors.append({"cat": n, "keep_fraction": f, "trim_seed": sd,
-                                           "error": repr(exc)})
+                                           "error": repr(exc), **info})
                             print(f"  {cat} F={f} s={sd}: FAILED {exc!r}", flush=True)
                         finally:
                             shutil.rmtree(work / "trim", ignore_errors=True)
@@ -366,12 +374,13 @@ def run_trimmed(args, rep, emcee_cfg, fracs, seeds):
                  "the selection round(F*N_gen) generated events of each class are kept "
                  "(uniform random subset by event identity, nested in F per seed)"),
         "rows": rows,
+        "no_fit": no_fit,
         "errors": errors,
     }
     tmp = chunk_out.with_suffix(".json.tmp")
     tmp.write_text(json.dumps(payload) + "\n")
     os.replace(tmp, chunk_out)
-    print(f"done: {len(rows)} fits, {len(errors)} errors, {time.time() - t0:.0f}s -> {chunk_out}")
+    print(f"done: {len(rows)} fits, {len(no_fit)} no-fit bursts, {len(errors)} errors, {time.time() - t0:.0f}s -> {chunk_out}")
     if errors:
         raise SystemExit(2)
 
