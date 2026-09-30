@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Submit the six-scenario pipeline for an explicit numeric CAT range.
+# Submit the scenario pipeline (default catalog json/eight_scenarios_v63_acceptance.json) for an explicit numeric CAT range.
 # Trimmed variant of submit_all_cats.sh for campaigns that must not touch
 # training cats (e.g. new cats 623+ only): instead of globbing every cat under
 # SAMPLES_BASE, the queue is built from [FIRST,LAST] (cats must exist on EOS).
@@ -23,7 +23,7 @@ LAST="${LAST:?set LAST (e.g. 1223)}"
 SAMPLES_BASE="${SAMPLES_BASE:-/eos/project-e/ep-nu/evilla/sn-online-pointing/sn-burst-samples}"
 OUTPUT_BASE="${OUTPUT_BASE:?set OUTPUT_BASE (absolute path)}"
 BASE_CONFIG="${BASE_CONFIG:-${REPO_DIR}/json/example_config.json}"
-SCENARIO_CATALOG="${SCENARIO_CATALOG:-${REPO_DIR}/json/six_scenarios_v80.json}"
+SCENARIO_CATALOG="${SCENARIO_CATALOG:-${REPO_DIR}/json/eight_scenarios_v63_acceptance.json}"
 CT_MODEL="${CT_MODEL:-}"
 TEST_N_CC="${TEST_N_CC:-3300}"
 TEST_N_ES="${TEST_N_ES:-330}"

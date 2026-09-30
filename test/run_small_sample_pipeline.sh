@@ -9,7 +9,7 @@ source "${REPO_DIR}/scripts/init.sh"
 BASE_CONFIG="${BASE_CONFIG:-${REPO_DIR}/json/example_config.json}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-${REPO_DIR}/output/test_pipeline_scenarios}"
 PRUNE_SCENARIO_OUTPUTS="${PRUNE_SCENARIO_OUTPUTS:-1}"
-SCENARIO_CATALOG="${SCENARIO_CATALOG:-${REPO_DIR}/json/six_scenarios.json}"
+SCENARIO_CATALOG="${SCENARIO_CATALOG:-${REPO_DIR}/json/eight_scenarios_v63_acceptance.json}"
 SCENARIO_NAMES="${SCENARIO_NAMES:-}"
 # PDF_PATH (env, default = the deployed table) selects the cosine-vs-energy likelihood
 # table used by the scenario burst fit. A retrained ED needs its own table, because the
@@ -22,8 +22,13 @@ CAT="${CAT:-cat000001}"
 TEST_N_CC="${TEST_N_CC:-3300}"
 TEST_N_ES="${TEST_N_ES:-330}"
 
-# Override with CT_MODEL env to test alternative channel-tagging models (e.g. v80)
-CT_MODEL_DEFAULT="${CT_MODEL:-${NETWORKS_BASE}/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras}"
+# Channel-tagging model: CT_MODEL env if set (non-empty), else the base config's
+# neural_networks.channel_tagger.model_path (json/example_config.json: CT v80, the deployed
+# model since 2026-09-30), else the legacy v52 model. The condor submitters pass CT_MODEL
+# through empty when it is unset, which falls through to the base config here.
+CT_MODEL_FROM_BASE="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("neural_networks",{}).get("channel_tagger",{}).get("model_path",""))' "${BASE_CONFIG}" 2>/dev/null || true)"
+CT_MODEL_DEFAULT="${CT_MODEL:-${CT_MODEL_FROM_BASE:-${NETWORKS_BASE}/channel_tagging/ct_volume_v52_batch_reload_20251116_101125/best_model.keras}}"
+echo "Channel-tagging model: ${CT_MODEL_DEFAULT}"
 
 if [[ ! -f "${BASE_CONFIG}" ]]; then
   echo "ERROR: base config not found: ${BASE_CONFIG}" >&2
