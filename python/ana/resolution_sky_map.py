@@ -63,10 +63,18 @@ EVAL = [(2, 399), (901, 1224)]
 
 # equal-area igloo schemes: number of longitude cells per sin(lat) band, north -> south
 SCHEME_722 = [1, 5, 4, 5, 1]            # 16 cells
-SCHEME_ALL = [1, 4, 4, 4, 4, 4, 1]      # 22 cells
+SCHEME_ALL = [1, 5, 4, 5, 1]            # same 16 cells (user choice 2026-10-01)
 OCT_722 = [1, 3, 5, 7]                  # 16 cells in the octant
 OCT_ALL = [1, 3, 5, 7, 9]               # 25 cells
 AXIS_BINS = [(0.0, 15.0), (15.0, 35.0), (35.0, 54.75)]
+MAP_ROT_DEG = 45.0   # Mollweide frame spans true longitude [-135, 225]: the 4-cell band (edges
+                     # +-45, +-135) and the 5-cell bands (edges -135 + 72 k) end exactly on the frame
+
+
+def disp_lon(lon):
+    """true longitude -> display longitude (deg) of the rotated Mollweide frame"""
+    return ((np.asarray(lon, dtype=float) - MAP_ROT_DEG + 180.0) % 360.0) - 180.0
+
 AXES = {"+x": (1, 0, 0), "-x": (-1, 0, 0), "+y": (0, 1, 0), "-y": (0, -1, 0),
         "+z": (0, 0, 1), "-z": (0, 0, -1)}
 
@@ -144,10 +152,12 @@ def igloo_assign(dirs, bands):
         hi, lo = edges[b], edges[b + 1]
         inb = (z <= hi) & ((z > lo) if b < len(bands) - 1 else (z >= lo))
         w = 360.0 / nb
-        idx = np.floor(((lon + w / 2) % 360) / w).astype(int) % nb
+        c0 = 0.0 if nb == 4 else 45.0   # axes at the centres of the 4-cell band; other bands
+        #                                 start at the map frame (true lon -135) -> no cut cells
+        idx = np.floor(((lon - c0 + w / 2) % 360) / w).astype(int) % nb
         cell[inb] = k + idx[inb]
         for j in range(nb):
-            c = j * w  # centre longitude
+            c = c0 + j * w  # centre longitude
             geo.append({"band": b, "lon_lo": c - w / 2, "lon_hi": c + w / 2, "lon_c": c,
                         "z_lo": lo, "z_hi": hi, "full_ring": nb == 1})
         k += nb
@@ -211,7 +221,7 @@ def build_map(cats, truth, cosd, assign, bands, rng, n_boot, key=None):
 
 # ----------------------------------------------------------------------------- drawing
 def _cell_outline(g, npts=60):
-    lons = np.linspace(g["lon_lo"], g["lon_hi"], npts)
+    lons = np.linspace(g["lon_lo"], g["lon_hi"], npts)   # already display longitudes
     lat_lo = np.degrees(np.arcsin(g["z_lo"]))
     lat_hi = np.degrees(np.arcsin(g["z_hi"]))
     top = np.column_stack([lons, np.full(npts, lat_hi)])
@@ -236,7 +246,13 @@ def draw_mollweide(ax, cells, norm, cmap, title, fontsize=7):
     ax.grid(False)
     for c in cells:
         col = cmap(norm(c["theta68"]))
-        for p in _wrap_pieces(c):
+        cd = dict(c)
+        if not c["full_ring"]:
+            lo, hi = disp_lon(c["lon_lo"]), disp_lon(c["lon_hi"])
+            if hi <= lo:          # numerical wrap at the frame edge
+                hi += 360.0
+            cd.update(lon_lo=lo, lon_hi=hi)
+        for p in _wrap_pieces(cd):
             xy = np.radians(_cell_outline(p))
             ax.add_patch(Polygon(xy, closed=True, facecolor=col, edgecolor="white", lw=0.8))
         lat_c = np.degrees(np.arcsin(0.5 * (c["z_lo"] + c["z_hi"])))
@@ -245,34 +261,29 @@ def draw_mollweide(ax, cells, norm, cmap, title, fontsize=7):
             lat_c = la + 0.45 * (lb - la) if lb > 89 else lb - 0.45 * (lb - la)
             lon_c = 0.0
         else:
-            lon_c = ((c["lon_c"] + 180) % 360) - 180
+            lon_c = float(disp_lon(c["lon_c"]))
             if c["z_lo"] < 0 < c["z_hi"]:
-                lat_c = -7.0  # below the axis marker of the equatorial cells
-        # keep the text of the cell centred on the -x seam off the edge
-        if abs(abs(lon_c) - 180) < 1e-6:
-            lon_c = 150.0
+                lat_c = -7.0  # below the axis name of the equatorial cells
         dark = norm(c["theta68"]) > 0.55
         ax.text(np.radians(lon_c), np.radians(lat_c),
                 f"{c['theta68']:.1f}$\\pm${c['theta68_err']:.1f}\nN={c['N']}",
                 ha="center", va="center", fontsize=fontsize, color="white",
                 path_effects=[pe.withStroke(linewidth=1.6, foreground="black")])
-    for name, v in AXES.items():
-        lon = np.degrees(np.arctan2(v[1], v[0]))
+    for name, v in AXES.items():   # axis names only (no markers), at the axis positions
         lat = np.degrees(np.arcsin(v[2]))
-        lons = [lon] if abs(abs(lon) - 180) > 1e-6 else [-179.0, 179.0]
-        for L in lons:
-            ax.plot(np.radians(L), np.radians(lat), marker="*", ms=11, mec="k", mfc="gold", zorder=5)
-            if abs(lat) > 45:
-                off = (22, -4)
-            else:
-                off = (-12 if L > 170 else 12, 7)
-            ax.annotate(name, (np.radians(L), np.radians(lat)), textcoords="offset points",
-                        xytext=off, fontsize=9, fontweight="bold", ha="center", zorder=6)
+        if abs(lat) > 45:
+            L, lat_t = 110.0, (76.0 if lat > 0 else -76.0)   # inside the cap, clear of its text
+        else:
+            L, lat_t = float(disp_lon(np.degrees(np.arctan2(v[1], v[0])))), 6.0
+        ax.text(np.radians(L), np.radians(lat_t), name, fontsize=9, fontweight="bold",
+                ha="center", va="center", color="white", zorder=6,
+                path_effects=[pe.withStroke(linewidth=1.8, foreground="black")])
     ax.set_xticks(np.radians([-120, -60, 0, 60, 120]))
     ax.set_xticklabels([])
     ax.set_yticks(np.radians([-60, -30, 0, 30, 60]))
     ax.tick_params(labelsize=7)
-    ax.set_title(title + "\ngold stars = the six detector axes (+-x, +-y, +-z)", fontsize=10, pad=14)
+    ax.set_title(title + "\n(+-x, +-y on the equator, +-z at the poles; cell text: "
+                 "$\\theta_{68}\\pm$68% bootstrap [deg], N bursts)", fontsize=10, pad=14)
 
 
 def lambert_octant(v):
@@ -310,7 +321,6 @@ def draw_octant(ax, cells, norm, cmap, title):
                 path_effects=[pe.withStroke(linewidth=1.6, foreground="black")])
     for name, v in (("|x|", (1, 0, 0)), ("|y|", (0, 1, 0)), ("|z|", (0, 0, 1))):
         xy = lambert_octant(np.array(v, dtype=float))[0]
-        ax.plot(*xy, marker="*", ms=13, mec="k", mfc="gold", zorder=5)
         ax.annotate(name + " axis", xy, textcoords="offset points",
                     xytext=(0, 10) if name == "|z|" else ((-14, -12) if name == "|x|" else (14, -12)),
                     ha="center", fontsize=9, fontweight="bold")
@@ -445,7 +455,7 @@ def main():
                 f"sign-folded, 999 cats (incl. dev + slice), {len(maps['octant_all'])} cells")
     fig.suptitle("Deployed configuration: resolution relative to the detector axes and coordinate "
                  "planes\n(Lambert equal-area projection centred on (1,1,1)/$\\sqrt{3}$; equal-area "
-                 "cells; text $\\theta_{68}\\pm$68% bootstrap [deg], N; gold stars = detector axes)", fontsize=10)
+                 "cells; text $\\theta_{68}\\pm$68% bootstrap [deg], N)", fontsize=10)
     cbar(fig, axs, norm_dep)
     fig.savefig(out / "sky_resolution_folded.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
