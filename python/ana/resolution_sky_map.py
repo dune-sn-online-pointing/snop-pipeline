@@ -269,21 +269,14 @@ def draw_mollweide(ax, cells, norm, cmap, title, fontsize=7):
                 f"{c['theta68']:.1f}$\\pm${c['theta68_err']:.1f}\nN={c['N']}",
                 ha="center", va="center", fontsize=fontsize, color="white",
                 path_effects=[pe.withStroke(linewidth=1.6, foreground="black")])
-    for name, v in AXES.items():   # axis names only (no markers), at the axis positions
-        lat = np.degrees(np.arcsin(v[2]))
-        if abs(lat) > 45:
-            L, lat_t = 110.0, (76.0 if lat > 0 else -76.0)   # inside the cap, clear of its text
-        else:
-            L, lat_t = float(disp_lon(np.degrees(np.arctan2(v[1], v[0])))), 6.0
-        ax.text(np.radians(L), np.radians(lat_t), name, fontsize=9, fontweight="bold",
-                ha="center", va="center", color="white", zorder=6,
-                path_effects=[pe.withStroke(linewidth=1.8, foreground="black")])
+    # no axis names inside the cells (user choice 2026-10-01): the title states where the axes are
     ax.set_xticks(np.radians([-120, -60, 0, 60, 120]))
     ax.set_xticklabels([])
     ax.set_yticks(np.radians([-60, -30, 0, 30, 60]))
     ax.tick_params(labelsize=7)
-    ax.set_title(title + "\n(+-x, +-y on the equator, +-z at the poles; cell text: "
-                 "$\\theta_{68}\\pm$68% bootstrap [deg], N bursts)", fontsize=10, pad=14)
+    ax.set_title(title + "\n(detector frame: +x at the centre of the middle equatorial cell, +y one cell to "
+                 "its right, -x and -y beyond; +z / -z = the polar caps; cell text: "
+                 "$\\theta_{68}\\pm$68% bootstrap [deg], N bursts)", fontsize=9.5, pad=14)
 
 
 def lambert_octant(v):
