@@ -242,7 +242,7 @@ def _wrap_pieces(g):
     return pieces
 
 
-def draw_mollweide(ax, cells, norm, cmap, title, fontsize=7):
+def draw_mollweide(ax, cells, norm, cmap, title, fontsize=7, frame_note=True):
     ax.grid(False)
     for c in cells:
         col = cmap(norm(c["theta68"]))
@@ -274,9 +274,10 @@ def draw_mollweide(ax, cells, norm, cmap, title, fontsize=7):
     ax.set_xticklabels([])
     ax.set_yticks(np.radians([-60, -30, 0, 30, 60]))
     ax.tick_params(labelsize=7)
-    ax.set_title(title + "\n(detector frame: +x at the centre of the middle equatorial cell, +y one cell to "
-                 "its right, -x and -y beyond; +z / -z = the polar caps; cell text: "
-                 "$\\theta_{68}\\pm$68% bootstrap [deg], N bursts)", fontsize=9.5, pad=14)
+    note = ("\n(detector frame: +x at the centre of the middle equatorial cell, +y one cell to "
+            "its right, -x and -y beyond; +z / -z = the polar caps; cell text: "
+            "$\\theta_{68}\\pm$68% bootstrap [deg], N bursts)") if frame_note else ""
+    ax.set_title(title + note, fontsize=9.5, pad=14)
 
 
 def lambert_octant(v):
@@ -462,7 +463,10 @@ def main():
         ax = fig.add_subplot(1, 2, i + 1, projection="mollweide")
         draw_mollweide(ax, maps[key], norm_common, cmap,
                        f"{lab}\n722 eval cats, overall $\\theta_{{68}}$ = {overall[ok]['theta68']:.2f}$^\\circ$",
-                       fontsize=6.5)
+                       fontsize=6.5, frame_note=False)
+    fig.suptitle("Detector frame: +x at the centre of the middle equatorial cell, +y one cell to its right, "
+                 "-x and -y beyond; +z / -z = the polar caps.  Cell text: $\\theta_{68}\\pm$68% bootstrap [deg], N bursts",
+                 fontsize=9.5, y=0.93)
     cbar(fig, fig.axes, norm_common, r"$\theta_{68}$ per cell [deg] (common scale)")
     fig.savefig(out / "sky_resolution_before_after.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
