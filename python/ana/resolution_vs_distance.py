@@ -87,6 +87,9 @@ def main():
     ap.add_argument("--out-dir", default=str(DIST))
     ap.add_argument("--far-root", default=str(DIST / "far"),
                     help="chunks for 20-50 kpc (condor/distance_replay/submit_distance_far.sub)")
+    ap.add_argument("--phase1-root", default=None,
+                    help="chunks for the 20 kt Phase I scenario, 10-15 kpc (default <dist-root>/phase1_20kt; "
+                         "condor/distance_replay/submit_distance_phase1.sub); skipped when absent")
     ap.add_argument("--n-boot", type=int, default=2000)
     ap.add_argument("--seed", type=int, default=2024)
     args = ap.parse_args()
@@ -278,6 +281,9 @@ def main():
     print("errors", len(errors), "coverage", coverage)
     if list(Path(args.far_root).glob("chunk_*.json")):
         extended(args, rng, res, summary, out)
+    p1root = Path(args.phase1_root) if args.phase1_root else Path(args.dist_root) / "phase1_20kt"
+    if list(p1root.glob("chunk_*.json")):
+        phase1(args, rng, res, summary, out, p1root)
 
 
 def _valid(r):
@@ -424,6 +430,188 @@ def extended(args, rng, res, summary, out):
         fh.write("\n".join(L) + "\n")
     for r in ext[len(summary):]:
         print(json.dumps({k: (round(v, 3) if isinstance(v, float) else v) for k, v in r.items()}))
+
+
+PHASE1_F = {10: 0.5, 11: 0.413223, 12: 0.347222, 13: 0.295858, 14: 0.255102, 15: 0.222222}  # as submitted
+
+
+def _pool(d, F, dr, nfit_extra=None):
+    t = np.array([x["theta68"] for x in dr])
+    e = {"d_kpc": d, "F": F, "n_gen_es": int(np.floor(F * N_GEN_ES + 0.5)),
+         "n_gen_cc": int(np.floor(F * N_GEN_CC + 0.5)), "n_draws": len(dr),
+         "n_cats": [x["N"] for x in dr], "theta68_mean": float(t.mean()),
+         "theta68_draw_spread_std": float(t.std(ddof=1)) if t.size > 1 else 0.0,
+         "theta68_draw_min": float(t.min()), "theta68_draw_max": float(t.max()),
+         "theta68_boot_lo_mean": float(np.mean([x["theta68_lo"] for x in dr])),
+         "theta68_boot_hi_mean": float(np.mean([x["theta68_hi"] for x in dr])),
+         "median_mean": float(np.mean([x["median"] for x in dr])),
+         "theta90_mean": float(np.mean([x["theta90"] for x in dr])),
+         "frac_gt30_mean": float(np.mean([x["frac_gt30"] for x in dr])),
+         "mean_n_selected": float(np.mean([x["mean_n_selected"] for x in dr])),
+         "mean_true_es_in_fit": float(np.mean([x["mean_true_es_in_fit"] for x in dr])),
+         "sky_frac_mean": float(np.mean([x["sky_frac"] for x in dr])),
+         "n_no_fit_per_draw": [x["n_no_fit"] for x in dr],
+         "n_no_fit_mean": float(np.mean([x["n_no_fit"] for x in dr]))}
+    e["theta68_boot_halfwidth"] = 0.5 * (e["theta68_boot_hi_mean"] - e["theta68_boot_lo_mean"])
+    e["theta68_total_err"] = float(np.hypot(e["theta68_boot_halfwidth"], e["theta68_draw_spread_std"]))
+    return e
+
+
+def phase1(args, rng, res, summary, out, root):
+    """DUNE Phase I (20 kt): half the events at every distance, F = 0.5 (10/d)^2, d = 10-15 kpc.
+    Adds resolution_vs_distance_phase1.{png,json}, resolution_vs_events.png and a section in the md."""
+    rows, errs, nofit_rows = [], [], []
+    files = sorted(Path(root).glob("chunk_*.json"))
+    for f in files:
+        d = json.loads(f.read_text())
+        rows.extend(d["rows"])
+        errs.extend(d.get("errors", []))
+        nofit_rows.extend(d.get("no_fit", []))
+    cover, res1 = {}, {}
+    for d in DISTANCES:
+        F = PHASE1_F[d]
+        sel = [r for r in rows if abs(r["keep_fraction"] - F) < 5e-7 and in_eval(int(r["cat"]))]
+        nf = [r for r in nofit_rows if abs(r["keep_fraction"] - F) < 5e-7 and in_eval(int(r["cat"]))]
+        res1[d] = {"F": F, "draws": {}}
+        for sd in sorted({int(r["trim_seed"]) for r in sel} | {int(r["trim_seed"]) for r in nf}):
+            allr = [r for r in sel if int(r["trim_seed"]) == sd]
+            ok = sorted((r for r in allr if _valid(r)), key=lambda r: r["cat"])
+            cover[(d, sd)] = len(allr) + sum(1 for r in nf if int(r["trim_seed"]) == sd)
+            st = stats([r["cos_to_truth"] for r in ok], [r["n_selected"] for r in ok],
+                       [r.get("n_true_es_used", np.nan) for r in ok], rng, args.n_boot)
+            st["mean_true_es_in_fit"] = float(np.nanmean([r.get("n_true_es_used", np.nan) for r in ok]))
+            st["n_no_fit"] = 722 - len(ok)
+            res1[d]["draws"][str(sd)] = st
+    if any(not res1[d]["draws"] for d in DISTANCES):
+        print("phase1: incomplete chunks, skipped; found", sorted(cover))
+        return
+    p1 = [_pool(d, PHASE1_F[d], list(res1[d]["draws"].values())) for d in DISTANCES]
+    p2 = summary
+    c2, c1 = "#1f77b4", "#d95f02"
+    d_arr = np.array(DISTANCES, dtype=float)
+
+    # ---- figure 1: theta68 and sky fraction versus distance, both detectors
+    fig, (ax, ax2) = plt.subplots(2, 1, figsize=(7.6, 8.2), sharex=True,
+                                  gridspec_kw={"height_ratios": [2.2, 1], "hspace": 0.06})
+    y0, x0 = p2[0]["theta68_mean"], 10.0
+    dd = np.linspace(10, 15, 50)
+    for P, c, m, off, lab, rs in ((p2, c2, "o", -0.04, "40 kt (Phase II)", res),
+                                  (p1, c1, "s", 0.04, "20 kt (Phase I)", res1)):
+        x = d_arr + off
+        lo = np.array([r["theta68_boot_lo_mean"] for r in P])
+        hi = np.array([r["theta68_boot_hi_mean"] for r in P])
+        y = np.array([r["theta68_mean"] for r in P])
+        ax.fill_between(x, lo, hi, color=c, alpha=0.22, lw=0)
+        ax.errorbar(x, y, yerr=[r["theta68_draw_spread_std"] for r in P], fmt=m + "-", color=c, capsize=3,
+                    label=lab + r": mean of draws ($\pm$ draw spread), band = 68% bootstrap")
+        sf = np.array([r["sky_frac_mean"] for r in P]) * 100
+        ax2.fill_between(x, (1 - np.cos(np.radians(lo))) / 2 * 100, (1 - np.cos(np.radians(hi))) / 2 * 100,
+                         color=c, alpha=0.22, lw=0)
+        ax2.plot(x, sf, m + "-", color=c, label=lab)
+        for d, xi in zip(DISTANCES, x):
+            for dr in rs[d]["draws"].values():
+                if len(rs[d]["draws"]) > 1:
+                    ax.plot(xi, dr["theta68"], "_", color=c, ms=9, alpha=0.8)
+    ax.plot(dd, y0 * dd / x0, ":", color="gray",
+            label=r"$\propto 1/\sqrt{N}$ ($\propto d$) from the 40 kt, 10 kpc point")
+    ax.set_ylabel(r"$\theta_{68}$ [deg]")
+    ax.set_ylim(0, max(r["theta68_boot_hi_mean"] for r in p1 + p2) * 1.35)
+    ax.grid(alpha=0.3)
+    ax.legend(fontsize=7.5, loc="upper left")
+    ax.set_title("Deployed configuration (CT v80 $\\geq$ 0.30, E > 5 MeV, mixture + acceptance), 722 evaluation\n"
+                 "bursts; GKVM, 330 ES + 3300 CC at 10 kpc for 40 kt, half for 20 kt", fontsize=9)
+    ax2.set_ylabel("sky fraction\n$(1-\\cos\\theta_{68})/2$ [%]")
+    ax2.set_ylim(0, None)
+    ax2.grid(alpha=0.3)
+    ax2.legend(fontsize=8, loc="upper left")
+    ax2.set_xticks(d_arr)
+    ax2.set_xticklabels([f"{d}\n{a['n_gen_es']}\n{b['n_gen_es']}" for d, a, b in zip(DISTANCES, p2, p1)],
+                        fontsize=8.5)
+    ax2.set_xlim(9.6, 15.4)
+    ax2.set_xlabel("supernova distance [kpc]", labelpad=28)
+    for k, lab in enumerate(["", "N_ES gen., 40 kt:", "N_ES gen., 20 kt:"]):
+        if lab:
+            ax2.annotate(lab, xy=(0, 0), xycoords="axes fraction", xytext=(-4, -10.5 * k - 9.5),
+                         textcoords="offset points", ha="right", va="top", fontsize=7.5)
+    fig.savefig(out / "resolution_vs_distance_phase1.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+    # ---- figure 2: theta68 versus 1/sqrt(N_ES), all points on one curve
+    fig, ax = plt.subplots(figsize=(8.4, 5.6))
+    for P, c, m, lab in ((p2, c2, "o", "40 kt, 10-15 kpc"), (p1, c1, "s", "20 kt, 10-15 kpc")):
+        x = np.array([1 / np.sqrt(r["n_gen_es"]) for r in P])
+        y = np.array([r["theta68_mean"] for r in P])
+        ax.fill_between(x, [r["theta68_boot_lo_mean"] for r in P], [r["theta68_boot_hi_mean"] for r in P],
+                        color=c, alpha=0.2, lw=0)
+        ax.errorbar(x, y, yerr=[r["theta68_draw_spread_std"] for r in P], fmt=m, color=c, capsize=3,
+                    ms=7, label=lab)
+        for r, xi, yi in zip(P, x, y):
+            ax.annotate(f"{r['d_kpc']}", (xi, yi), xytext=(0, -14 if m == "o" else 9),
+                        textcoords="offset points", ha="center", fontsize=7.5, color=c)
+    allp = sorted(p2 + p1, key=lambda r: r["n_gen_es"], reverse=True)
+    xs = np.array([1 / np.sqrt(r["n_gen_es"]) for r in allp])
+    ys = np.array([r["theta68_mean"] for r in allp])
+    xl = np.linspace(0, xs.max() * 1.05, 20)
+    ax.plot(xl, y0 * xl * np.sqrt(330), ":", color="gray", label=r"$\propto 1/\sqrt{N}$ from the 40 kt, 10 kpc point")
+    ax.set_xlim(0, xs.max() * 1.05)
+    ax.set_ylim(0, max(r["theta68_boot_hi_mean"] for r in allp) * 1.15)
+    ax.set_xlabel(r"$1/\sqrt{N_{ES}}$ (generated ES events per burst)")
+    ax.set_ylabel(r"$\theta_{68}$ [deg]")
+    ax.grid(alpha=0.3)
+    ax.legend(fontsize=8, loc="lower right")
+    t40 = ax.secondary_xaxis("top", functions=(lambda v: 10 * v * np.sqrt(330), lambda dkpc: dkpc / (10 * np.sqrt(330))))
+    t40.set_xlabel("distance [kpc], 40 kt", color=c2, fontsize=9)
+    t40.tick_params(colors=c2)
+    t20 = ax.secondary_xaxis("top", functions=(lambda v: 10 * v * np.sqrt(165), lambda dkpc: dkpc / (10 * np.sqrt(165))))
+    t20.spines["top"].set_position(("outward", 38))
+    t20.set_xlabel("distance [kpc], 20 kt", color=c1, fontsize=9)
+    t20.tick_params(colors=c1)
+    t20.xaxis.set_label_position("top")
+    ax.text(0.01, 0.99, "labels on points: distance [kpc]", transform=ax.transAxes, fontsize=7.5, va="top")
+    fig.text(0.5, -0.02, "The resolution depends only on the number of events: the 20 kt curve is the 40 kt curve "
+             "shifted by $\\sqrt{2}$ in distance\n(same $N_{ES}$ at $d_{20}$ = $d_{40}/\\sqrt{2}$).",
+             ha="center", va="top", fontsize=8.5)
+    fig.savefig(out / "resolution_vs_events.png", dpi=150, bbox_inches="tight")
+    plt.close(fig)
+
+    payload = {"summary_20kt": p1, "summary_40kt": p2,
+               "per_draw_20kt": {str(k): v for k, v in res1.items()},
+               "rows_per_distance_seed": {f"{d}_{s}": n for (d, s), n in cover.items()},
+               "n_errors": len(errs), "errors": errs[:20], "n_no_fit_records": len(nofit_rows),
+               "chunk_files": [str(f) for f in files], "n_boot": args.n_boot, "seed": args.seed}
+    (out / "resolution_vs_distance_phase1.json").write_text(json.dumps(payload, indent=1) + "\n")
+
+    L = ["", "## Phase I (20 kt), 10-15 kpc\n",
+         "*Figures `resolution_vs_distance_phase1.png` (both detectors versus distance) and "
+         "`resolution_vs_events.png` (versus 1/sqrt(N_ES)); data `resolution_vs_distance_phase1.json`; chunks "
+         "`phase1_20kt/chunk_<cats>.json` (15 jobs, `condor/distance_replay/submit_distance_phase1.sub`).*\n",
+         "DUNE Phase I has 20 kt, i.e. exactly half the events of the 40 kt reference at every distance: "
+         "F = 0.5 (10/d)^2 = 0.5, 0.413223, 0.347222, 0.295858, 0.255102, 0.222222 for d = 10-15 kpc "
+         "(generated ES / CC per burst 165 / 1650, 136 / 1364, 115 / 1146, 98 / 976, 84 / 842, 73 / 733).  "
+         "Same method, 722 evaluation cats, seeds 1, 2, 3 and unchanged scenario-8 selection and fit as above "
+         "(the ES table, purity prior and acceptance are those tuned for the 10 kpc / 40 kt yield).  By "
+         "construction theta68 depends only on the number of events, so the 20 kt curve is the 40 kt curve "
+         "shifted by sqrt(2) in distance (N_ES(20 kt, d) = N_ES(40 kt, d sqrt(2))).  The seeds are the same as "
+         "the 40 kt ones, hence the draws of the two detectors are not independent samples of the trimming.\n",
+         "| d [kpc] | F | gen. ES / CC kept | theta68 [deg] mean of draws | draw spread (std; min-max) | "
+         "68% bootstrap (mean of draws) | sky fraction [%] | median [deg] | frac>30 | "
+         "mean n in fit | mean true ES in fit | bursts with no fit (per draw, of 722) |",
+         "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    for r in p1:
+        L.append(f"| {r['d_kpc']} | {r['F']:.6f} | {r['n_gen_es']} / {r['n_gen_cc']} | "
+                 f"**{r['theta68_mean']:.2f}** | {r['theta68_draw_spread_std']:.2f}; "
+                 f"{r['theta68_draw_min']:.2f}-{r['theta68_draw_max']:.2f} | "
+                 f"[{r['theta68_boot_lo_mean']:.2f}, {r['theta68_boot_hi_mean']:.2f}] | "
+                 f"{100 * r['sky_frac_mean']:.3f} | {r['median_mean']:.2f} | {r['frac_gt30_mean']:.4f} | "
+                 f"{r['mean_n_selected']:.1f} | {r['mean_true_es_in_fit']:.1f} | "
+                 f"{'/'.join(str(v) for v in r['n_no_fit_per_draw'])} |")
+    L.append("")
+    L.append(f"Phase I fit errors: {len(errs)}; no-fit records: {len(nofit_rows)}.  Rows per (distance, seed): " +
+             ", ".join(f"{d} kpc s{s}: {n}" for (d, s), n in sorted(cover.items())) + ".\n")
+    with open(out / "resolution_vs_distance.md", "a") as fh:
+        fh.write("\n".join(L) + "\n")
+    for r in p1:
+        print("phase1", json.dumps({k: (round(v, 3) if isinstance(v, float) else v) for k, v in r.items()}))
 
 
 if __name__ == "__main__":
